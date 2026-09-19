@@ -183,24 +183,6 @@ function displayAnswerValue(value: unknown): string {
   return String(value);
 }
 
-function csvCell(value: unknown) {
-  const text = String(value ?? "").replace(/\r?\n/g, " ");
-  const spreadsheetSafe = /^[=+\-@\t]/.test(text) ? `'${text}` : text;
-  return `"${spreadsheetSafe.replace(/"/g, '""')}"`;
-}
-
-function encodeUtf16Le(text: string) {
-  const bytes = new Uint8Array(2 + text.length * 2);
-  bytes[0] = 0xff;
-  bytes[1] = 0xfe;
-  for (let index = 0; index < text.length; index += 1) {
-    const codeUnit = text.charCodeAt(index);
-    bytes[2 + index * 2] = codeUnit & 0xff;
-    bytes[3 + index * 2] = codeUnit >> 8;
-  }
-  return bytes;
-}
-
 function parseAttemptAnswer(row: Attempt) {
   try {
     return JSON.parse(row.responseJson) as unknown;
@@ -224,7 +206,7 @@ function answerPreview(row: Attempt) {
   return displayAnswerValue(answer);
 }
 
-function attemptCsvRows(row: Attempt) {
+function attemptExportRows(row: Attempt) {
   const date = parseDatabaseDate(row.createdAt);
   const dateText = new Intl.DateTimeFormat("fr-MA", {
     dateStyle: "short",
@@ -292,7 +274,7 @@ function attemptCsvRows(row: Attempt) {
     row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
     row.completedSessions,
     15,
-  ].map(csvCell).join(";"));
+  ]);
 }
 
 function AnswerDetails({ attempt }: { attempt: Attempt }) {
@@ -449,19 +431,21 @@ export default function ProfessorDashboard() {
         "Résultat de la tentative",
         "Séances terminées",
         "Nombre total de séances",
-      ].map(csvCell).join(";");
-      const csvRows = payload.rows.flatMap(attemptCsvRows);
-      // UTF-16 LE avec BOM est détecté de manière fiable par Excel,
-      // y compris pour les textes français et arabes dans un même fichier.
-      const csv = `sep=;\r\n${[header, ...csvRows].join("\r\n")}`;
-      const blob = new Blob([encodeUtf16Le(csv)], { type: "text/csv;charset=utf-16le" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
+      ];
+      const rows = payload.rows.flatMap(attemptExportRows);
+      const XLSX = await import("xlsx");
+      const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+      worksheet["!cols"] = [
+        { wch: 12 }, { wch: 13 }, { wch: 10 }, { wch: 11 }, { wch: 24 }, { wch: 24 },
+        { wch: 14 }, { wch: 9 }, { wch: 15 }, { wch: 24 }, { wch: 12 }, { wch: 48 },
+        { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 11 },
+        { wch: 24 }, { wch: 18 }, { wch: 24 },
+      ];
+      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:U${rows.length + 1}` };
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Suivi des élèves");
       const exportDate = new Intl.DateTimeFormat("fr-CA", { timeZone: "Africa/Casablanca" }).format(new Date());
-      link.download = `suivi-eleves-2ac-${exportDate}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
+      XLSX.writeFile(workbook, `suivi-eleves-2ac-${exportDate}.xlsx`, { compression: true });
       if (payload.truncated) setError("L’export a été limité aux 25 000 tentatives les plus récentes.");
     } catch (exportError) {
       if ((exportError as Error & { status?: number }).status === 401) {
@@ -573,7 +557,7 @@ export default function ProfessorDashboard() {
           <div className="prof-title-actions">
             <button className="prof-export" type="button" onClick={() => void downloadCsv()} disabled={exporting || deleting}>
               <FileSpreadsheet size={18} />
-              <span><strong>{exporting ? "Préparation…" : "Exporter Excel / CSV"}</strong><small>Filtres actuels</small></span>
+              <span><strong>{exporting ? "Préparation…" : "Exporter Excel (.xlsx)"}</strong><small>Arabe et français · filtres actuels</small></span>
               {exporting ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}
             </button>
             <button className="prof-delete-data" type="button" onClick={() => setDeleteDialogOpen(true)} disabled={deleting}>
