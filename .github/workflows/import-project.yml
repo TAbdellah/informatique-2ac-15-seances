@@ -1,6 +1,7 @@
 name: Importer le projet complet
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: [import-site.tar.gz]
@@ -17,7 +18,7 @@ jobs:
       - name: Extraire le projet
         run: |
           tar -xzf import-site.tar.gz
-          rm -f import-site.tar.gz .github/workflows/import-project.yml
+          rm -f import-site.tar.gz
       - name: Publier les fichiers extraits
         run: |
           git config user.name "github-actions[bot]"
