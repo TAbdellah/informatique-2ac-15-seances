@@ -1,5 +1,12 @@
 # LAB·2AC — 15 séances d’informatique
 
+## Version 2
+
+- propositions mélangées automatiquement dans les exercices, défis et QCM ;
+- réponses reçues enrichies avec la question, le choix de l’élève et la réponse attendue ;
+- tableau professeur complété par un aperçu des réponses, les pourcentages et les statistiques par élève ;
+- export CSV lisible dans Excel avec une ligne par question et des colonnes distinctes pour les scores.
+
 Parcours bilingue français–arabe destiné aux élèves de 2AC. Chaque séance dure deux heures et privilégie la manipulation : exercices progressifs, situations-problèmes, ateliers, images réelles, évaluations et trace écrite.
 
 ## Accès

@@ -20,7 +20,9 @@ import {
   Search,
   ShieldCheck,
   Target,
+  Trash2,
   Users,
+  AlertTriangle,
   XCircle,
 } from "lucide-react";
 import {
@@ -41,6 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   teacherDashboard,
+  teacherDeleteAllData,
   teacherExport,
   teacherLogin,
   teacherLogout,
@@ -75,6 +78,10 @@ type Learner = {
   isPair: number;
   createdAt: string;
   totalAttempts: number;
+  gradedAttempts: number;
+  correctAttempts: number;
+  averageScore: number | null;
+  bestScore: number | null;
   completedSessions: number;
   lastAttemptAt: string | null;
 };
@@ -129,6 +136,15 @@ const answerLabels: Record<string, string> = {
   clickedTarget: "Cible choisie",
   expectedTarget: "Cible attendue",
   correct: "Résultat",
+  correctChoice: "Réponse attendue",
+  correctChoices: "Réponses attendues",
+  correctIndex: "Indice attendu",
+  correctIndices: "Indices attendus",
+  displayedChoice: "Lettre affichée",
+  displayedCorrectChoice: "Lettre attendue",
+  selectedChoices: "Réponses choisies",
+  expectedSequence: "Ordre attendu",
+  acceptedAnswers: "Réponses acceptées",
 };
 
 function studentName(item: Pick<Attempt, "studentOne" | "studentTwo">) {
@@ -173,7 +189,42 @@ function csvCell(value: unknown) {
   return `"${spreadsheetSafe.replace(/"/g, '""')}"`;
 }
 
-function attemptCsvRow(row: Attempt) {
+function encodeUtf16Le(text: string) {
+  const bytes = new Uint8Array(2 + text.length * 2);
+  bytes[0] = 0xff;
+  bytes[1] = 0xfe;
+  for (let index = 0; index < text.length; index += 1) {
+    const codeUnit = text.charCodeAt(index);
+    bytes[2 + index * 2] = codeUnit & 0xff;
+    bytes[3 + index * 2] = codeUnit >> 8;
+  }
+  return bytes;
+}
+
+function parseAttemptAnswer(row: Attempt) {
+  try {
+    return JSON.parse(row.responseJson) as unknown;
+  } catch {
+    return row.responseJson;
+  }
+}
+
+function answerPreview(row: Attempt) {
+  const answer = parseAttemptAnswer(row);
+  if (answer && typeof answer === "object" && !Array.isArray(answer)) {
+    const record = answer as Record<string, unknown>;
+    const quizAnswers = Array.isArray(record.answers) ? record.answers as Array<Record<string, unknown>> : [];
+    if (quizAnswers.length > 0) {
+      return quizAnswers.map((item, index) => `Q${index + 1}: ${displayAnswerValue(item.selectedChoice)}`).join(" · ");
+    }
+    return displayAnswerValue(
+      record.selectedChoice ?? record.selectedChoices ?? record.text ?? record.sequence ?? record.matches ?? record.completed,
+    );
+  }
+  return displayAnswerValue(answer);
+}
+
+function attemptCsvRows(row: Attempt) {
   const date = parseDatabaseDate(row.createdAt);
   const dateText = new Intl.DateTimeFormat("fr-MA", {
     dateStyle: "short",
@@ -184,7 +235,7 @@ function attemptCsvRow(row: Attempt) {
     timeZone: "Africa/Casablanca",
   }).format(date);
 
-  return [
+  const base = [
     dateText,
     timeText,
     row.className,
@@ -195,11 +246,53 @@ function attemptCsvRow(row: Attempt) {
     row.sessionId,
     activityLabels[row.activityType] ?? row.activityType,
     row.activityId,
-    row.responseJson,
+  ];
+  const scorePercent = row.score === null || row.maxScore === null ? "" : Math.round((row.score / row.maxScore) * 100);
+  const answer = parseAttemptAnswer(row);
+  const quizAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
+    Array.isArray((answer as Record<string, unknown>).answers)
+    ? (answer as { answers: Array<Record<string, unknown>> }).answers
+    : [];
+
+  const details = quizAnswers.length > 0
+    ? quizAnswers.map((item, index) => ({
+      number: index + 1,
+      question: displayAnswerValue(item.question),
+      selected: displayAnswerValue(item.selectedChoice),
+      expected: displayAnswerValue(item.correctChoice),
+      result: item.correct ? "Correct" : "Incorrect",
+    }))
+    : [{
+      number: "",
+      question: answer && typeof answer === "object" && !Array.isArray(answer)
+        ? displayAnswerValue((answer as Record<string, unknown>).question)
+        : "",
+      selected: answerPreview(row),
+      expected: answer && typeof answer === "object" && !Array.isArray(answer)
+        ? displayAnswerValue(
+          (answer as Record<string, unknown>).correctChoice ??
+          (answer as Record<string, unknown>).correctChoices ??
+          (answer as Record<string, unknown>).expectedSequence ??
+          (answer as Record<string, unknown>).acceptedAnswers,
+        )
+        : "",
+      result: row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
+    }];
+
+  return details.map((detail) => [
+    ...base,
+    detail.number,
+    detail.question,
+    detail.selected,
+    detail.expected,
+    detail.result,
+    row.score ?? "",
+    row.maxScore ?? "",
+    scorePercent,
     row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
-    row.score === null || row.maxScore === null ? "" : `${row.score}/${row.maxScore}`,
-    `${row.completedSessions}/15`,
-  ].map(csvCell).join(";");
+    row.completedSessions,
+    15,
+  ].map(csvCell).join(";"));
 }
 
 function AnswerDetails({ attempt }: { attempt: Attempt }) {
@@ -230,7 +323,8 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
             <p>{displayAnswerValue(item.question)}</p>
             <dl>
               <div><dt>Réponse choisie</dt><dd>{displayAnswerValue(item.selectedChoice)}</dd></div>
-              <div><dt>Indice du choix</dt><dd>{typeof item.selectedIndex === "number" ? String.fromCharCode(65 + item.selectedIndex) : "—"}</dd></div>
+              <div><dt>Lettre affichée</dt><dd>{displayAnswerValue(item.displayedChoice)}</dd></div>
+              <div><dt>Réponse attendue</dt><dd>{displayAnswerValue(item.correctChoice)}</dd></div>
             </dl>
           </article>
         ))}
@@ -264,6 +358,9 @@ export default function ProfessorDashboard() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [error, setError] = useState("");
   const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
 
@@ -341,17 +438,28 @@ export default function ProfessorDashboard() {
         "Séance",
         "Type",
         "Activité",
-        "Réponse détaillée",
-        "Résultat",
-        "Score",
-        "Progression",
+        "N° question",
+        "Question",
+        "Réponse de l’élève",
+        "Réponse attendue",
+        "Résultat de la question",
+        "Points obtenus",
+        "Points possibles",
+        "Score (%)",
+        "Résultat de la tentative",
+        "Séances terminées",
+        "Nombre total de séances",
       ].map(csvCell).join(";");
-      const csv = `\uFEFF${[header, ...payload.rows.map(attemptCsvRow)].join("\r\n")}`;
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const csvRows = payload.rows.flatMap(attemptCsvRows);
+      // UTF-16 LE avec BOM est détecté de manière fiable par Excel,
+      // y compris pour les textes français et arabes dans un même fichier.
+      const csv = `sep=;\r\n${[header, ...csvRows].join("\r\n")}`;
+      const blob = new Blob([encodeUtf16Le(csv)], { type: "text/csv;charset=utf-16le" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "reponses-eleves-2ac.csv";
+      const exportDate = new Intl.DateTimeFormat("fr-CA", { timeZone: "Africa/Casablanca" }).format(new Date());
+      link.download = `suivi-eleves-2ac-${exportDate}.csv`;
       link.click();
       URL.revokeObjectURL(url);
       if (payload.truncated) setError("L’export a été limité aux 25 000 tentatives les plus récentes.");
@@ -363,6 +471,30 @@ export default function ProfessorDashboard() {
       setError(exportError instanceof Error ? exportError.message : "Export impossible.");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function deleteAllData() {
+    if (deleteConfirmation !== "EFFACER") return;
+    setDeleting(true);
+    setError("");
+    try {
+      await teacherDeleteAllData();
+      setDeleteDialogOpen(false);
+      setDeleteConfirmation("");
+      setSelectedAttempt(null);
+      setFilters(emptyFilters);
+      setAppliedFilters(emptyFilters);
+      setPage(1);
+      await loadDashboard(emptyFilters, 1);
+    } catch (deleteError) {
+      if ((deleteError as Error & { status?: number }).status === 401) {
+        logout();
+        return;
+      }
+      setError(deleteError instanceof Error ? deleteError.message : "Suppression impossible.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -438,11 +570,16 @@ export default function ProfessorDashboard() {
             <h1>Tableau de bord des élèves</h1>
             <p>Réponses, scores et progression enregistrés en temps réel.</p>
           </div>
-          <button className="prof-export" type="button" onClick={() => void downloadCsv()} disabled={exporting}>
-            <FileSpreadsheet size={18} />
-            <span><strong>{exporting ? "Préparation…" : "Exporter Excel / CSV"}</strong><small>Filtres actuels</small></span>
-            {exporting ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}
-          </button>
+          <div className="prof-title-actions">
+            <button className="prof-export" type="button" onClick={() => void downloadCsv()} disabled={exporting || deleting}>
+              <FileSpreadsheet size={18} />
+              <span><strong>{exporting ? "Préparation…" : "Exporter Excel / CSV"}</strong><small>Filtres actuels</small></span>
+              {exporting ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}
+            </button>
+            <button className="prof-delete-data" type="button" onClick={() => setDeleteDialogOpen(true)} disabled={deleting}>
+              <Trash2 size={17} /> Effacer les données
+            </button>
+          </div>
         </section>
 
         <form className="prof-filters" onSubmit={applyFilters}>
@@ -507,6 +644,7 @@ export default function ProfessorDashboard() {
                         <TableHead>Classe</TableHead>
                         <TableHead>Séance</TableHead>
                         <TableHead>Activité</TableHead>
+                        <TableHead>Réponse reçue</TableHead>
                         <TableHead>Résultat</TableHead>
                         <TableHead>Score</TableHead>
                         <TableHead>Progression</TableHead>
@@ -521,12 +659,13 @@ export default function ProfessorDashboard() {
                           <TableCell><span className="prof-class-badge">{attempt.className} · G{attempt.groupName}</span></TableCell>
                           <TableCell>S{String(attempt.sessionId).padStart(2, "0")}</TableCell>
                           <TableCell><span className="prof-activity"><strong>{activityLabels[attempt.activityType] ?? attempt.activityType}</strong><small>{attempt.activityId}</small></span></TableCell>
+                          <TableCell><span className="prof-answer-preview" title={answerPreview(attempt)}>{answerPreview(attempt)}</span></TableCell>
                           <TableCell>
                             <span className={`prof-result ${attempt.isCorrect === null ? "neutral" : attempt.isCorrect ? "good" : "bad"}`}>
                               {attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}
                             </span>
                           </TableCell>
-                          <TableCell>{attempt.score === null || attempt.maxScore === null ? "—" : <strong>{attempt.score}/{attempt.maxScore}</strong>}</TableCell>
+                          <TableCell>{attempt.score === null || attempt.maxScore === null ? "—" : <span className="prof-score-cell"><strong>{attempt.score}/{attempt.maxScore}</strong><small>{Math.round((attempt.score / attempt.maxScore) * 100)}%</small></span>}</TableCell>
                           <TableCell><span className="prof-mini-progress"><i><b style={{ width: `${Math.round((attempt.completedSessions / 15) * 100)}%` }} /></i><small>{attempt.completedSessions}/15</small></span></TableCell>
                           <TableCell><button className="prof-detail-button" onClick={() => setSelectedAttempt(attempt)}><Eye size={15} /> Voir</button></TableCell>
                         </TableRow>
@@ -555,6 +694,9 @@ export default function ProfessorDashboard() {
                       <TableHead>Organisation</TableHead>
                       <TableHead>Classe et groupe</TableHead>
                       <TableHead>Tentatives</TableHead>
+                      <TableHead>Réussite</TableHead>
+                      <TableHead>Score moyen</TableHead>
+                      <TableHead>Meilleur score</TableHead>
                       <TableHead>Séances terminées</TableHead>
                       <TableHead>Dernière tentative</TableHead>
                     </TableRow>
@@ -566,6 +708,9 @@ export default function ProfessorDashboard() {
                         <TableCell>{learner.isPair ? "Binôme" : "Individuel"}</TableCell>
                         <TableCell><span className="prof-class-badge">{learner.className} · G{learner.groupName}</span></TableCell>
                         <TableCell><strong>{learner.totalAttempts}</strong></TableCell>
+                        <TableCell><strong>{learner.gradedAttempts > 0 ? `${learner.correctAttempts}/${learner.gradedAttempts}` : "—"}</strong></TableCell>
+                        <TableCell><strong>{learner.averageScore === null ? "—" : `${learner.averageScore}%`}</strong></TableCell>
+                        <TableCell><strong>{learner.bestScore === null ? "—" : `${learner.bestScore}%`}</strong></TableCell>
                         <TableCell><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 15) * 100)}%` }} /></i><strong>{learner.completedSessions}/15</strong></span></TableCell>
                         <TableCell><span className="prof-date"><Clock3 size={14} />{formatDateTime(learner.lastAttemptAt)}</span></TableCell>
                       </TableRow>
@@ -603,6 +748,35 @@ export default function ProfessorDashboard() {
               <div className="prof-dialog-id"><span>Identifiant de l’activité</span><code>{selectedAttempt.activityId}</code></div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { if (!deleting) { setDeleteDialogOpen(open); if (!open) setDeleteConfirmation(""); } }}>
+        <DialogContent className="prof-delete-dialog">
+          <DialogHeader>
+            <span className="prof-delete-icon"><AlertTriangle size={24} /></span>
+            <DialogTitle>Effacer toutes les données ?</DialogTitle>
+            <DialogDescription>
+              Cette action supprimera définitivement les élèves inscrits, leurs réponses, leurs scores et leur progression. La configuration du site sera conservée.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="prof-delete-confirmation">
+            <span>Écrivez <strong>EFFACER</strong> pour confirmer</span>
+            <input
+              value={deleteConfirmation}
+              onChange={(event) => setDeleteConfirmation(event.target.value.toUpperCase())}
+              placeholder="EFFACER"
+              autoComplete="off"
+              disabled={deleting}
+            />
+          </label>
+          <div className="prof-delete-actions">
+            <button type="button" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Annuler</button>
+            <button type="button" className="danger" onClick={() => void deleteAllData()} disabled={deleteConfirmation !== "EFFACER" || deleting}>
+              {deleting ? <LoaderCircle className="spin" size={17} /> : <Trash2 size={17} />}
+              {deleting ? "Suppression…" : "Effacer définitivement"}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </main>

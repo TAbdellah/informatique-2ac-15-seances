@@ -79,3 +79,7 @@ export function teacherDashboard<T>(filters: ProfessorFilters, page: number, tok
 export function teacherExport<T>(filters: ProfessorFilters, token = teacherToken()) {
   return call<T>({ action: "export", token, filters });
 }
+
+export function teacherDeleteAllData(token = teacherToken()) {
+  return call<{ deleted: true }>({ action: "delete_all_data", token, confirmation: "EFFACER" });
+}

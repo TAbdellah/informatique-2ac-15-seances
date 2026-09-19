@@ -295,10 +295,23 @@ async function dashboard(filtersValue: unknown, pageValue: unknown) {
   const learners = filteredParticipants
     .map((participant) => {
       const participantSubmissions = submissions.filter((row) => row.participant_id === participant.id);
+      const gradedAttempts = participantSubmissions.filter((row) => row.is_correct !== null);
+      const scoredAttempts = participantSubmissions.filter(
+        (row) => row.score !== null && row.max_score !== null && row.max_score > 0,
+      );
+      const scorePercentages = scoredAttempts.map(
+        (row) => Math.round((Number(row.score) / Number(row.max_score)) * 100),
+      );
       return {
         ...publicParticipant(participant),
         createdAt: participant.created_at,
         totalAttempts: participantSubmissions.length,
+        gradedAttempts: gradedAttempts.length,
+        correctAttempts: gradedAttempts.filter((row) => row.is_correct).length,
+        averageScore: scorePercentages.length > 0
+          ? Math.round(scorePercentages.reduce((total, value) => total + value, 0) / scorePercentages.length)
+          : null,
+        bestScore: scorePercentages.length > 0 ? Math.max(...scorePercentages) : null,
         completedSessions: progress.get(participant.id) || 0,
         lastAttemptAt: participantSubmissions[0]?.created_at || null,
       };
@@ -338,6 +351,12 @@ async function exportRows(filtersValue: unknown) {
     }),
     truncated: filteredSubmissions.length > 25000,
   };
+}
+
+async function deleteAllStudentData() {
+  await database("course_2ac_submissions?id=not.is.null", { method: "DELETE" });
+  await database("course_2ac_participants?id=not.is.null", { method: "DELETE" });
+  return { deleted: true };
 }
 
 Deno.serve(async (request) => {
@@ -448,6 +467,10 @@ Deno.serve(async (request) => {
     if (!(await validSession(body.token))) return json({ error: "Session expirée." }, 401, headers);
     if (body.action === "dashboard") return json(await dashboard(body.filters, body.page), 200, headers);
     if (body.action === "export") return json(await exportRows(body.filters), 200, headers);
+    if (body.action === "delete_all_data") {
+      if (body.confirmation !== "EFFACER") return json({ error: "Confirmation invalide." }, 400, headers);
+      return json(await deleteAllStudentData(), 200, headers);
+    }
     return json({ error: "Action inconnue." }, 400, headers);
   } catch (error) {
     console.error("informatique_2ac_api_error", error);

@@ -793,6 +793,20 @@ function sameNumbers(left: number[], right: number[]) {
   return left.every((value, index) => value === right[index]);
 }
 
+function shuffledIndices(length: number, seed: string) {
+  const indices = Array.from({ length }, (_, index) => index);
+  let state = Array.from(seed).reduce((value, character) => Math.imul(value ^ character.charCodeAt(0), 16777619), 2166136261) >>> 0;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  for (let index = indices.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(random() * (index + 1));
+    [indices[index], indices[randomIndex]] = [indices[randomIndex], indices[index]];
+  }
+  return indices;
+}
+
 function normalizeAnswer(value: string) {
   return value
     .trim()
@@ -824,6 +838,18 @@ function ExercisePlayer({
     exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0
   );
   const [result, setResult] = useState<boolean | null>(alreadyCompleted ? true : null);
+  const choiceOrder = useMemo(
+    () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
+    [exercise],
+  );
+  const categoryOrder = useMemo(
+    () => shuffledIndices(exercise.type === "match" ? exercise.categories.length : 0, `${exercise.id}-categories`),
+    [exercise],
+  );
+  const sequenceOrder = useMemo(
+    () => shuffledIndices(exercise.type === "sequence" ? exercise.steps.length : 0, `${exercise.id}-sequence`),
+    [exercise],
+  );
 
   useEffect(() => {
     if (!alreadyCompleted) return;
@@ -857,24 +883,52 @@ function ExercisePlayer({
   }
 
   function checkCurrent() {
-    if (exercise.type === "choice") recordResult(choice === exercise.answer, { selectedIndex: choice });
+    if (exercise.type === "choice") recordResult(choice === exercise.answer, {
+      question: exercise.prompt,
+      selectedIndex: choice,
+      selectedChoice: choice === null ? null : exercise.choices[choice],
+      correctIndex: exercise.answer,
+      correctChoice: exercise.choices[exercise.answer],
+    });
     if (exercise.type === "multi") {
       const selectedIndices = [...multi].sort((a, b) => a - b);
-      recordResult(sameNumbers(selectedIndices, [...exercise.answers].sort((a, b) => a - b)), { selectedIndices });
+      recordResult(sameNumbers(selectedIndices, [...exercise.answers].sort((a, b) => a - b)), {
+        question: exercise.prompt,
+        selectedIndices,
+        selectedChoices: selectedIndices.map((index) => exercise.choices[index]),
+        correctIndices: exercise.answers,
+        correctChoices: exercise.answers.map((index) => exercise.choices[index]),
+      });
     }
     if (exercise.type === "match") {
       recordResult(
         exercise.rows.every((row, index) => matches[index] === row.answer),
-        { matches: exercise.rows.map((_, index) => matches[index]) }
+        {
+          question: exercise.prompt,
+          matches: exercise.rows.map((row, index) => ({
+            item: row.label,
+            selected: matches[index] === undefined ? null : exercise.categories[matches[index]],
+            expected: exercise.categories[row.answer],
+            correct: matches[index] === row.answer,
+          })),
+        }
       );
     }
     if (exercise.type === "sequence") {
-      recordResult(sameNumbers(sequence, exercise.steps.map((_, index) => index)), { sequence });
+      recordResult(sameNumbers(sequence, exercise.steps.map((_, index) => index)), {
+        question: exercise.prompt,
+        sequence: sequence.map((index) => exercise.steps[index]),
+        expectedSequence: exercise.steps,
+      });
     }
     if (exercise.type === "text") {
       const proposed = normalizeAnswer(textValue);
       const acceptedAnswers = [...exercise.accepted.fr, ...exercise.accepted.ar];
-      recordResult(acceptedAnswers.some((answer) => normalizeAnswer(answer) === proposed), { text: textValue.trim() });
+      recordResult(acceptedAnswers.some((answer) => normalizeAnswer(answer) === proposed), {
+        question: exercise.prompt,
+        text: textValue.trim(),
+        acceptedAnswers,
+      });
     }
   }
 
@@ -906,23 +960,27 @@ function ExercisePlayer({
 
       {exercise.type === "choice" && (
         <div className="exercise-options">
-          {exercise.choices.map((item, index) => (
+          {choiceOrder.map((originalIndex, displayIndex) => {
+            const item = exercise.choices[originalIndex];
+            return (
             <button
-              className={choice === index ? "selected" : ""}
+              className={choice === originalIndex ? "selected" : ""}
               key={item.fr}
-              onClick={() => { setChoice(index); setResult(null); }}
+              onClick={() => { setChoice(originalIndex); setResult(null); }}
             >
-              <span className="option-marker">{String.fromCharCode(65 + index)}</span>
+              <span className="option-marker">{String.fromCharCode(65 + displayIndex)}</span>
               <BilingualText value={item} />
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {exercise.type === "multi" && (
         <div className="exercise-options multi-options">
-          {exercise.choices.map((item, index) => {
-            const selected = multi.has(index);
+          {choiceOrder.map((originalIndex) => {
+            const item = exercise.choices[originalIndex];
+            const selected = multi.has(originalIndex);
             return (
               <button
                 className={selected ? "selected" : ""}
@@ -930,7 +988,7 @@ function ExercisePlayer({
                 onClick={() => {
                   setMulti((current) => {
                     const next = new Set(current);
-                    if (next.has(index)) next.delete(index); else next.add(index);
+                    if (next.has(originalIndex)) next.delete(originalIndex); else next.add(originalIndex);
                     return next;
                   });
                   setResult(null);
@@ -950,7 +1008,9 @@ function ExercisePlayer({
             <div className="match-row" key={row.label.fr}>
               <strong><BilingualText value={row.label} /></strong>
               <div>
-                {exercise.categories.map((category, categoryIndex) => (
+                {categoryOrder.map((categoryIndex) => {
+                  const category = exercise.categories[categoryIndex];
+                  return (
                   <button
                     key={category.fr}
                     className={matches[rowIndex] === categoryIndex ? "selected" : ""}
@@ -958,7 +1018,8 @@ function ExercisePlayer({
                   >
                     <BilingualText value={category} />
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -985,7 +1046,7 @@ function ExercisePlayer({
             })}
           </div>
           <div className="sequence-bank">
-            {exercise.shuffled.map((stepIndex) => (
+            {sequenceOrder.map((stepIndex) => (
               <button
                 key={stepIndex}
                 disabled={sequence.includes(stepIndex)}
@@ -1262,6 +1323,10 @@ function StandardWorkshopView({
   const [checked, setChecked] = useState<boolean[]>([false, false]);
   const [photoAnswer, setPhotoAnswer] = useState<number | null>(null);
   const challenge = photoChallenges[session.id];
+  const photoChoiceOrder = useMemo(
+    () => shuffledIndices(challenge.choices.length, `session-${session.id}-photo`),
+    [challenge, session.id],
+  );
   const photoCorrect = photoAnswer === challenge.answer;
   return (
     <div className="tab-content page-enter">
@@ -1283,26 +1348,34 @@ function StandardWorkshopView({
           <h3>{txt(challenge.prompt, lang)}</h3>
           <p className="choose-label">{labels.choose}</p>
           <div className="photo-choices">
-            {challenge.choices.map((choice, index) => {
-              const selected = photoAnswer === index;
-              const correct = photoAnswer !== null && index === challenge.answer;
+            {photoChoiceOrder.map((originalIndex, displayIndex) => {
+              const choice = challenge.choices[originalIndex];
+              const selected = photoAnswer === originalIndex;
+              const correct = photoAnswer !== null && originalIndex === challenge.answer;
               const wrong = selected && photoAnswer !== challenge.answer;
               return (
                 <button
                   key={choice.fr}
                   className={`${selected ? "selected" : ""} ${correct ? "correct" : ""} ${wrong ? "wrong" : ""}`}
                   onClick={() => {
-                    setPhotoAnswer(index);
+                    setPhotoAnswer(originalIndex);
                     onRecordSubmission({
                       sessionId: session.id,
                       activityType: "photo_challenge",
                       activityId: `session-${session.id}-photo`,
-                      answer: { selectedIndex: index, selectedChoice: choice },
-                      isCorrect: index === challenge.answer,
+                      answer: {
+                        question: challenge.prompt,
+                        selectedIndex: originalIndex,
+                        displayedChoice: String.fromCharCode(65 + displayIndex),
+                        selectedChoice: choice,
+                        correctIndex: challenge.answer,
+                        correctChoice: challenge.choices[challenge.answer],
+                      },
+                      isCorrect: originalIndex === challenge.answer,
                     });
                   }}
                 >
-                  <span>{String.fromCharCode(65 + index)}</span>
+                  <span>{String.fromCharCode(65 + displayIndex)}</span>
                   {txt(choice, lang)}
                   {correct && <Check size={16} />}
                 </button>
@@ -1426,6 +1499,16 @@ function QuizView({
   const isBilingual = session.unit === 1;
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [shuffleRound, setShuffleRound] = useState(0);
+  const quizChoiceOrders = useMemo(
+    () => {
+      void shuffleRound;
+      return session.quiz.map((question, questionIndex) =>
+        shuffledIndices(question.choices.length, `session-${session.id}-quiz-${questionIndex}-round-${shuffleRound}`)
+      );
+    },
+    [session, shuffleRound],
+  );
   const score = session.quiz.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
 
   function submitQuiz() {
@@ -1436,6 +1519,10 @@ function QuizView({
         question: question.question,
         selectedIndex,
         selectedChoice: question.choices[selectedIndex],
+        correctIndex: question.answer,
+        correctChoice: question.choices[question.answer],
+        displayedChoice: String.fromCharCode(65 + quizChoiceOrders[questionIndex].indexOf(selectedIndex)),
+        displayedCorrectChoice: String.fromCharCode(65 + quizChoiceOrders[questionIndex].indexOf(question.answer)),
         correct: selectedIndex === question.answer,
       };
     });
@@ -1468,17 +1555,18 @@ function QuizView({
                 <h3>{isBilingual ? <BilingualText value={question.question} /> : txt(question.question, lang)}</h3>
               </div>
               <div className="choices">
-                {question.choices.map((choice, choiceIndex) => {
-                  const selected = answers[questionIndex] === choiceIndex;
-                  const correct = submitted && choiceIndex === question.answer;
-                  const wrong = submitted && selected && choiceIndex !== question.answer;
+                {quizChoiceOrders[questionIndex].map((originalIndex, displayIndex) => {
+                  const choice = question.choices[originalIndex];
+                  const selected = answers[questionIndex] === originalIndex;
+                  const correct = submitted && originalIndex === question.answer;
+                  const wrong = submitted && selected && originalIndex !== question.answer;
                   return (
                     <button
                       className={`${selected ? "selected" : ""} ${correct ? "correct" : ""} ${wrong ? "wrong" : ""}`}
                       key={choice.fr}
-                      onClick={() => !submitted && setAnswers((current) => ({ ...current, [questionIndex]: choiceIndex }))}
+                      onClick={() => !submitted && setAnswers((current) => ({ ...current, [questionIndex]: originalIndex }))}
                     >
-                      <span className="choice-letter">{String.fromCharCode(65 + choiceIndex)}</span>
+                      <span className="choice-letter">{String.fromCharCode(65 + displayIndex)}</span>
                       {isBilingual ? <BilingualText value={choice} /> : <span>{txt(choice, lang)}</span>}
                       {correct && <Check size={16} />}
                     </button>
@@ -1502,7 +1590,7 @@ function QuizView({
             <div className="quiz-result">
               <div><span>{labels.score}</span><strong>{score}/{session.quiz.length}</strong></div>
               <p>{score === session.quiz.length ? (lang === "fr" ? "Excellent, la notion est maîtrisée." : "ممتاز، تم التحكم في التعلم.") : (lang === "fr" ? "Relisez la trace écrite puis réessayez." : "راجع الخلاصة ثم أعد المحاولة.")}</p>
-              <button onClick={() => { setAnswers({}); setSubmitted(false); }}><TimerReset size={17} />{labels.retry}</button>
+              <button onClick={() => { setAnswers({}); setSubmitted(false); setShuffleRound((current) => current + 1); }}><TimerReset size={17} />{labels.retry}</button>
             </div>
           )}
         </div>
