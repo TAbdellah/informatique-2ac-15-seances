@@ -1,0 +1,460 @@
+const allowedOrigins = new Set([
+  "https://tabdellah.github.io",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
+
+const activityTypes = new Set([
+  "unit1_exercise",
+  "quiz",
+  "photo_challenge",
+  "workshop",
+  "session_completion",
+]);
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+const pageSize = 50;
+
+type TeacherConfig = {
+  password_hash: string;
+  session_secret: string;
+};
+
+type ParticipantRow = {
+  id: string;
+  student_one: string;
+  student_two: string | null;
+  class_name: string;
+  group_name: string;
+  is_pair: boolean;
+  created_at: string;
+};
+
+type SubmissionRow = {
+  id: string;
+  participant_id: string;
+  session_id: number;
+  activity_type: string;
+  activity_id: string;
+  response: unknown;
+  is_correct: boolean | null;
+  score: number | null;
+  max_score: number | null;
+  created_at: string;
+};
+
+type Filters = {
+  className: string;
+  groupName: string;
+  sessionId: number | null;
+  search: string;
+};
+
+function cleanText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
+}
+
+function same(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function base64url(value: Uint8Array) {
+  return btoa(String.fromCharCode(...value))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function fromBase64url(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+}
+
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sign(value: string, secret: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return base64url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))));
+}
+
+function cors(origin: string | null) {
+  const allowed = Boolean(
+    origin &&
+      (allowedOrigins.has(origin) ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:")),
+  );
+  return {
+    "Access-Control-Allow-Origin": allowed && origin ? origin : "https://tabdellah.github.io",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
+}
+
+function json(body: unknown, status: number, headers: Record<string, string>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...headers, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+  });
+}
+
+async function database(path: string, init: RequestInit = {}) {
+  const url = Deno.env.get("SUPABASE_URL");
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !secret) throw new Error("Supabase environment is unavailable");
+
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: secret,
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`Database request failed (${response.status}): ${text.slice(0, 500)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+async function databaseRows<T>(path: string, maximum: number) {
+  const rows: T[] = [];
+  const batchSize = 1000;
+  while (rows.length < maximum) {
+    const end = Math.min(rows.length + batchSize, maximum) - 1;
+    const batch = (await database(path, { headers: { Range: `${rows.length}-${end}` } })) as T[];
+    rows.push(...batch);
+    if (batch.length < batchSize) break;
+  }
+  return rows;
+}
+
+let cachedConfig: TeacherConfig | null = null;
+async function teacherConfig() {
+  if (cachedConfig) return cachedConfig;
+  const rows = (await database(
+    "course_2ac_teacher_config?select=password_hash,session_secret&config_key=eq.default&limit=1",
+  )) as TeacherConfig[];
+  if (!rows[0]) throw new Error("Teacher configuration is missing");
+  cachedConfig = rows[0];
+  return cachedConfig;
+}
+
+async function createSession() {
+  const config = await teacherConfig();
+  const payload = base64url(
+    encoder.encode(JSON.stringify({ role: "teacher", exp: Math.floor(Date.now() / 1000) + 8 * 60 * 60 })),
+  );
+  return `${payload}.${await sign(payload, config.session_secret)}`;
+}
+
+async function validSession(token: unknown) {
+  if (typeof token !== "string" || token.length > 1000) return false;
+  const [payload, signature, extra] = token.split(".");
+  if (!payload || !signature || extra) return false;
+  const config = await teacherConfig();
+  if (!same(signature, await sign(payload, config.session_secret))) return false;
+  try {
+    const decoded = JSON.parse(decoder.decode(fromBase64url(payload))) as { role?: string; exp?: number };
+    return decoded.role === "teacher" && Number(decoded.exp) > Date.now() / 1000;
+  } catch {
+    return false;
+  }
+}
+
+function publicParticipant(row: ParticipantRow) {
+  return {
+    id: row.id,
+    studentOne: row.student_one,
+    studentTwo: row.student_two,
+    className: row.class_name,
+    groupName: row.group_name,
+    isPair: row.is_pair,
+  };
+}
+
+function readFilters(value: unknown): Filters {
+  const raw = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const requestedClass = cleanText(raw.className, 10);
+  const requestedGroup = cleanText(raw.groupName, 5);
+  const requestedSession = Number(raw.sessionId);
+  return {
+    className: /^2\/[1-9]$/.test(requestedClass) ? requestedClass : "",
+    groupName: requestedGroup === "1" || requestedGroup === "2" ? requestedGroup : "",
+    sessionId:
+      Number.isInteger(requestedSession) && requestedSession >= 1 && requestedSession <= 15
+        ? requestedSession
+        : null,
+    search: cleanText(raw.search, 80).toLocaleLowerCase("fr"),
+  };
+}
+
+function completedSessions(submissions: SubmissionRow[]) {
+  const progress = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const row of submissions) {
+    if (row.activity_type !== "session_completion") continue;
+    const key = `${row.participant_id}:${row.activity_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (row.is_correct) progress.set(row.participant_id, (progress.get(row.participant_id) || 0) + 1);
+  }
+  return progress;
+}
+
+function attemptView(row: SubmissionRow, participant: ParticipantRow, progress: Map<string, number>) {
+  return {
+    id: row.id,
+    participantId: row.participant_id,
+    studentOne: participant.student_one,
+    studentTwo: participant.student_two,
+    className: participant.class_name,
+    groupName: participant.group_name,
+    isPair: participant.is_pair,
+    sessionId: row.session_id,
+    activityType: row.activity_type,
+    activityId: row.activity_id,
+    responseJson: JSON.stringify(row.response),
+    isCorrect: row.is_correct,
+    score: row.score,
+    maxScore: row.max_score,
+    createdAt: row.created_at,
+    completedSessions: progress.get(row.participant_id) || 0,
+  };
+}
+
+async function teacherData(filtersValue: unknown) {
+  const filters = readFilters(filtersValue);
+  const [participants, submissions] = await Promise.all([
+    databaseRows<ParticipantRow>(
+      "course_2ac_participants?select=id,student_one,student_two,class_name,group_name,is_pair,created_at&order=created_at.desc",
+      10000,
+    ),
+    databaseRows<SubmissionRow>(
+      "course_2ac_submissions?select=id,participant_id,session_id,activity_type,activity_id,response,is_correct,score,max_score,created_at&order=created_at.desc",
+      25001,
+    ),
+  ]);
+
+  const filteredParticipants = participants.filter((participant) => {
+    if (filters.className && participant.class_name !== filters.className) return false;
+    if (filters.groupName && participant.group_name !== filters.groupName) return false;
+    if (filters.search) {
+      const names = `${participant.student_one} ${participant.student_two || ""}`.toLocaleLowerCase("fr");
+      if (!names.includes(filters.search)) return false;
+    }
+    return true;
+  });
+  const participantIds = new Set(filteredParticipants.map((participant) => participant.id));
+  const participantMap = new Map(participants.map((participant) => [participant.id, participant]));
+  const filteredSubmissions = submissions.filter(
+    (submission) =>
+      participantIds.has(submission.participant_id) &&
+      (filters.sessionId === null || submission.session_id === filters.sessionId),
+  );
+  const progress = completedSessions(submissions);
+  return { filteredParticipants, filteredSubmissions, participantMap, progress, submissions };
+}
+
+async function dashboard(filtersValue: unknown, pageValue: unknown) {
+  const { filteredParticipants, filteredSubmissions, participantMap, progress, submissions } =
+    await teacherData(filtersValue);
+  const requestedPage = Number(pageValue);
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 10000) : 1;
+  const offset = (page - 1) * pageSize;
+  const graded = filteredSubmissions.filter((row) => row.is_correct !== null);
+  const correct = graded.filter((row) => row.is_correct).length;
+  const scored = filteredSubmissions.filter((row) => row.score !== null && row.max_score !== null);
+  const scoreSum = scored.reduce((total, row) => total + Number(row.score), 0);
+  const maxScoreSum = scored.reduce((total, row) => total + Number(row.max_score), 0);
+
+  const attempts = filteredSubmissions
+    .slice(offset, offset + pageSize)
+    .flatMap((row) => {
+      const participant = participantMap.get(row.participant_id);
+      return participant ? [attemptView(row, participant, progress)] : [];
+    });
+
+  const learners = filteredParticipants
+    .map((participant) => {
+      const participantSubmissions = submissions.filter((row) => row.participant_id === participant.id);
+      return {
+        ...publicParticipant(participant),
+        createdAt: participant.created_at,
+        totalAttempts: participantSubmissions.length,
+        completedSessions: progress.get(participant.id) || 0,
+        lastAttemptAt: participantSubmissions[0]?.created_at || null,
+      };
+    })
+    .sort((left, right) =>
+      `${left.className}-${left.groupName}-${left.studentOne}`.localeCompare(
+        `${right.className}-${right.groupName}-${right.studentOne}`,
+        "fr",
+      ),
+    )
+    .slice(0, 500);
+
+  return {
+    stats: {
+      totalParticipants: filteredParticipants.length,
+      totalAttempts: filteredSubmissions.length,
+      correctRate: graded.length > 0 ? Math.round((correct / graded.length) * 100) : 0,
+      averageScore: maxScoreSum > 0 ? Math.round((scoreSum / maxScoreSum) * 100) : 0,
+    },
+    attempts,
+    learners,
+    pagination: {
+      page,
+      pageSize,
+      totalItems: filteredSubmissions.length,
+      totalPages: Math.max(1, Math.ceil(filteredSubmissions.length / pageSize)),
+    },
+  };
+}
+
+async function exportRows(filtersValue: unknown) {
+  const { filteredSubmissions, participantMap, progress } = await teacherData(filtersValue);
+  return {
+    rows: filteredSubmissions.slice(0, 25000).flatMap((row) => {
+      const participant = participantMap.get(row.participant_id);
+      return participant ? [attemptView(row, participant, progress)] : [];
+    }),
+    truncated: filteredSubmissions.length > 25000,
+  };
+}
+
+Deno.serve(async (request) => {
+  const origin = request.headers.get("origin");
+  const headers = cors(origin);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
+  if (request.method !== "POST") return json({ error: "Méthode refusée." }, 405, headers);
+
+  const originAllowed =
+    !origin ||
+    allowedOrigins.has(origin) ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:");
+  if (!originAllowed) return json({ error: "Origine refusée." }, 403, headers);
+
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    if (body.action === "login") {
+      const password = typeof body.password === "string" ? body.password : "";
+      const config = await teacherConfig();
+      if (!password || password.length > 200 || !same(await sha256(password), config.password_hash)) {
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        return json({ error: "Mot de passe incorrect." }, 401, headers);
+      }
+      return json({ token: await createSession(), expiresIn: 28800 }, 200, headers);
+    }
+
+    if (body.action === "register") {
+      const studentOne = cleanText(body.studentOne, 100);
+      const isPair = body.isPair === true;
+      const studentTwo = isPair ? cleanText(body.studentTwo, 100) : "";
+      const className = cleanText(body.className, 10);
+      const groupName = cleanText(body.groupName, 5);
+      if (
+        studentOne.length < 2 ||
+        (isPair && studentTwo.length < 2) ||
+        !/^2\/[1-9]$/.test(className) ||
+        (groupName !== "1" && groupName !== "2")
+      ) {
+        return json(
+          { error: "Tous les champs obligatoires doivent être remplis. / يجب ملء جميع الخانات المطلوبة." },
+          400,
+          headers,
+        );
+      }
+      const id = crypto.randomUUID();
+      const rows = (await database("course_2ac_participants?select=*", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          id,
+          student_one: studentOne,
+          student_two: isPair ? studentTwo : null,
+          class_name: className,
+          group_name: groupName,
+          is_pair: isPair,
+        }),
+      })) as ParticipantRow[];
+      return json({ participant: publicParticipant(rows[0]) }, 201, headers);
+    }
+
+    if (body.action === "submit") {
+      const id = cleanText(body.id, 100);
+      const participantId = cleanText(body.participantId, 50);
+      const activityType = cleanText(body.activityType, 40);
+      const activityId = cleanText(body.activityId, 120);
+      const sessionId = Number(body.sessionId);
+      const responseText = JSON.stringify(body.answer ?? null);
+      const score = Number.isInteger(body.score) ? Number(body.score) : null;
+      const maxScore = Number.isInteger(body.maxScore) ? Number(body.maxScore) : null;
+      if (
+        id.length < 8 ||
+        !/^[0-9a-f-]{36}$/i.test(participantId) ||
+        !activityTypes.has(activityType) ||
+        !activityId ||
+        !Number.isInteger(sessionId) ||
+        sessionId < 1 ||
+        sessionId > 15 ||
+        encoder.encode(responseText).length > 12000 ||
+        ((score === null) !== (maxScore === null)) ||
+        (score !== null && (score < 0 || score > 1000 || maxScore === null || maxScore < 1 || maxScore > 1000 || score > maxScore))
+      ) {
+        return json({ error: "Tentative invalide." }, 400, headers);
+      }
+      const participant = (await database(
+        `course_2ac_participants?select=id&id=eq.${encodeURIComponent(participantId)}&limit=1`,
+      )) as Array<{ id: string }>;
+      if (!participant[0]) return json({ error: "Élève introuvable. Recommencez l’identification." }, 404, headers);
+      await database("course_2ac_submissions?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify({
+          id,
+          participant_id: participantId,
+          session_id: sessionId,
+          activity_type: activityType,
+          activity_id: activityId,
+          response: body.answer ?? null,
+          is_correct: typeof body.isCorrect === "boolean" ? body.isCorrect : null,
+          score,
+          max_score: maxScore,
+        }),
+      });
+      return json({ saved: true }, 201, headers);
+    }
+
+    if (!(await validSession(body.token))) return json({ error: "Session expirée." }, 401, headers);
+    if (body.action === "dashboard") return json(await dashboard(body.filters, body.page), 200, headers);
+    if (body.action === "export") return json(await exportRows(body.filters), 200, headers);
+    return json({ error: "Action inconnue." }, 400, headers);
+  } catch (error) {
+    console.error("informatique_2ac_api_error", error);
+    return json(
+      { error: "Service momentanément indisponible. / الخدمة غير متاحة مؤقتا." },
+      500,
+      headers,
+    );
+  }
+});
