@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -523,6 +524,10 @@ a:focus-visible {
   background: rgba(255, 255, 255, 0.05);
   color: #d6e0e8;
 }
+
+.sidebar-session.locked { cursor: not-allowed; opacity: .48; }
+.sidebar-session.locked:hover { background: transparent; }
+.session-lock { color: #8d98a3; }
 
 .sidebar-session.active {
   background: #f6f8fa;
@@ -1087,6 +1092,10 @@ a:focus-visible {
 }
 
 .session-card.done { background: color-mix(in srgb, var(--unit) 3%, white); }
+.session-card.locked { cursor: not-allowed; filter: grayscale(.72); opacity: .55; box-shadow: none; }
+.session-card.locked:hover { transform: none; }
+.no-open-session { display: inline-flex; align-items: center; gap: 9px; padding: 13px 15px; border: 1px solid #dccfae; border-radius: 10px; background: #fff8dd; color: #735f2f; font-size: 12px; font-weight: 800; }
+.session-access-loading { display: flex; min-height: 60vh; align-items: center; justify-content: center; gap: 11px; color: var(--muted); font-size: 13px; font-weight: 750; }
 
 .session-card-top,
 .session-card-foot {
@@ -1292,7 +1301,7 @@ a:focus-visible {
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin-top: 16px;
   padding: 5px;
   border: 1px solid var(--line);
@@ -1348,6 +1357,19 @@ a:focus-visible {
 
 .situation-card { min-height: 140px; }
 .lead-text { margin: 18px 0 0; font-size: 18px; font-weight: 610; line-height: 1.55; letter-spacing: -.015em; }
+
+.simple-mission { display: flex; flex-direction: column; gap: 15px; font-family: "Patrick Hand", Tahoma, cursive; }
+.simple-mission .card-kicker { font-family: "Patrick Hand", Tahoma, cursive; font-size: 18px; letter-spacing: .03em; }
+.simple-situation { padding: 22px; }
+.situation-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 17px; }
+.situation-parts section { display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 14px; border: 1px solid #dbe3e8; border-radius: 10px; background: #f9fbfc; }
+.situation-parts section > span { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 8px; background: #e5ecef; color: var(--navy); font-size: 11px; font-weight: 900; }
+.situation-parts section strong { color: var(--navy); font-size: 18px; }
+.situation-parts section p { margin: 5px 0 0; color: #4e5b68; font-size: 20px; line-height: 1.45; }
+.situation-parts section.instruction { border-color: #e4c863; background: #fff9dd; }
+.situation-parts section.instruction > span { background: var(--yellow); }
+.mission-support-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 15px; }
+.mission-start-button { align-self: flex-start; min-height: 48px; padding-inline: 20px; font-family: "Patrick Hand", Tahoma, cursive; font-size: 20px; }
 
 .mission-card {
   position: relative;
@@ -1520,7 +1542,7 @@ a:focus-visible {
   font-weight: 900;
 }
 
-.objective-list p { margin: 3px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+.objective-list p { margin: 3px 0 0; color: var(--ink-soft); font-size: 20px; line-height: 1.45; }
 
 .pair-card { background: var(--navy); color: #fff; border-color: var(--navy); }
 .pair-card .card-kicker { color: #89a0b6; }
@@ -1546,8 +1568,8 @@ a:focus-visible {
 }
 
 .role-row div { display: flex; flex-direction: column; gap: 2px; }
-.role-row strong { font-size: 11px; }
-.role-row small { color: #8da2b5; font-size: 9px; }
+.role-row strong { font-size: 20px; }
+.role-row small { color: #b7c5d1; font-size: 18px; }
 
 /* Plan */
 
@@ -2163,6 +2185,12 @@ a:focus-visible {
   font-weight: 580;
   line-height: 1.55;
 }
+.instruction-label { display: inline-flex; width: fit-content; margin-bottom: 8px; padding: 5px 8px; border-radius: 6px; background: #f1d56e; color: #514318; font-size: 10px; font-weight: 900; letter-spacing: .04em; }
+.exercise-copy > .exercise-prompt { padding: 15px 17px; border: 2px solid #e0c34f; border-radius: 11px; background: #fffbe9; box-shadow: 0 7px 18px rgba(91,73,18,.07); }
+.exercise-copy > .exercise-prompt .bilingual-copy > span:first-child { color: #142f4c; font-size: 17px; font-weight: 850; }
+.exercise-copy > .exercise-prompt .bilingual-copy > span:last-child { color: #176c55; font-size: 17px; font-weight: 850; }
+.photo-question { margin: 12px 0 15px; padding: 15px 17px; border: 2px solid #e0c34f; border-radius: 11px; background: #fffbe9; }
+.photo-question h3 { margin: 0; }
 
 .exercise-prompt .bilingual-copy { gap: 6px; }
 
@@ -2596,11 +2624,11 @@ a:focus-visible {
 
 [dir="rtl"] .notebook-margin { inset: 0 57px 0 auto; box-shadow: -5px 0 0 rgba(234,164,164,.25); }
 
-.notebook-heading { display: flex; align-items: center; justify-content: space-between; color: var(--navy); }
+.notebook-heading { display: flex; align-items: center; justify-content: space-between; color: #ba2f37; }
 .notebook-heading span { color: #bd6c62; font-size: 10px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
-.notebook-heading h2 { margin: 7px 0 0; font-size: clamp(25px,3vw,35px); letter-spacing: -.04em; }
+.notebook-heading h2 { margin: 7px 0 0; color: #ba2f37; font-family: "Patrick Hand", Tahoma, cursive; font-size: clamp(27px,3vw,38px); letter-spacing: -.035em; }
 .notebook-lines { margin-top: 32px; }
-.notebook-lines p { min-height: 62px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 2.25; }
+.notebook-lines p { min-height: 62px; margin: 0; color: #2058a8; font-family: "Patrick Hand", Tahoma, cursive; font-size: 20px; line-height: 2.1; }
 .notebook-lines p strong { display: inline-block; margin-inline-end: 8px; color: #bd6c62; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
 
 .notebook-expanded {
@@ -2625,9 +2653,9 @@ a:focus-visible {
 
 .trace-section h3 {
   margin: 0 0 12px;
-  color: #8f4f48;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 17px;
+  color: #258248;
+  font-family: "Patrick Hand", Tahoma, cursive;
+  font-size: 18px;
 }
 
 .trace-section ul {
@@ -2640,13 +2668,13 @@ a:focus-visible {
 
 .trace-section li {
   padding-inline-start: 3px;
-  color: #3f4750;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 14px;
+  color: #2058a8;
+  font-family: "Patrick Hand", Tahoma, cursive;
+  font-size: 20px;
   line-height: 1.58;
 }
 
-.trace-section li::marker { color: #bd6c62; }
+.trace-section li::marker { color: #258248; font-weight: 900; }
 
 .vocabulary-box {
   margin-top: 25px;
@@ -2697,7 +2725,9 @@ a:focus-visible {
 
 .question-title { display: grid; grid-template-columns: 31px 1fr; gap: 11px; align-items: start; }
 .question-title > span { color: #a7b0b9; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; font-weight: 900; }
-.question-title h3 { margin: 0; font-size: 15px; line-height: 1.4; }
+.question-title > div { padding: 13px 15px; border: 2px solid #e0c34f; border-radius: 10px; background: #fffbe9; }
+.question-title > div > small { display: block; margin-bottom: 7px; color: #856e24; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.question-title h3 { margin: 0; color: #142f4c; font-size: 16px; line-height: 1.5; }
 .question-title .bilingual-copy { gap: 5px; }
 .choices { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin-top: 17px; }
 .choices button { display: grid; min-height: 72px; grid-template-columns: 25px 1fr auto; gap: 8px; align-items: center; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--cream); cursor: pointer; color: var(--ink-soft); font-size: 11px; font-weight: 700; text-align: start; transition: 150ms ease; }
@@ -2817,6 +2847,7 @@ a:focus-visible {
   .hero-stat-main span { font-size: 48px; }
   .hero-room { grid-column: span 3; }
   .two-column-content, .quiz-layout { grid-template-columns: 1fr; }
+  .mission-support-grid { grid-template-columns: 1fr; }
   .content-side { display: grid; grid-template-columns: 1fr 1fr; }
   .beginner-card ol { grid-template-columns: 1fr; }
   .photo-challenge { grid-template-columns: 1fr; }
@@ -2868,10 +2899,11 @@ a:focus-visible {
   .session-hero-copy h1 { font-size: 32px; }
   .session-meta { flex-wrap: wrap; }
   .complete-button { grid-column: auto; }
-  .tab-nav { overflow-x: auto; grid-template-columns: repeat(5, minmax(92px,1fr)); }
+  .tab-nav { overflow-x: auto; grid-template-columns: repeat(4, minmax(92px,1fr)); }
   .tab-nav button { font-size: 9px; }
   .content-side { grid-template-columns: 1fr; }
   .lead-text { font-size: 16px; }
+  .situation-parts { grid-template-columns: 1fr; }
   .mission-card h2 { font-size: 23px; }
   .beginner-card { padding: 18px; }
   .beginner-card-head { align-items: flex-start; }
@@ -2916,11 +2948,11 @@ a:focus-visible {
   [dir="rtl"] .notebook { padding: 30px 54px 30px 23px; }
   .notebook-margin { inset-inline-start: 35px; }
   .notebook-heading h2 { font-size: 24px; }
-  .notebook-lines p { font-size: 15px; line-height: 2.45; }
+  .notebook-lines p { font-size: 20px; line-height: 2.15; }
   .notebook-sections { gap: 10px; }
   .trace-section { padding: 16px; }
   .trace-section h3 { font-size: 16px; }
-  .trace-section li { font-size: 13px; }
+  .trace-section li { font-size: 20px; }
   .vocabulary-box > div { grid-template-columns: 1fr; }
   .quiz-intro { padding: 23px; }
   .quiz-result { grid-template-columns: 1fr; }

@@ -1,5 +1,6 @@
 const allowedOrigins = new Set([
   "https://tabdellah.github.io",
+  "https://lab-2ac-v3-test.tahtoh-abdellah.chatgpt.site",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ]);
@@ -49,6 +50,12 @@ type Filters = {
   groupName: string;
   sessionId: number | null;
   search: string;
+};
+
+type SessionAccessRow = {
+  session_id: number;
+  is_unlocked: boolean;
+  updated_at: string;
 };
 
 function cleanText(value: unknown, maxLength: number) {
@@ -296,6 +303,10 @@ async function dashboard(filtersValue: unknown, pageValue: unknown) {
     .map((participant) => {
       const participantSubmissions = submissions.filter((row) => row.participant_id === participant.id);
       const gradedAttempts = participantSubmissions.filter((row) => row.is_correct !== null);
+      const correctAttempts = gradedAttempts.filter((row) => row.is_correct).length;
+      const successRate = gradedAttempts.length > 0
+        ? Math.round((correctAttempts / gradedAttempts.length) * 100)
+        : null;
       const scoredAttempts = participantSubmissions.filter(
         (row) => row.score !== null && row.max_score !== null && row.max_score > 0,
       );
@@ -307,7 +318,9 @@ async function dashboard(filtersValue: unknown, pageValue: unknown) {
         createdAt: participant.created_at,
         totalAttempts: participantSubmissions.length,
         gradedAttempts: gradedAttempts.length,
-        correctAttempts: gradedAttempts.filter((row) => row.is_correct).length,
+        correctAttempts,
+        successRate,
+        gradeOutOf20: successRate === null ? null : Math.round((successRate / 5) * 10) / 10,
         averageScore: scorePercentages.length > 0
           ? Math.round(scorePercentages.reduce((total, value) => total + value, 0) / scorePercentages.length)
           : null,
@@ -325,6 +338,7 @@ async function dashboard(filtersValue: unknown, pageValue: unknown) {
     .slice(0, 500);
 
   return {
+    sessionAccess: await sessionAccess(),
     stats: {
       totalParticipants: filteredParticipants.length,
       totalAttempts: filteredSubmissions.length,
@@ -353,10 +367,64 @@ async function exportRows(filtersValue: unknown) {
   };
 }
 
+async function learnerReport(participantIdValue: unknown) {
+  const participantId = cleanText(participantIdValue, 50);
+  if (!/^[0-9a-f-]{36}$/i.test(participantId)) throw new Error("Invalid participant id");
+  const [participants, submissions] = await Promise.all([
+    databaseRows<ParticipantRow>(
+      `course_2ac_participants?select=id,student_one,student_two,class_name,group_name,is_pair,created_at&id=eq.${encodeURIComponent(participantId)}&limit=1`,
+      1,
+    ),
+    databaseRows<SubmissionRow>(
+      `course_2ac_submissions?select=id,participant_id,session_id,activity_type,activity_id,response,is_correct,score,max_score,created_at&participant_id=eq.${encodeURIComponent(participantId)}&order=created_at.desc`,
+      25001,
+    ),
+  ]);
+  const participant = participants[0];
+  if (!participant) return null;
+  const progress = completedSessions(submissions);
+  return {
+    participant: publicParticipant(participant),
+    attempts: submissions.slice(0, 25000).map((row) => attemptView(row, participant, progress)),
+    truncated: submissions.length > 25000,
+  };
+}
+
 async function deleteAllStudentData() {
   await database("course_2ac_submissions?id=not.is.null", { method: "DELETE" });
   await database("course_2ac_participants?id=not.is.null", { method: "DELETE" });
   return { deleted: true };
+}
+
+async function sessionAccess() {
+  const rows = (await database(
+    "course_2ac_session_access?select=session_id,is_unlocked,updated_at&order=session_id.asc",
+  )) as SessionAccessRow[];
+  return rows.map((row) => ({
+    sessionId: row.session_id,
+    isUnlocked: row.is_unlocked,
+    updatedAt: row.updated_at,
+  }));
+}
+
+async function sessionIsUnlocked(sessionId: number) {
+  const rows = (await database(
+    `course_2ac_session_access?select=is_unlocked&session_id=eq.${sessionId}&limit=1`,
+  )) as Array<{ is_unlocked: boolean }>;
+  return rows[0]?.is_unlocked === true;
+}
+
+async function updateSessionAccess(sessionIdValue: unknown, unlockedValue: unknown) {
+  const sessionId = Number(sessionIdValue);
+  if (!Number.isInteger(sessionId) || sessionId < 1 || sessionId > 15 || typeof unlockedValue !== "boolean") {
+    throw new Error("Invalid session access update");
+  }
+  await database(`course_2ac_session_access?session_id=eq.${sessionId}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ is_unlocked: unlockedValue, updated_at: new Date().toISOString() }),
+  });
+  return sessionAccess();
 }
 
 Deno.serve(async (request) => {
@@ -419,6 +487,10 @@ Deno.serve(async (request) => {
       return json({ participant: publicParticipant(rows[0]) }, 201, headers);
     }
 
+    if (body.action === "session_access") {
+      return json({ sessions: await sessionAccess() }, 200, headers);
+    }
+
     if (body.action === "submit") {
       const id = cleanText(body.id, 100);
       const participantId = cleanText(body.participantId, 50);
@@ -441,6 +513,9 @@ Deno.serve(async (request) => {
         (score !== null && (score < 0 || score > 1000 || maxScore === null || maxScore < 1 || maxScore > 1000 || score > maxScore))
       ) {
         return json({ error: "Tentative invalide." }, 400, headers);
+      }
+      if (!(await sessionIsUnlocked(sessionId))) {
+        return json({ error: "Cette séance est verrouillée par le professeur. / هذه الحصة مقفلة من طرف الأستاذ." }, 423, headers);
       }
       const participant = (await database(
         `course_2ac_participants?select=id&id=eq.${encodeURIComponent(participantId)}&limit=1`,
@@ -467,6 +542,13 @@ Deno.serve(async (request) => {
     if (!(await validSession(body.token))) return json({ error: "Session expirée." }, 401, headers);
     if (body.action === "dashboard") return json(await dashboard(body.filters, body.page), 200, headers);
     if (body.action === "export") return json(await exportRows(body.filters), 200, headers);
+    if (body.action === "learner_report") {
+      const report = await learnerReport(body.participantId);
+      return report ? json(report, 200, headers) : json({ error: "Élève introuvable." }, 404, headers);
+    }
+    if (body.action === "update_session_access") {
+      return json({ sessions: await updateSessionAccess(body.sessionId, body.isUnlocked) }, 200, headers);
+    }
     if (body.action === "delete_all_data") {
       if (body.confirmation !== "EFFACER") return json({ error: "Confirmation invalide." }, 400, headers);
       return json(await deleteAllStudentData(), 200, headers);

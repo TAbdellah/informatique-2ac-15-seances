@@ -109,7 +109,7 @@ export const sessions: CourseSession[] = [
         title: t("2. Formes d’information", "2. أشكال المعلومات"),
         items: [
           t("Les quatre formes étudiées sont : texte, image, son et vidéo.", "الأشكال الأربعة المدروسة هي: النص والصورة والصوت والفيديو."),
-          t("Une même idée peut être communiquée sous plusieurs formes.", "يمكن تقديم الفكرة نفسها بأشكال متعددة."),
+          t("Une même information peut être communiquée sous plusieurs formes.", "يمكن تقديم المعلومة نفسها بأشكال متعددة."),
         ],
       },
       {

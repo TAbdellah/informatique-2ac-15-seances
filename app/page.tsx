@@ -14,12 +14,12 @@ import {
   FlaskConical,
   FolderKanban,
   Gauge,
-  Hand,
   Home,
   ImageIcon,
   Languages,
   Lightbulb,
   LoaderCircle,
+  LockKeyhole,
   Menu,
   MousePointer2,
   MonitorCog,
@@ -38,14 +38,13 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getUnit,
-  phases,
   sessions,
   units,
   type CourseSession,
   type Lang,
   type LocalizedText,
 } from "./course-data";
-import { beginnerGuides, photoChallenges } from "./practice-data";
+import { photoChallenges } from "./practice-data";
 import {
   levelLabels,
   unit1Labs,
@@ -53,12 +52,14 @@ import {
   type Unit1Exercise,
 } from "./unit1-labs";
 import {
+  getSessionAccess,
   registerParticipant,
   submitCourseAttempt,
+  type SessionAccess,
   type StudentProfile,
 } from "@/lib/supabase-api";
 
-type ViewTab = "mission" | "plan" | "workshop" | "trace" | "quiz";
+type ViewTab = "mission" | "workshop" | "trace" | "quiz";
 
 type SubmissionInput = {
   sessionId: number;
@@ -96,7 +97,6 @@ const ui = {
     open: "Ouvrir la séance",
     all: "Toutes",
     mission: "Mission",
-    plan: "Déroulement",
     workshop: "Atelier",
     trace: "Trace écrite",
     quiz: "Évaluation",
@@ -156,7 +156,6 @@ const ui = {
     open: "فتح الحصة",
     all: "الكل",
     mission: "المهمة",
-    plan: "المراحل",
     workshop: "الورشة",
     trace: "خلاصة الدرس",
     quiz: "التقويم",
@@ -205,7 +204,6 @@ const ui = {
 
 const tabItems: { id: ViewTab; icon: typeof Target }[] = [
   { id: "mission", icon: Target },
-  { id: "plan", icon: Clock3 },
   { id: "workshop", icon: FlaskConical },
   { id: "trace", icon: BookOpen },
   { id: "quiz", icon: FileCheck2 },
@@ -379,6 +377,7 @@ function Sidebar({
   lang,
   selectedId,
   completed,
+  unlockedSessions,
   isOpen,
   onClose,
   onToggle,
@@ -388,6 +387,7 @@ function Sidebar({
   lang: Lang;
   selectedId: number | null;
   completed: Set<number>;
+  unlockedSessions: Set<number>;
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
@@ -446,12 +446,15 @@ function Sidebar({
                   {unitSessions.map((session) => (
                     <button
                       key={session.id}
-                      className={`sidebar-session ${selectedId === session.id ? "active" : ""}`}
+                      className={`sidebar-session ${selectedId === session.id ? "active" : ""} ${unlockedSessions.has(session.id) ? "" : "locked"}`}
                       onClick={() => onOpenSession(session.id)}
+                      disabled={!unlockedSessions.has(session.id)}
                     >
                       <span className="sidebar-session-number">{padTime(session.id)}</span>
                       <span className="sidebar-session-name">{txt(session.title, lang)}</span>
-                      {completed.has(session.id) ? (
+                      {!unlockedSessions.has(session.id) ? (
+                        <LockKeyhole className="session-lock" size={14} />
+                      ) : completed.has(session.id) ? (
                         <CheckCircle2 className="session-check" size={15} />
                       ) : (
                         <ChevronRight size={14} className="session-chevron" />
@@ -566,16 +569,20 @@ function Topbar({
 function Dashboard({
   lang,
   completed,
+  unlockedSessions,
   onOpenSession,
 }: {
   lang: Lang;
   completed: Set<number>;
+  unlockedSessions: Set<number>;
   onOpenSession: (id: number) => void;
 }) {
   const labels = ui[lang];
   const [filter, setFilter] = useState<number | "all">("all");
   const visibleSessions = filter === "all" ? sessions : sessions.filter((session) => session.unit === filter);
-  const nextSession = sessions.find((session) => !completed.has(session.id)) ?? sessions[0];
+  const nextSession = sessions.find((session) => unlockedSessions.has(session.id) && !completed.has(session.id))
+    ?? sessions.find((session) => unlockedSessions.has(session.id))
+    ?? null;
 
   return (
     <div className="dashboard page-enter">
@@ -597,10 +604,14 @@ function Dashboard({
               ? "Même si tu n’as jamais touché un ordinateur : un geste montré, puis tu pratiques — toujours avec ton binôme."
               : "حتى لو لم تستعمل الحاسوب من قبل: حركة واحدة معروضة ثم تطبقها — دائما مع زميلك."}
           </p>
-          <button className="primary-button" onClick={() => onOpenSession(nextSession.id)}>
-            {completed.size ? labels.continue : labels.start}
-            {lang === "fr" ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
-          </button>
+          {nextSession ? (
+            <button className="primary-button" onClick={() => onOpenSession(nextSession.id)}>
+              {lang === "fr" ? `Entrer dans la séance ${nextSession.id}` : `الدخول إلى الحصة ${nextSession.id}`}
+              {lang === "fr" ? <ArrowRight size={18} /> : <ArrowLeft size={18} />}
+            </button>
+          ) : (
+            <div className="no-open-session"><LockKeyhole size={18} />{lang === "fr" ? "Aucune séance ouverte par le professeur." : "لا توجد حصة مفتوحة من طرف الأستاذ."}</div>
+          )}
         </div>
         <div className="hero-data">
           <div className="hero-stat hero-stat-main">
@@ -662,7 +673,12 @@ function Dashboard({
             const unit = getUnit(session.unit);
             const done = completed.has(session.id);
             return (
-              <button className={`session-card unit-${session.unit} ${done ? "done" : ""}`} key={session.id} onClick={() => onOpenSession(session.id)}>
+              <button
+                className={`session-card unit-${session.unit} ${done ? "done" : ""} ${unlockedSessions.has(session.id) ? "" : "locked"}`}
+                key={session.id}
+                onClick={() => onOpenSession(session.id)}
+                disabled={!unlockedSessions.has(session.id)}
+              >
                 <div className="session-card-top">
                   <span className="session-index">{padTime(session.id)}</span>
                   <span className="session-duration"><Clock3 size={13} /> 2H</span>
@@ -672,11 +688,13 @@ function Dashboard({
                 <p>{txt(session.subtitle, lang)}</p>
                 <div className="session-card-foot">
                   <span>
-                    {labels.open} · {session.unit === 1
+                    {!unlockedSessions.has(session.id)
+                      ? (lang === "fr" ? "Verrouillée par le professeur" : "مقفلة من طرف الأستاذ")
+                      : `${labels.open} · ${session.unit === 1
                       ? `${unit1Labs[session.id as 1 | 2 | 3].exercises.length} ${lang === "fr" ? "exercices" : "تمرينًا"}`
-                      : `85 min ${lang === "fr" ? "pratique" : "تطبيق"}`}
+                      : `85 min ${lang === "fr" ? "pratique" : "تطبيق"}`}`}
                   </span>
-                  {done ? <CheckCircle2 size={19} /> : <ArrowRight size={19} />}
+                  {!unlockedSessions.has(session.id) ? <LockKeyhole size={18} /> : done ? <CheckCircle2 size={19} /> : <ArrowRight size={19} />}
                 </div>
               </button>
             );
@@ -689,42 +707,33 @@ function Dashboard({
 
 function MissionView({ session, lang, onStartPractice }: { session: CourseSession; lang: Lang; onStartPractice: () => void }) {
   const labels = ui[lang];
-  const guide = beginnerGuides[session.id];
+  const situationParts = lang === "fr"
+    ? [
+        { label: "Contexte", value: session.situation.fr },
+        { label: "Fonction", value: session.mission.fr },
+        { label: "Consigne", value: `Avec ton binôme, réalise les activités proposées et prépare : ${session.deliverable.fr}` },
+        { label: "Tâches / activités", value: session.workshops.map((workshop) => `Atelier ${workshop.label} : ${workshop.text.fr}`).join(" · ") },
+      ]
+    : [
+        { label: "السياق", value: session.situation.ar },
+        { label: "الوظيفة", value: session.mission.ar },
+        { label: "التعليمة", value: `أنجز الأنشطة مع زميلك ثم حضّر: ${session.deliverable.ar}` },
+        { label: "المهام / الأنشطة", value: session.workshops.map((workshop) => `الورشة ${workshop.label}: ${workshop.text.ar}`).join(" · ") },
+      ];
   return (
-    <div className="tab-content two-column-content page-enter">
-      <div className="content-main">
-        <article className="content-card situation-card">
-          <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
-          <p className="lead-text">{txt(session.situation, lang)}</p>
-        </article>
-        <article className="beginner-card">
-          <div className="beginner-card-head">
-            <span className="beginner-icon"><Hand size={21} /></span>
-            <div>
-              <span>{labels.beginner}</span>
-              <p>{labels.beginnerIntro}</p>
-            </div>
-          </div>
-          <ol>
-            {guide.map((step, index) => (
-              <li key={step.fr}><span>{index + 1}</span><p>{txt(step, lang)}</p></li>
-            ))}
-          </ol>
-        </article>
-        <article className="content-card mission-card">
-          <span className="card-kicker"><Target size={16} /> {labels.goal}</span>
-          <h2>{txt(session.mission, lang)}</h2>
-          <div className="mission-output">
-            <FileCheck2 size={19} />
-            <div><span>{labels.deliverable}</span><strong>{txt(session.deliverable, lang)}</strong></div>
-          </div>
-          <button className="practice-button" onClick={onStartPractice}>
-            <MousePointer2 size={18} />
-            {labels.startPractice}
-          </button>
-        </article>
-      </div>
-      <aside className="content-side">
+    <div className="tab-content simple-mission page-enter">
+      <article className="content-card situation-card simple-situation">
+        <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
+        <div className="situation-parts">
+          {situationParts.map((part, index) => (
+            <section key={part.label} className={index === 2 ? "instruction" : ""}>
+              <span>{index + 1}</span>
+              <div><strong>{part.label}</strong><p>{part.value}</p></div>
+            </section>
+          ))}
+        </div>
+      </article>
+      <div className="mission-support-grid">
         <article className="content-card objective-card">
           <span className="card-kicker">{labels.objectives}</span>
           <ol className="objective-list">
@@ -738,52 +747,11 @@ function MissionView({ session, lang, onStartPractice }: { session: CourseSessio
           <div className="role-row"><span>P</span><div><strong>{labels.pilot}</strong><small>{labels.pilotText}</small></div></div>
           <div className="role-row"><span>C</span><div><strong>{labels.copilot}</strong><small>{labels.copilotText}</small></div></div>
         </article>
-      </aside>
-    </div>
-  );
-}
-
-function PlanView({ lang }: { lang: Lang }) {
-  const labels = ui[lang];
-  const phaseDetails = lang === "fr"
-    ? [
-        "Observer la situation réelle et tenter une première réponse, sans cours préalable.",
-        "Le professeur montre uniquement le geste indispensable ; chaque élève le reproduit aussitôt.",
-        "Résoudre la photo-défi puis réaliser les ateliers A et B sur le poste. Les rôles changent régulièrement.",
-        "Faire vérifier la production, compléter la trace écrite structurée puis réussir le défi final.",
-      ]
-    : [
-        "ملاحظة الوضعية الحقيقية ومحاولة جواب أول دون درس نظري مسبق.",
-        "يعرض الأستاذ الحركة الضرورية فقط ثم يطبقها كل تلميذ مباشرة.",
-        "حل تحدي الصورة ثم إنجاز الورشتين A وB على الحاسوب مع تبادل الأدوار.",
-        "التحقق من الإنتاج وإتمام الخلاصة المنظمة ثم إنجاز التحدي النهائي.",
-      ];
-  return (
-    <div className="tab-content page-enter">
-      <div className="plan-head">
-        <div><span className="card-kicker">{labels.plan}</span><h2>{labels.timing}</h2></div>
-        <div className="total-badge"><strong>120</strong><span>{labels.minutes}<br />{labels.total}</span></div>
       </div>
-      <div className="timeline">
-        {phases.map((phase, index) => {
-          const start = phases.slice(0, index).reduce((total, item) => total + item.minutes, 0);
-          const end = start + phase.minutes;
-          return (
-            <article className={`timeline-step phase-${index + 1}`} key={phase.key}>
-              <div className="timeline-time"><strong>{padTime(start)}</strong><span>→</span><strong>{padTime(end)}</strong></div>
-              <div className="timeline-dot"><span>{index + 1}</span></div>
-              <div className="timeline-card">
-                <div className="timeline-card-head">
-                  <div><small>{txt(phase.note, lang)}</small><h3>{txt(phase.label, lang)}</h3></div>
-                  <strong>{phase.minutes} {labels.minutes}</strong>
-                </div>
-                <p>{phaseDetails[index]}</p>
-                <div className="timeline-meter"><span style={{ width: `${(phase.minutes / 120) * 100}%` }} /></div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      <button className="practice-button mission-start-button" onClick={onStartPractice}>
+        <MousePointer2 size={18} />
+        {labels.startPractice}
+      </button>
     </div>
   );
 }
@@ -948,7 +916,10 @@ function ExercisePlayer({
           {alreadyCompleted && <small><CheckCircle2 size={14} />{lang === "fr" ? "Déjà réussi" : "تم بنجاح"}</small>}
         </div>
         <h3><BilingualText value={exercise.title} /></h3>
-        <p className="exercise-prompt"><BilingualText value={exercise.prompt} /></p>
+        <div className="exercise-prompt">
+          <span className="instruction-label">Consigne / التعليمة</span>
+          <BilingualText value={exercise.prompt} />
+        </div>
       </div>
 
       {exercise.image && (
@@ -1345,7 +1316,10 @@ function StandardWorkshopView({
             <span>{labels.photoChallenge}</span>
             <strong>{txt(challenge.kind, lang)}</strong>
           </div>
-          <h3>{txt(challenge.prompt, lang)}</h3>
+          <div className="photo-question">
+            <span className="instruction-label">Question / السؤال</span>
+            <h3><BilingualText value={challenge.prompt} /></h3>
+          </div>
           <p className="choose-label">{labels.choose}</p>
           <div className="photo-choices">
             {photoChoiceOrder.map((originalIndex, displayIndex) => {
@@ -1452,7 +1426,12 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
       <article className={`notebook ${hasSections ? "notebook-expanded" : ""}`}>
         <div className="notebook-margin" aria-hidden="true" />
         <div className="notebook-heading">
-          <div><span>{labels.session} {padTime(session.id)}</span><h2>{labels.notebook}</h2></div>
+          <div>
+            <span>{labels.session} {padTime(session.id)}</span>
+            <h2>{session.id === 1
+              ? txt({ fr: "Rappel sur le système informatique", ar: "تذكير بالنظام المعلوماتي" }, lang)
+              : txt(session.title, lang)}</h2>
+          </div>
           <BookOpen size={29} />
         </div>
         {hasSections ? (
@@ -1496,7 +1475,7 @@ function QuizView({
   onRecordSubmission: (submission: SubmissionInput) => void;
 }) {
   const labels = ui[lang];
-  const isBilingual = session.unit === 1;
+  const isBilingual = true;
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [shuffleRound, setShuffleRound] = useState(0);
@@ -1552,7 +1531,7 @@ function QuizView({
             <article className="quiz-question" key={question.question.fr}>
               <div className="question-title">
                 <span>0{questionIndex + 1}</span>
-                <h3>{isBilingual ? <BilingualText value={question.question} /> : txt(question.question, lang)}</h3>
+                <div><small>Question / السؤال</small><h3><BilingualText value={question.question} /></h3></div>
               </div>
               <div className="choices">
                 {quizChoiceOrders[questionIndex].map((originalIndex, displayIndex) => {
@@ -1605,6 +1584,7 @@ function SessionPage({
   activeTab,
   completed,
   participantId,
+  unlockedSessions,
   onTab,
   onToggleCompleted,
   onBack,
@@ -1616,6 +1596,7 @@ function SessionPage({
   activeTab: ViewTab;
   completed: boolean;
   participantId: string;
+  unlockedSessions: Set<number>;
   onTab: (tab: ViewTab) => void;
   onToggleCompleted: () => void;
   onBack: () => void;
@@ -1661,7 +1642,6 @@ function SessionPage({
       </nav>
 
       {activeTab === "mission" && <MissionView session={session} lang={lang} onStartPractice={() => onTab("workshop")} />}
-      {activeTab === "plan" && <PlanView lang={lang} />}
       {activeTab === "workshop" && (
         <WorkshopView
           key={`${participantId}-${session.id}`}
@@ -1675,9 +1655,9 @@ function SessionPage({
       {activeTab === "quiz" && <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />}
 
       <footer className="session-navigation">
-        <button disabled={session.id === 1} onClick={() => onNavigate(session.id - 1)}><ArrowLeft size={17} /><span><small>{labels.previous}</small>{session.id > 1 && txt(sessions[session.id - 2].title, lang)}</span></button>
+        <button disabled={session.id === 1 || !unlockedSessions.has(session.id - 1)} onClick={() => onNavigate(session.id - 1)}><ArrowLeft size={17} /><span><small>{labels.previous}</small>{session.id > 1 && txt(sessions[session.id - 2].title, lang)}</span></button>
         <span>{padTime(session.id)} / 15</span>
-        <button disabled={session.id === 15} onClick={() => onNavigate(session.id + 1)}><span><small>{labels.next}</small>{session.id < 15 && txt(sessions[session.id].title, lang)}</span><ArrowRight size={17} /></button>
+        <button disabled={session.id === 15 || !unlockedSessions.has(session.id + 1)} onClick={() => onNavigate(session.id + 1)}><span><small>{labels.next}</small>{session.id < 15 && txt(sessions[session.id].title, lang)}</span><ArrowRight size={17} /></button>
       </footer>
     </div>
   );
@@ -1694,9 +1674,12 @@ export default function HomePage() {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [sessionAccess, setSessionAccess] = useState<SessionAccess[]>([]);
+  const [sessionAccessLoaded, setSessionAccessLoaded] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const submissionFlushRef = useRef(false);
   const saveStatusTimerRef = useRef<number | null>(null);
+  const autoOpenedSessionRef = useRef(false);
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
@@ -1708,11 +1691,6 @@ export default function HomePage() {
           const parsed = JSON.parse(storedParticipant) as unknown;
           if (isStudentProfile(parsed)) setStudentProfile(parsed);
         } catch { /* Ignore malformed local data. */ }
-      }
-      const match = window.location.hash.match(/^#seance-(\d+)$/);
-      if (match) {
-        const id = Number(match[1]);
-        if (id >= 1 && id <= 15) setSelectedId(id);
       }
       setIdentityLoaded(true);
     }, 0);
@@ -1783,6 +1761,51 @@ export default function HomePage() {
     if (studentProfile) void flushPendingSubmissions();
   }, [studentProfile]);
 
+  useEffect(() => {
+    if (!studentProfile) {
+      setSessionAccess([]);
+      setSessionAccessLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    const refreshAccess = () => void getSessionAccess()
+      .then((access) => {
+        if (cancelled) return;
+        setSessionAccess(access);
+        setSessionAccessLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSessionAccess([]);
+        setSessionAccessLoaded(true);
+      });
+    refreshAccess();
+    const interval = window.setInterval(refreshAccess, 10_000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [studentProfile]);
+
+  const unlockedSessions = useMemo(
+    () => new Set(sessionAccess.filter((session) => session.isUnlocked).map((session) => session.sessionId)),
+    [sessionAccess],
+  );
+
+  useEffect(() => {
+    if (!studentProfile || !sessionAccessLoaded || autoOpenedSessionRef.current) return;
+    autoOpenedSessionRef.current = true;
+    const hashMatch = window.location.hash.match(/^#seance-(\d+)$/);
+    const requested = hashMatch ? Number(hashMatch[1]) : null;
+    if (requested && unlockedSessions.has(requested)) {
+      openSession(requested);
+      return;
+    }
+    const openSessions = [...unlockedSessions];
+    if (openSessions.length === 1) openSession(openSessions[0]);
+  }, [sessionAccessLoaded, studentProfile, unlockedSessions]);
+
+  useEffect(() => {
+    if (selectedId !== null && sessionAccessLoaded && !unlockedSessions.has(selectedId)) goHome();
+  }, [selectedId, sessionAccessLoaded, unlockedSessions]);
+
   function recordSubmission(submission: SubmissionInput) {
     if (!studentProfile) return;
     const queued: QueuedSubmission = {
@@ -1808,10 +1831,14 @@ export default function HomePage() {
     setTimerRunning(false);
     setTimerSeconds(7200);
     setSaveStatus("idle");
+    setSessionAccess([]);
+    setSessionAccessLoaded(false);
+    autoOpenedSessionRef.current = false;
     window.history.replaceState(null, "", window.location.pathname);
   }
 
   function openSession(id: number) {
+    if (!unlockedSessions.has(id)) return;
     setSelectedId(id);
     setActiveTab("mission");
     setTimerSeconds(7200);
@@ -1870,6 +1897,7 @@ export default function HomePage() {
         lang={lang}
         selectedId={selectedId}
         completed={completed}
+        unlockedSessions={unlockedSessions}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onToggle={() => setSidebarOpen((value) => !value)}
@@ -1892,13 +1920,16 @@ export default function HomePage() {
           onRetrySave={() => void flushPendingSubmissions()}
         />
         <main className="main-scroll" ref={mainRef}>
-          {selected ? (
+          {!sessionAccessLoaded ? (
+            <div className="session-access-loading"><LoaderCircle className="spin" size={25} /><span>{lang === "fr" ? "Ouverture de la séance autorisée…" : "جار فتح الحصة المسموح بها…"}</span></div>
+          ) : selected ? (
             <SessionPage
               session={selected}
               lang={lang}
               activeTab={activeTab}
               completed={completed.has(selected.id)}
               participantId={studentProfile.id}
+              unlockedSessions={unlockedSessions}
               onTab={setActiveTab}
               onToggleCompleted={toggleComplete}
               onBack={goHome}
@@ -1906,7 +1937,7 @@ export default function HomePage() {
               onRecordSubmission={recordSubmission}
             />
           ) : (
-            <Dashboard lang={lang} completed={completed} onOpenSession={openSession} />
+            <Dashboard lang={lang} completed={completed} unlockedSessions={unlockedSessions} onOpenSession={openSession} />
           )}
           <div className="site-credit">
             <span>LAB·2AC</span>

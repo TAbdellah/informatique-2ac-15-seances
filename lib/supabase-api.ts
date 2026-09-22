@@ -1,4 +1,5 @@
-const endpoint = "https://xrwtcyliibooudyoovqo.supabase.co/functions/v1/informatique-2ac-api";
+const endpoint = process.env.NEXT_PUBLIC_COURSE_API_ENDPOINT
+  || "https://xrwtcyliibooudyoovqo.supabase.co/functions/v1/informatique-2ac-api";
 const publishableKey = "sb_publishable_3eVvxtKaHPzZfI4nSMrU-A_iPHGJUWt";
 const teacherSessionKey = "lab2ac-teacher-session";
 
@@ -16,6 +17,12 @@ export type ProfessorFilters = {
   groupName: string;
   sessionId: string;
   search: string;
+};
+
+export type SessionAccess = {
+  sessionId: number;
+  isUnlocked: boolean;
+  updatedAt: string;
 };
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
@@ -58,6 +65,11 @@ export function submitCourseAttempt(payload: Record<string, unknown>) {
   return call<{ saved: true }>({ action: "submit", ...payload });
 }
 
+export async function getSessionAccess() {
+  const data = await call<{ sessions: SessionAccess[] }>({ action: "session_access" });
+  return data.sessions;
+}
+
 export async function teacherLogin(password: string) {
   const data = await call<{ token: string; expiresIn: number }>({ action: "login", password });
   window.localStorage.setItem(teacherSessionKey, data.token);
@@ -80,6 +92,20 @@ export function teacherExport<T>(filters: ProfessorFilters, token = teacherToken
   return call<T>({ action: "export", token, filters });
 }
 
+export function teacherLearnerReport<T>(participantId: string, token = teacherToken()) {
+  return call<T>({ action: "learner_report", token, participantId });
+}
+
 export function teacherDeleteAllData(token = teacherToken()) {
   return call<{ deleted: true }>({ action: "delete_all_data", token, confirmation: "EFFACER" });
+}
+
+export async function teacherUpdateSessionAccess(sessionId: number, isUnlocked: boolean, token = teacherToken()) {
+  const data = await call<{ sessions: SessionAccess[] }>({
+    action: "update_session_access",
+    token,
+    sessionId,
+    isUnlocked,
+  });
+  return data.sessions;
 }

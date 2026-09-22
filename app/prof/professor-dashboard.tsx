@@ -5,8 +5,6 @@ import {
   Activity,
   ArrowLeft,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Download,
   Eye,
@@ -15,12 +13,14 @@ import {
   GraduationCap,
   KeyRound,
   LoaderCircle,
+  LockKeyhole,
   LogOut,
   RefreshCw,
   Search,
   ShieldCheck,
   Target,
   Trash2,
+  UnlockKeyhole,
   Users,
   AlertTriangle,
   XCircle,
@@ -40,14 +40,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   teacherDashboard,
   teacherDeleteAllData,
   teacherExport,
+  teacherLearnerReport,
   teacherLogin,
   teacherLogout,
+  teacherUpdateSessionAccess,
   type ProfessorFilters,
+  type SessionAccess,
 } from "@/lib/supabase-api";
 
 type Attempt = {
@@ -80,6 +82,8 @@ type Learner = {
   totalAttempts: number;
   gradedAttempts: number;
   correctAttempts: number;
+  successRate: number | null;
+  gradeOutOf20: number | null;
   averageScore: number | null;
   bestScore: number | null;
   completedSessions: number;
@@ -87,6 +91,7 @@ type Learner = {
 };
 
 type DashboardData = {
+  sessionAccess: SessionAccess[];
   stats: {
     totalParticipants: number;
     totalAttempts: number;
@@ -206,6 +211,18 @@ function answerPreview(row: Attempt) {
   return displayAnswerValue(answer);
 }
 
+function attemptPercentage(attempt: Attempt) {
+  if (attempt.score !== null && attempt.maxScore !== null && attempt.maxScore > 0) {
+    return Math.round((attempt.score / attempt.maxScore) * 100);
+  }
+  if (attempt.isCorrect === null) return null;
+  return attempt.isCorrect ? 100 : 0;
+}
+
+function percentageToGrade(percentage: number | null) {
+  return percentage === null ? null : Math.round((percentage / 5) * 10) / 10;
+}
+
 function attemptExportRows(row: Attempt) {
   const date = parseDatabaseDate(row.createdAt);
   const dateText = new Intl.DateTimeFormat("fr-MA", {
@@ -229,7 +246,8 @@ function attemptExportRows(row: Attempt) {
     activityLabels[row.activityType] ?? row.activityType,
     row.activityId,
   ];
-  const scorePercent = row.score === null || row.maxScore === null ? "" : Math.round((row.score / row.maxScore) * 100);
+  const scorePercent = attemptPercentage(row);
+  const gradeOutOf20 = percentageToGrade(scorePercent);
   const answer = parseAttemptAnswer(row);
   const quizAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
     Array.isArray((answer as Record<string, unknown>).answers)
@@ -270,7 +288,8 @@ function attemptExportRows(row: Attempt) {
     detail.result,
     row.score ?? "",
     row.maxScore ?? "",
-    scorePercent,
+    scorePercent ?? "",
+    gradeOutOf20 ?? "",
     row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
     row.completedSessions,
     15,
@@ -315,12 +334,25 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
   }
 
   if (answer && typeof answer === "object" && !Array.isArray(answer)) {
+    const record = answer as Record<string, unknown>;
+    if (record.question) {
+      const received = record.selectedChoice ?? record.selectedChoices ?? record.text ?? record.sequence ?? record.matches;
+      const expected = record.correctChoice ?? record.correctChoices ?? record.expectedSequence ?? record.acceptedAnswers;
+      return (
+        <dl className="prof-answer-list prof-pedagogical-answer">
+          <div><dt>Question</dt><dd>{displayAnswerValue(record.question)}</dd></div>
+          <div><dt>Réponse de l’élève</dt><dd>{received === undefined ? "Aucune réponse" : displayAnswerValue(received)}</dd></div>
+          <div><dt>Réponse attendue</dt><dd>{expected === undefined ? "—" : displayAnswerValue(expected)}</dd></div>
+          <div><dt>Résultat</dt><dd>{attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}</dd></div>
+        </dl>
+      );
+    }
     return (
       <dl className="prof-answer-list">
-        {Object.entries(answer as Record<string, unknown>).map(([key, value]) => (
+        {Object.entries(record).filter(([key]) => key !== "selectedIndex" && key !== "correctIndex").map(([key, value]) => (
           <div key={key}>
             <dt>{answerLabels[key] ?? key}</dt>
-            <dd>{key === "selectedIndex" && typeof value === "number" ? String.fromCharCode(65 + value) : displayAnswerValue(value)}</dd>
+            <dd>{displayAnswerValue(value)}</dd>
           </div>
         ))}
       </dl>
@@ -343,8 +375,12 @@ export default function ProfessorDashboard() {
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [updatingSessionId, setUpdatingSessionId] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [selectedAttempt, setSelectedAttempt] = useState<Attempt | null>(null);
+  const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
+  const [learnerAttempts, setLearnerAttempts] = useState<Attempt[]>([]);
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
     setLoading(true);
@@ -427,7 +463,8 @@ export default function ProfessorDashboard() {
         "Résultat de la question",
         "Points obtenus",
         "Points possibles",
-        "Score (%)",
+        "Pourcentage de la tentative (%)",
+        "Note de la tentative (/20)",
         "Résultat de la tentative",
         "Séances terminées",
         "Nombre total de séances",
@@ -438,12 +475,44 @@ export default function ProfessorDashboard() {
       worksheet["!cols"] = [
         { wch: 12 }, { wch: 13 }, { wch: 10 }, { wch: 11 }, { wch: 24 }, { wch: 24 },
         { wch: 14 }, { wch: 9 }, { wch: 15 }, { wch: 24 }, { wch: 12 }, { wch: 48 },
-        { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 11 },
-        { wch: 24 }, { wch: 18 }, { wch: 24 },
+        { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 30 },
+        { wch: 27 }, { wch: 24 }, { wch: 18 }, { wch: 24 },
       ];
-      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:U${rows.length + 1}` };
+      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:V${rows.length + 1}` };
+
+      const summaryHeader = [
+        "Classe", "Groupe", "Élève 1", "Élève 2", "Organisation", "Nombre de tentatives",
+        "Tentatives corrigées", "Réponses correctes", "Taux de réussite (%)", "Note indicative (/20)",
+        "Score moyen des QCM (%)", "Meilleur score QCM (%)", "Séances terminées", "Total des séances",
+        "Dernière tentative (Maroc)",
+      ];
+      const summaryRows = (data?.learners ?? []).map((learner) => [
+        learner.className,
+        `Groupe ${learner.groupName}`,
+        learner.studentOne,
+        learner.studentTwo ?? "",
+        learner.isPair ? "Binôme" : "Individuel",
+        learner.totalAttempts,
+        learner.gradedAttempts,
+        learner.correctAttempts,
+        learner.successRate ?? "",
+        learner.gradeOutOf20 ?? "",
+        learner.averageScore ?? "",
+        learner.bestScore ?? "",
+        learner.completedSessions,
+        15,
+        learner.lastAttemptAt ? formatDateTime(learner.lastAttemptAt) : "Aucune tentative",
+      ]);
+      const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
+      summaryWorksheet["!cols"] = [
+        { wch: 10 }, { wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 20 },
+        { wch: 21 }, { wch: 20 }, { wch: 21 }, { wch: 21 }, { wch: 24 }, { wch: 24 },
+        { wch: 19 }, { wch: 18 }, { wch: 25 },
+      ];
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:O${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Suivi des élèves");
+      XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
       const exportDate = new Intl.DateTimeFormat("fr-CA", { timeZone: "Africa/Casablanca" }).format(new Date());
       XLSX.writeFile(workbook, `suivi-eleves-2ac-${exportDate}.xlsx`, { compression: true });
       if (payload.truncated) setError("L’export a été limité aux 25 000 tentatives les plus récentes.");
@@ -466,7 +535,8 @@ export default function ProfessorDashboard() {
       await teacherDeleteAllData();
       setDeleteDialogOpen(false);
       setDeleteConfirmation("");
-      setSelectedAttempt(null);
+      setSelectedLearner(null);
+      setLearnerAttempts([]);
       setFilters(emptyFilters);
       setAppliedFilters(emptyFilters);
       setPage(1);
@@ -479,6 +549,44 @@ export default function ProfessorDashboard() {
       setError(deleteError instanceof Error ? deleteError.message : "Suppression impossible.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function toggleSessionAccess(session: SessionAccess) {
+    setUpdatingSessionId(session.sessionId);
+    setError("");
+    try {
+      const sessionAccess = await teacherUpdateSessionAccess(session.sessionId, !session.isUnlocked);
+      setData((current) => current ? { ...current, sessionAccess } : current);
+    } catch (updateError) {
+      if ((updateError as Error & { status?: number }).status === 401) {
+        logout();
+        return;
+      }
+      setError(updateError instanceof Error ? updateError.message : "Modification impossible.");
+    } finally {
+      setUpdatingSessionId(null);
+    }
+  }
+
+  async function openLearnerReport(learner: Learner) {
+    setSelectedLearner(learner);
+    setLearnerAttempts([]);
+    setSelectedAttemptId(null);
+    setReportLoading(true);
+    setError("");
+    try {
+      const report = await teacherLearnerReport<{ attempts: Attempt[]; truncated: boolean }>(learner.id);
+      setLearnerAttempts(report.attempts);
+      if (report.truncated) setError("Le rapport est limité aux 25 000 tentatives les plus récentes.");
+    } catch (reportError) {
+      if ((reportError as Error & { status?: number }).status === 401) {
+        logout();
+        return;
+      }
+      setError(reportError instanceof Error ? reportError.message : "Rapport impossible à charger.");
+    } finally {
+      setReportLoading(false);
     }
   }
 
@@ -557,12 +665,41 @@ export default function ProfessorDashboard() {
           <div className="prof-title-actions">
             <button className="prof-export" type="button" onClick={() => void downloadCsv()} disabled={exporting || deleting}>
               <FileSpreadsheet size={18} />
-              <span><strong>{exporting ? "Préparation…" : "Exporter Excel (.xlsx)"}</strong><small>Arabe et français · filtres actuels</small></span>
+              <span><strong>{exporting ? "Préparation…" : "Exporter Excel (.xlsx)"}</strong><small>Résumé des notes + réponses détaillées</small></span>
               {exporting ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />}
             </button>
             <button className="prof-delete-data" type="button" onClick={() => setDeleteDialogOpen(true)} disabled={deleting}>
               <Trash2 size={17} /> Effacer les données
             </button>
+          </div>
+        </section>
+
+        <section className="prof-session-control" aria-labelledby="session-control-title">
+          <div className="prof-session-control-head">
+            <div>
+              <span><LockKeyhole size={16} /> ACCÈS DES ÉLÈVES</span>
+              <h2 id="session-control-title">Verrouillage des séances</h2>
+              <p>Seules les séances ouvertes peuvent être consultées et enregistrer des réponses.</p>
+            </div>
+            <strong>{data?.sessionAccess.filter((session) => session.isUnlocked).length ?? 0} ouverte(s)</strong>
+          </div>
+          <div className="prof-session-lock-grid">
+            {(data?.sessionAccess ?? []).map((session) => (
+              <button
+                type="button"
+                key={session.sessionId}
+                className={session.isUnlocked ? "unlocked" : "locked"}
+                onClick={() => void toggleSessionAccess(session)}
+                disabled={updatingSessionId !== null}
+                aria-pressed={session.isUnlocked}
+              >
+                <span>S{String(session.sessionId).padStart(2, "0")}</span>
+                {updatingSessionId === session.sessionId
+                  ? <LoaderCircle className="spin" size={16} />
+                  : session.isUnlocked ? <UnlockKeyhole size={16} /> : <LockKeyhole size={16} />}
+                <small>{session.isUnlocked ? "Ouverte" : "Fermée"}</small>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -608,70 +745,12 @@ export default function ProfessorDashboard() {
         </section>
 
         <section className="prof-data-card">
-          <Tabs defaultValue="attempts">
-            <div className="prof-data-head">
-              <TabsList className="prof-tabs-list">
-                <TabsTrigger value="attempts">Tentatives <span>{data?.pagination.totalItems ?? 0}</span></TabsTrigger>
-                <TabsTrigger value="progress">Progression <span>{data?.learners.length ?? 0}</span></TabsTrigger>
-              </TabsList>
-              {loading && <span className="prof-refreshing"><LoaderCircle className="spin" size={16} /> Actualisation…</span>}
-            </div>
-
-            <TabsContent value="attempts">
-              {data && data.attempts.length > 0 ? (
-                <>
-                  <Table className="prof-table">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date et heure (Maroc)</TableHead>
-                        <TableHead>Élève(s)</TableHead>
-                        <TableHead>Classe</TableHead>
-                        <TableHead>Séance</TableHead>
-                        <TableHead>Activité</TableHead>
-                        <TableHead>Réponse reçue</TableHead>
-                        <TableHead>Résultat</TableHead>
-                        <TableHead>Score</TableHead>
-                        <TableHead>Progression</TableHead>
-                        <TableHead>Détails</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.attempts.map((attempt) => (
-                        <TableRow key={attempt.id}>
-                          <TableCell><span className="prof-date"><Clock3 size={14} />{formatDateTime(attempt.createdAt)}</span></TableCell>
-                          <TableCell><span className="prof-student-name"><strong>{studentName(attempt)}</strong><small>{attempt.isPair ? "Binôme" : "Individuel"}</small></span></TableCell>
-                          <TableCell><span className="prof-class-badge">{attempt.className} · G{attempt.groupName}</span></TableCell>
-                          <TableCell>S{String(attempt.sessionId).padStart(2, "0")}</TableCell>
-                          <TableCell><span className="prof-activity"><strong>{activityLabels[attempt.activityType] ?? attempt.activityType}</strong><small>{attempt.activityId}</small></span></TableCell>
-                          <TableCell><span className="prof-answer-preview" title={answerPreview(attempt)}>{answerPreview(attempt)}</span></TableCell>
-                          <TableCell>
-                            <span className={`prof-result ${attempt.isCorrect === null ? "neutral" : attempt.isCorrect ? "good" : "bad"}`}>
-                              {attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}
-                            </span>
-                          </TableCell>
-                          <TableCell>{attempt.score === null || attempt.maxScore === null ? "—" : <span className="prof-score-cell"><strong>{attempt.score}/{attempt.maxScore}</strong><small>{Math.round((attempt.score / attempt.maxScore) * 100)}%</small></span>}</TableCell>
-                          <TableCell><span className="prof-mini-progress"><i><b style={{ width: `${Math.round((attempt.completedSessions / 15) * 100)}%` }} /></i><small>{attempt.completedSessions}/15</small></span></TableCell>
-                          <TableCell><button className="prof-detail-button" onClick={() => setSelectedAttempt(attempt)}><Eye size={15} /> Voir</button></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="prof-pagination">
-                    <span>{data.pagination.totalItems} tentative(s) · page {data.pagination.page}/{data.pagination.totalPages}</span>
-                    <div>
-                      <button disabled={page <= 1 || loading} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft size={17} /> Précédente</button>
-                      <button disabled={page >= data.pagination.totalPages || loading} onClick={() => setPage((current) => current + 1)}>Suivante <ChevronRight size={17} /></button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="prof-empty"><Activity size={28} /><strong>Aucune tentative</strong><p>Aucune réponse ne correspond aux filtres sélectionnés.</p></div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="progress">
-              {data && data.learners.length > 0 ? (
-                <Table className="prof-table prof-progress-table">
+          <div className="prof-data-head prof-learners-head">
+            <div><strong>Rapports des élèves</strong><span>Une ligne par élève ou binôme</span></div>
+            {loading && <span className="prof-refreshing"><LoaderCircle className="spin" size={16} /> Actualisation…</span>}
+          </div>
+          {data && data.learners.length > 0 ? (
+                <Table className="prof-table prof-learner-table">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Élève(s)</TableHead>
@@ -679,10 +758,13 @@ export default function ProfessorDashboard() {
                       <TableHead>Classe et groupe</TableHead>
                       <TableHead>Tentatives</TableHead>
                       <TableHead>Réussite</TableHead>
+                      <TableHead>Taux</TableHead>
+                      <TableHead>Note indicative</TableHead>
                       <TableHead>Score moyen</TableHead>
                       <TableHead>Meilleur score</TableHead>
                       <TableHead>Séances terminées</TableHead>
                       <TableHead>Dernière tentative</TableHead>
+                      <TableHead>Rapport détaillé</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -693,10 +775,13 @@ export default function ProfessorDashboard() {
                         <TableCell><span className="prof-class-badge">{learner.className} · G{learner.groupName}</span></TableCell>
                         <TableCell><strong>{learner.totalAttempts}</strong></TableCell>
                         <TableCell><strong>{learner.gradedAttempts > 0 ? `${learner.correctAttempts}/${learner.gradedAttempts}` : "—"}</strong></TableCell>
+                        <TableCell><strong className="prof-percentage">{learner.successRate === null ? "—" : `${learner.successRate}%`}</strong></TableCell>
+                        <TableCell><strong className="prof-grade">{learner.gradeOutOf20 === null ? "—" : `${learner.gradeOutOf20}/20`}</strong></TableCell>
                         <TableCell><strong>{learner.averageScore === null ? "—" : `${learner.averageScore}%`}</strong></TableCell>
                         <TableCell><strong>{learner.bestScore === null ? "—" : `${learner.bestScore}%`}</strong></TableCell>
                         <TableCell><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 15) * 100)}%` }} /></i><strong>{learner.completedSessions}/15</strong></span></TableCell>
                         <TableCell><span className="prof-date"><Clock3 size={14} />{formatDateTime(learner.lastAttemptAt)}</span></TableCell>
+                        <TableCell><button className="prof-detail-button" onClick={() => void openLearnerReport(learner)}><Eye size={15} /> Consulter</button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -704,32 +789,56 @@ export default function ProfessorDashboard() {
               ) : (
                 <div className="prof-empty"><Users size={28} /><strong>Aucun élève</strong><p>Aucune inscription ne correspond aux filtres sélectionnés.</p></div>
               )}
-            </TabsContent>
-          </Tabs>
         </section>
       </div>
 
-      <Dialog open={Boolean(selectedAttempt)} onOpenChange={(open) => { if (!open) setSelectedAttempt(null); }}>
-        <DialogContent className="prof-answer-dialog">
-          {selectedAttempt && (
+      <Dialog open={Boolean(selectedLearner)} onOpenChange={(open) => { if (!open) { setSelectedLearner(null); setSelectedAttemptId(null); } }}>
+        <DialogContent className="prof-answer-dialog prof-learner-report-dialog">
+          {selectedLearner && (
             <>
               <DialogHeader>
-                <span className="prof-dialog-kicker">{activityLabels[selectedAttempt.activityType] ?? selectedAttempt.activityType}</span>
-                <DialogTitle>Réponse détaillée</DialogTitle>
+                <span className="prof-dialog-kicker">RAPPORT INDIVIDUEL</span>
+                <DialogTitle>{studentName(selectedLearner)}</DialogTitle>
                 <DialogDescription>
-                  {studentName(selectedAttempt)} · {selectedAttempt.className} · Groupe {selectedAttempt.groupName}
+                  {selectedLearner.className} · Groupe {selectedLearner.groupName} · {selectedLearner.isPair ? "Binôme" : "Individuel"}
                 </DialogDescription>
               </DialogHeader>
-              <div className="prof-dialog-meta">
-                <span><Clock3 size={15} />{formatDateTime(selectedAttempt.createdAt)}</span>
-                <span>Séance {selectedAttempt.sessionId}</span>
-                <span className={`prof-result ${selectedAttempt.isCorrect === null ? "neutral" : selectedAttempt.isCorrect ? "good" : "bad"}`}>
-                  {selectedAttempt.isCorrect === null ? "Non évalué" : selectedAttempt.isCorrect ? "Correct" : "Incorrect"}
-                </span>
-                {selectedAttempt.score !== null && selectedAttempt.maxScore !== null && <strong>Score {selectedAttempt.score}/{selectedAttempt.maxScore}</strong>}
+              <div className="prof-report-summary">
+                <article><small>Tentatives</small><strong>{selectedLearner.totalAttempts}</strong></article>
+                <article><small>Réussite</small><strong>{selectedLearner.gradedAttempts > 0 ? `${selectedLearner.correctAttempts}/${selectedLearner.gradedAttempts}` : "—"}</strong></article>
+                <article><small>Pourcentage</small><strong>{selectedLearner.successRate === null ? "—" : `${selectedLearner.successRate}%`}</strong></article>
+                <article className="grade"><small>Note indicative</small><strong>{selectedLearner.gradeOutOf20 === null ? "—" : `${selectedLearner.gradeOutOf20}/20`}</strong></article>
+                <article><small>Progression</small><strong>{selectedLearner.completedSessions}/15</strong></article>
               </div>
-              <AnswerDetails attempt={selectedAttempt} />
-              <div className="prof-dialog-id"><span>Identifiant de l’activité</span><code>{selectedAttempt.activityId}</code></div>
+              {reportLoading ? (
+                <div className="prof-report-loading"><LoaderCircle className="spin" size={22} /> Chargement des réponses…</div>
+              ) : learnerAttempts.length > 0 ? (
+                <div className="prof-report-attempts">
+                  {learnerAttempts.map((attempt) => {
+                    const expanded = selectedAttemptId === attempt.id;
+                    const percentage = attemptPercentage(attempt);
+                    const grade = percentageToGrade(percentage);
+                    return (
+                      <article className={`prof-report-attempt ${expanded ? "expanded" : ""}`} key={attempt.id}>
+                        <button type="button" onClick={() => setSelectedAttemptId(expanded ? null : attempt.id)}>
+                          <span><strong>S{String(attempt.sessionId).padStart(2, "0")} · {activityLabels[attempt.activityType] ?? attempt.activityType}</strong><small>{formatDateTime(attempt.createdAt)} · {attempt.activityId}</small></span>
+                          <span className={`prof-result ${attempt.isCorrect === null ? "neutral" : attempt.isCorrect ? "good" : "bad"}`}>
+                            {attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}
+                          </span>
+                          <span className="prof-attempt-mark">
+                            <strong>{percentage === null ? "—" : `${percentage}%`}</strong>
+                            <small>{grade === null ? "" : `${grade}/20`}</small>
+                          </span>
+                          <Eye size={16} />
+                        </button>
+                        {expanded && <div className="prof-report-answer"><AnswerDetails attempt={attempt} /></div>}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="prof-empty"><Activity size={25} /><strong>Aucune tentative</strong><p>Cet élève n’a encore envoyé aucune réponse.</p></div>
+              )}
             </>
           )}
         </DialogContent>
