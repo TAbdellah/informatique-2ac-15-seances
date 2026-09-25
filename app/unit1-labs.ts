@@ -35,7 +35,8 @@ export type MultiExercise = ExerciseBase & {
 export type MatchExercise = ExerciseBase & {
   type: "match";
   categories: LocalizedText[];
-  rows: { label: LocalizedText; answer: number }[];
+  categoryImages?: (string | null)[];
+  rows: { label: LocalizedText; answer: number; image?: string }[];
 };
 
 export type SequenceExercise = ExerciseBase & {
@@ -50,6 +51,11 @@ export type TextExercise = ExerciseBase & {
   placeholder: LocalizedText;
 };
 
+export type ConversionExercise = ExerciseBase & {
+  type: "conversions";
+  rows: { before: string; after: string; accepted: string[] }[];
+};
+
 export type GestureExercise = ExerciseBase & {
   type: "gesture";
   mode: "precision" | "double" | "typing";
@@ -61,6 +67,7 @@ export type Unit1Exercise =
   | MatchExercise
   | SequenceExercise
   | TextExercise
+  | ConversionExercise
   | GestureExercise;
 
 export type Unit1Lab = {
@@ -84,23 +91,19 @@ const treatmentImage: ExerciseImage = {
   caption: t("Support du cours · trois types de traitement", "دعامة الدرس · ثلاثة أنواع من المعالجة"),
 };
 
-const keyboardImage: ExerciseImage = {
-  src: "https://i.imgur.com/iBf66HT.jpeg",
-  alt: t("Photographie réelle d’un clavier", "صورة حقيقية للوحة مفاتيح"),
-  caption: t("Photographie réelle · support du cours", "صورة حقيقية · دعامة الدرس"),
-};
-
-const processorImage: ExerciseImage = {
-  src: "https://i.imgur.com/s7HPQ9D.png",
-  alt: t("Photographie réelle d’un processeur", "صورة حقيقية لمعالج"),
-  caption: t("Composant réel · support du cours", "مكون حقيقي · دعامة الدرس"),
-};
-
 const desktopImage: ExerciseImage = {
   src: "https://i.imgur.com/cwhu6dv.png",
   alt: t("Capture réelle d’un bureau Windows", "لقطة حقيقية لسطح مكتب Windows"),
   caption: t("Bureau Windows · support du cours", "سطح مكتب Windows · دعامة الدرس"),
 };
+
+const session2Image = (file: string, fr: string, ar: string): ExerciseImage => ({
+  src: `session2/${file}`,
+  alt: t(fr, ar),
+  caption: t("Support visuel de l’exercice", "دعامة بصرية للتمرين"),
+});
+
+const workstationImage = session2Image("poste-informatique-numerote.png", "Souris, clavier, écran et unité centrale numérotés de 1 à 4", "فأرة ولوحة مفاتيح وشاشة ووحدة مركزية مرقمة من 1 إلى 4");
 
 export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
   1: {
@@ -301,180 +304,252 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
     ],
   },
   2: {
-    title: t("Laboratoire 2 · Environnement matériel", "المختبر 2 · البيئة المادية"),
+    title: t("Laboratoire 2 · Le matériel informatique", "المختبر 2 · معدات الحاسوب"),
     subtitle: t(
-      "13 exercices : périphériques, fonctions, composants internes et capacités.",
-      "13 تمرينا: الملحقات ووظائفها والمكونات الداخلية والسعات."
+      "15 exercices progressifs : observer, identifier, classer, choisir, relier puis résoudre.",
+      "15 تمرينا متدرجا: ألاحظ، أتعرف، أصنف، أختار، أربط ثم أحل."
     ),
     exercises: [
       {
-        id: "s2-ordinateur-definition",
-        type: "choice",
+        id: "s2-poste-reperes",
+        type: "match",
         level: "start",
-        title: t("Reconnaître l’ordinateur", "التعرف على الحاسوب"),
-        prompt: t("Un ordinateur est…", "الحاسوب هو…"),
-        choices: [
-          t("une machine de traitement automatique des informations", "آلة للمعالجة الآلية للمعلومات"),
-          t("un écran uniquement", "شاشة فقط"),
-          t("un meuble de rangement", "أثاث للتخزين"),
+        title: t("Je reconnais le poste informatique", "أتعرف على مكونات الحاسوب"),
+        prompt: t("Observe l’image. Associe chaque numéro au bon élément.", "لاحظ الصورة. اربط كل رقم بالعنصر المناسب."),
+        categories: [t("Souris", "الفأرة"), t("Clavier", "لوحة المفاتيح"), t("Écran", "الشاشة"), t("Unité centrale", "الوحدة المركزية")],
+        rows: [
+          { label: t("Repère 1", "الرقم 1"), answer: 0 },
+          { label: t("Repère 2", "الرقم 2"), answer: 1 },
+          { label: t("Repère 3", "الرقم 3"), answer: 2 },
+          { label: t("Repère 4", "الرقم 4"), answer: 3 },
         ],
-        answer: 0,
-        feedback: t("L’ordinateur reçoit, traite, stocke et communique des informations.", "يستقبل الحاسوب المعلومات ويعالجها ويخزنها ويتواصل بها."),
+        image: workstationImage,
+        hint: t("Observe la forme de chaque objet avant de répondre.", "لاحظ شكل كل جهاز قبل الإجابة."),
+        feedback: t("Le poste de base comprend une souris, un clavier, un écran et une unité centrale.", "يتكون الحاسوب المكتبي الأساسي من فأرة ولوحة مفاتيح وشاشة ووحدة مركزية."),
       },
       {
-        id: "s2-composition",
-        type: "multi",
+        id: "s2-poste-fonctions",
+        type: "match",
         level: "start",
-        title: t("Composer un poste", "تركيب حاسوب"),
-        prompt: t("Sélectionne les éléments nécessaires à un poste informatique de base.", "حدد العناصر الضرورية لحاسوب أساسي."),
-        choices: [t("Unité centrale", "وحدة مركزية"), t("Écran", "شاشة"), t("Clavier", "لوحة مفاتيح"), t("Souris", "فأرة"), t("Agrafeuse", "دباسة")],
-        answers: [0, 1, 2, 3],
-        feedback: t("Le poste de base associe unité centrale, écran, clavier et souris.", "يتكون الحاسوب الأساسي من وحدة مركزية وشاشة ولوحة مفاتيح وفأرة."),
+        title: t("À quoi sert chaque élément ?", "ما وظيفة كل عنصر؟"),
+        prompt: t("Associe chaque élément du poste à son rôle principal.", "اربط كل عنصر من الحاسوب بوظيفته الأساسية."),
+        categories: [t("Déplacer le pointeur", "تحريك المؤشر"), t("Saisir du texte", "إدخال النص"), t("Afficher les informations", "عرض المعلومات"), t("Traiter les informations", "معالجة المعلومات")],
+        rows: [
+          { label: t("Souris", "الفأرة"), answer: 0, image: "session2/items/ex02-card-04.jpg" },
+          { label: t("Clavier", "لوحة المفاتيح"), answer: 1, image: "session2/items/ex02-card-05.jpg" },
+          { label: t("Écran", "الشاشة"), answer: 2, image: "session2/items/ex02-card-16.png" },
+          { label: t("Unité centrale", "الوحدة المركزية"), answer: 3, image: "session2/items/unite-centrale-lenovo.jpg" },
+        ],
+        feedback: t("Les périphériques permettent de communiquer avec l’unité centrale qui traite les informations.", "تسمح الملحقات بالتواصل مع الوحدة المركزية التي تعالج المعلومات."),
       },
       {
-        id: "s2-clavier-photo",
-        type: "choice",
+        id: "s2-peripherique-ou-composant",
+        type: "match",
         level: "start",
-        title: t("Observer un périphérique réel", "ملاحظة ملحق حقيقي"),
-        prompt: t("Quelle est la fonction principale de ce périphérique ?", "ما الوظيفة الأساسية لهذا الملحق؟"),
-        choices: [t("Saisir du texte", "إدخال النص"), t("Imprimer sur papier", "الطباعة على الورق"), t("Diffuser du son", "إخراج الصوت")],
-        answer: 0,
-        feedback: t("Le clavier est un périphérique d’entrée utilisé pour saisir du texte et des commandes.", "لوحة المفاتيح ملحق إدخال لكتابة النصوص والتعليمات."),
-        image: keyboardImage,
+        title: t("Autour ou à l’intérieur ?", "في الخارج أم في الداخل؟"),
+        prompt: t("Classe chaque élément : périphérique externe ou composant interne de l’unité centrale.", "صنف كل عنصر: ملحق خارجي أو مكون داخلي للوحدة المركزية."),
+        categories: [t("Périphérique externe", "ملحق خارجي"), t("Composant interne", "مكون داخلي")],
+        rows: [
+          { label: t("Clavier", "لوحة المفاتيح"), answer: 0, image: "session2/items/ex02-card-05.jpg" },
+          { label: t("Écran", "الشاشة"), answer: 0, image: "session2/items/ex02-card-16.png" },
+          { label: t("Imprimante", "الطابعة"), answer: 0, image: "session2/items/ex02-card-09.jpg" },
+          { label: t("Processeur", "المعالج"), answer: 1, image: "session2/items/ex12-card-01.png" },
+          { label: t("Mémoire RAM", "ذاكرة RAM"), answer: 1, image: "session2/items/ex12-card-03.jpg" },
+          { label: t("Carte mère", "اللوحة الأم"), answer: 1, image: "session2/items/ex12-card-02.jpg" },
+        ],
+        feedback: t("Les périphériques sont reliés à l’ordinateur ; les composants internes se trouvent dans l’unité centrale.", "ترتبط الملحقات بالحاسوب، أما المكونات الداخلية فتوجد داخل الوحدة المركزية."),
+      },
+      {
+        id: "s2-sens-information",
+        type: "match",
+        level: "train",
+        title: t("Quel est le sens de l’information ?", "ما اتجاه انتقال المعلومة؟"),
+        prompt: t("Pour chaque périphérique, indique si l’information entre, sort, circule dans les deux sens ou se conserve.", "حدد لكل ملحق: هل تدخل المعلومة أم تخرج أم تمر في الاتجاهين أم تخزن؟"),
+        categories: [t("Entrée", "إدخال"), t("Sortie", "إخراج"), t("Entrée / sortie", "إدخال وإخراج"), t("Stockage", "تخزين")],
+        rows: [
+          { label: t("Clavier", "لوحة المفاتيح"), answer: 0, image: "session2/items/ex02-card-05.jpg" },
+          { label: t("Microphone", "الميكروفون"), answer: 0, image: "session2/items/ex02-card-13.jpg" },
+          { label: t("Écran", "الشاشة"), answer: 1, image: "session2/items/ex02-card-16.png" },
+          { label: t("Imprimante", "الطابعة"), answer: 1, image: "session2/items/ex02-card-09.jpg" },
+          { label: t("Écran tactile", "الشاشة اللمسية"), answer: 2, image: "session2/items/ex02-card-11.jpg" },
+          { label: t("Routeur", "الموجه"), answer: 2, image: "session2/items/ex02-card-08.jpg" },
+          { label: t("Clé USB", "مفتاح USB"), answer: 3, image: "session2/items/ex02-card-07.jpg" },
+          { label: t("Disque dur externe", "القرص الصلب الخارجي"), answer: 3, image: "session2/items/ex02-card-12.jpg" },
+        ],
+        hint: t("Pose-toi la question : l’information va-t-elle vers l’ordinateur ou vers l’utilisateur ?", "اسأل نفسك: هل تتجه المعلومة نحو الحاسوب أم نحو المستخدم؟"),
+        feedback: t("La catégorie dépend du sens de circulation de l’information, pas de la forme du périphérique.", "يعتمد التصنيف على اتجاه انتقال المعلومة وليس على شكل الملحق."),
       },
       {
         id: "s2-peripheriques-roles",
         type: "match",
         level: "train",
-        title: t("Associer périphérique et fonction", "ربط الملحق بوظيفته"),
-        prompt: t("Choisis la fonction exacte de chaque périphérique.", "اختر الوظيفة الدقيقة لكل ملحق."),
-        categories: [t("Afficher", "عرض"), t("Pointer", "توجيه"), t("Imprimer", "طباعة"), t("Numériser", "رقمنة")],
+        title: t("Je choisis le périphérique utile", "أختار الملحق المناسب"),
+        prompt: t("Associe chaque besoin au périphérique qui permet de le réaliser.", "اربط كل حاجة بالملحق الذي يسمح بإنجازها."),
+        categories: [t("Clavier", "لوحة المفاتيح"), t("Souris", "الفأرة"), t("Scanner", "الماسح الضوئي"), t("Imprimante", "الطابعة"), t("Microphone", "الميكروفون"), t("Haut-parleurs", "مكبرات الصوت"), t("Webcam", "كاميرا الويب")],
         rows: [
-          { label: t("Écran", "شاشة"), answer: 0 },
-          { label: t("Souris", "فأرة"), answer: 1 },
-          { label: t("Imprimante", "طابعة"), answer: 2 },
-          { label: t("Scanner", "ماسح ضوئي"), answer: 3 },
+          { label: t("Écrire le titre d’un document", "كتابة عنوان وثيقة"), answer: 0, image: "session2/items/ex02-card-05.jpg" },
+          { label: t("Sélectionner une icône", "تحديد أيقونة"), answer: 1, image: "session2/items/ex02-card-04.jpg" },
+          { label: t("Transformer une feuille en image numérique", "تحويل ورقة إلى صورة رقمية"), answer: 2, image: "session2/items/ex02-card-06.jpg" },
+          { label: t("Obtenir le document sur papier", "الحصول على الوثيقة ورقيا"), answer: 3, image: "session2/items/ex02-card-09.jpg" },
+          { label: t("Enregistrer la voix", "تسجيل الصوت"), answer: 4, image: "session2/items/ex02-card-13.jpg" },
+          { label: t("Écouter un son avec la classe", "الاستماع إلى صوت مع القسم"), answer: 5, image: "session2/items/ex02-card-01.jpg" },
+          { label: t("Participer à une visioconférence", "المشاركة في لقاء مرئي"), answer: 6, image: "session2/items/ex02-card-02.png" },
         ],
-        feedback: t("Le nom du périphérique ne suffit pas : il faut connaître son rôle.", "لا يكفي اسم الملحق، بل يجب معرفة وظيفته."),
+        feedback: t("On choisit un périphérique à partir de la tâche à accomplir.", "نختار الملحق انطلاقا من المهمة المطلوب إنجازها."),
       },
       {
-        id: "s2-categories",
-        type: "match",
+        id: "s2-situation-expose",
+        type: "multi",
         level: "train",
-        title: t("Classer les périphériques", "تصنيف الملحقات"),
-        prompt: t("Classe chaque périphérique selon le sens de circulation de l’information.", "صنف كل ملحق حسب اتجاه انتقال المعلومات."),
-        categories: [t("Entrée", "إدخال"), t("Sortie", "إخراج"), t("Entrée / sortie", "إدخال وإخراج"), t("Stockage", "تخزين")],
-        rows: [
-          { label: t("Microphone", "ميكروفون"), answer: 0 },
-          { label: t("Vidéo-projecteur", "مسلاط"), answer: 1 },
-          { label: t("Écran tactile", "شاشة لمسية"), answer: 2 },
-          { label: t("Clé USB", "مفتاح USB"), answer: 3 },
-          { label: t("Webcam", "كاميرا ويب"), answer: 0 },
-          { label: t("Casque audio avec micro", "سماعة بميكروفون"), answer: 2 },
+        title: t("Situation · Présenter un exposé", "وضعية · تقديم عرض"),
+        prompt: t("Sara a préparé un diaporama sur une clé USB. Elle veut le présenter à toute la classe. Sélectionne uniquement le matériel nécessaire.", "أعدت سارة عرضا في مفتاح USB وتريد تقديمه أمام القسم. حدد المعدات الضرورية فقط."),
+        choices: [
+          t("Ordinateur", "حاسوب"),
+          t("Clé USB", "مفتاح USB"),
+          t("Vidéoprojecteur", "مسلاط"),
+          t("Câble HDMI", "سلك HDMI"),
+          t("Scanner", "ماسح ضوئي"),
+          t("Imprimante", "طابعة"),
         ],
-        feedback: t("Demande-toi si l’information entre, sort, circule dans les deux sens ou se conserve.", "اسأل: هل تدخل المعلومة أم تخرج أم تمر في الاتجاهين أم تخزن؟"),
+        answers: [0, 1, 2, 3],
+        feedback: t("Il faut ouvrir le fichier, le transmettre à l’appareil d’affichage et le projeter ; scanner et imprimante sont inutiles ici.", "نحتاج إلى فتح الملف وربط جهاز العرض وإسقاط الصورة؛ لا نحتاج إلى الماسح الضوئي أو الطابعة."),
       },
       {
-        id: "s2-processeur-photo",
+        id: "s2-choisir-ordinateur-simple",
         type: "choice",
         level: "train",
-        title: t("Identifier le processeur", "التعرف على المعالج"),
-        prompt: t("Quel rôle joue le composant présenté ?", "ما دور المكون الظاهر؟"),
-        choices: [t("Exécuter les instructions et les calculs", "تنفيذ التعليمات والحسابات"), t("Imprimer les documents", "طباعة الوثائق"), t("Déplacer le pointeur", "تحريك المؤشر")],
+        title: t("Choisir un ordinateur · besoin simple", "اختيار حاسوب · حاجة بسيطة"),
+        prompt: t("Amine veut rédiger ses devoirs, naviguer sur Internet et regarder des vidéos éducatives. Quel ordinateur répond correctement à son besoin sans chercher une puissance inutile ?", "يريد أمين كتابة واجباته وتصفح الإنترنت ومشاهدة فيديوهات تعليمية. أي حاسوب يلبي حاجته دون قوة غير ضرورية؟"),
+        choices: [
+          t("Core i3 / Ryzen 3, 8 Go RAM, SSD 256 Go", "Core i3 / Ryzen 3، وRAM 8 Go، وSSD 256 Go"),
+          t("Core i9, 64 Go RAM, carte graphique haut de gamme", "Core i9، وRAM 64 Go، وبطاقة رسومية قوية جدا"),
+          t("2 Go RAM, disque dur très ancien de 80 Go", "RAM 2 Go وقرص صلب قديم بسعة 80 Go"),
+        ],
         answer: 0,
-        feedback: t("Le processeur est souvent appelé le cerveau de l’ordinateur.", "يسمى المعالج غالبا دماغ الحاسوب."),
-        image: processorImage,
+        feedback: t("Pour la bureautique, Internet et les vidéos, 8 Go de RAM et un SSD offrent un fonctionnement fluide sans surdimensionner le matériel.", "للكتابة والإنترنت والفيديو تكفي RAM بسعة 8 Go وقرص SSD لتشغيل سلس دون مبالغة في التجهيز."),
+      },
+      {
+        id: "s2-branchements",
+        type: "match",
+        level: "train",
+        title: t("Je réalise les bons branchements", "أنجز التوصيلات الصحيحة"),
+        prompt: t("Associe chaque appareil au connecteur le plus adapté.", "اربط كل جهاز بالموصل الأنسب."),
+        categories: [t("USB-A", "USB-A"), t("Jack audio", "Jack صوتي"), t("HDMI", "HDMI"), t("RJ45", "RJ45")],
+        categoryImages: [
+          "session2/items/ex07-pair-04-b.png",
+          "session2/items/ex07-pair-01-b.jpg",
+          "session2/items/ex07-pair-05-b.jpg",
+          "session2/items/ex07-pair-03-b.jpg",
+        ],
+        rows: [
+          { label: t("Souris", "الفأرة"), answer: 0, image: "session2/items/ex02-card-04.jpg" },
+          { label: t("Imprimante", "الطابعة"), answer: 0, image: "session2/items/ex02-card-09.jpg" },
+          { label: t("Casque", "سماعة الرأس"), answer: 1, image: "session2/items/ex02-card-14.jpg" },
+          { label: t("Vidéoprojecteur récent", "مسلاط حديث"), answer: 2, image: "session2/items/ex02-card-15.jpg" },
+          { label: t("Routeur par câble", "موجه بسلك"), answer: 3, image: "session2/items/ex02-card-08.jpg" },
+        ],
+        hint: t("Compare la forme du connecteur et celle du port.", "قارن شكل الموصل بشكل المنفذ."),
+        feedback: t("Un branchement correct respecte la forme et la fonction du port ; on ne force jamais un connecteur.", "يحترم التوصيل الصحيح شكل المنفذ ووظيفته، ولا نجبر الموصل أبدا."),
       },
       {
         id: "s2-composants-roles",
         type: "match",
         level: "train",
-        title: t("Relier les composants internes", "ربط المكونات الداخلية"),
-        prompt: t("Associe chaque composant à son rôle principal.", "اربط كل مكون بوظيفته الأساسية."),
-        categories: [
-          t("Relier les composants", "ربط المكونات"),
-          t("Traiter", "معالجة"),
-          t("Mémoriser temporairement", "حفظ مؤقت"),
-          t("Stocker durablement", "تخزين دائم"),
-          t("Fournir l’énergie", "توفير الطاقة"),
-        ],
+        title: t("Dans l’unité centrale", "داخل الوحدة المركزية"),
+        prompt: t("Associe chaque composant interne à sa mission.", "اربط كل مكون داخلي بوظيفته."),
+        categories: [t("Exécuter les instructions", "تنفيذ التعليمات"), t("Mémoriser pendant le travail", "حفظ مؤقت أثناء العمل"), t("Conserver les fichiers", "حفظ الملفات"), t("Relier les composants", "ربط المكونات"), t("Fournir l’énergie", "توفير الطاقة")],
         rows: [
-          { label: t("Carte mère", "لوحة أم"), answer: 0 },
-          { label: t("Processeur", "معالج"), answer: 1 },
-          { label: t("RAM", "RAM"), answer: 2 },
-          { label: t("SSD", "SSD"), answer: 3 },
-          { label: t("Alimentation", "مزود الطاقة"), answer: 4 },
+          { label: t("Processeur", "المعالج"), answer: 0, image: "session2/items/ex12-card-01.png" },
+          { label: t("Mémoire RAM", "ذاكرة RAM"), answer: 1, image: "session2/items/ex12-card-03.jpg" },
+          { label: t("SSD / disque dur", "SSD / القرص الصلب"), answer: 2, image: "session2/items/ex12-card-05.jpg" },
+          { label: t("Carte mère", "اللوحة الأم"), answer: 3, image: "session2/items/ex12-card-02.jpg" },
+          { label: t("Bloc d’alimentation", "مزود الطاقة"), answer: 4, image: "session2/items/ex12-card-07.jpg" },
         ],
-        feedback: t("Chaque composant a une mission précise dans l’unité centrale.", "لكل مكون وظيفة محددة داخل الوحدة المركزية."),
-      },
-      {
-        id: "s2-securite",
-        type: "multi",
-        level: "train",
-        title: t("Manipuler sans danger", "الاستعمال الآمن"),
-        prompt: t("Sélectionne les comportements sûrs.", "حدد السلوكات الآمنة."),
-        choices: [
-          t("Éteindre et débrancher avant d’ouvrir l’unité centrale", "إطفاء الجهاز وفصله قبل فتح الوحدة المركزية"),
-          t("Garder les mains sèches", "الحفاظ على جفاف اليدين"),
-          t("Tirer sur les câbles pour aller plus vite", "سحب الأسلاك بسرعة"),
-          t("Demander l’autorisation du professeur", "طلب إذن الأستاذ"),
-        ],
-        answers: [0, 1, 3],
-        feedback: t("Le matériel électrique se manipule uniquement hors tension et avec autorisation.", "تستعمل المعدات الكهربائية بعد فصلها وبإذن الأستاذ."),
+        feedback: t("Le processeur traite, la RAM mémorise temporairement, le disque conserve, la carte mère relie et l’alimentation fournit l’énergie.", "يعالج المعالج، وتحفظ RAM مؤقتا، ويخزن القرص، وتربط اللوحة الأم المكونات، ويوفر مزود الطاقة الكهرباء."),
       },
       {
         id: "s2-unites-ordre",
         type: "sequence",
         level: "challenge",
-        title: t("Ordonner les capacités", "ترتيب السعات"),
-        prompt: t("Clique les unités de la plus petite à la plus grande.", "انقر الوحدات من الأصغر إلى الأكبر."),
-        steps: [t("octet (B)", "octet (B)"), t("kilooctet (kB)", "kilooctet (kB)"), t("mégaoctet (MB)", "mégaoctet (MB)"), t("gigaoctet (GB)", "gigaoctet (GB)"), t("téraoctet (TB)", "téraoctet (TB)")],
-        shuffled: [3, 0, 4, 2, 1],
-        feedback: t("B < kB < MB < GB < TB.", "B < kB < MB < GB < TB."),
+        title: t("L’échelle des capacités", "سلم وحدات السعة"),
+        prompt: t("Construis l’échelle de la plus petite unité à la plus grande.", "رتب الوحدات من الأصغر إلى الأكبر."),
+        steps: [t("bit", "bit"), t("octet", "octet"), t("Ko", "Ko"), t("Mo", "Mo"), t("Go", "Go"), t("To", "To")],
+        shuffled: [4, 1, 5, 2, 0, 3],
+        feedback: t("bit < octet < Ko < Mo < Go < To.", "bit < octet < Ko < Mo < Go < To."),
       },
       {
-        id: "s2-ram-ssd",
-        type: "choice",
+        id: "s2-conversions-capacites",
+        type: "conversions",
         level: "challenge",
-        title: t("Diagnostiquer un besoin", "تشخيص حاجة"),
-        prompt: t("Les applications ouvertes deviennent lentes, mais il reste beaucoup d’espace disque. Quel composant manque probablement de capacité ?", "أصبحت التطبيقات المفتوحة بطيئة رغم وجود مساحة كبيرة في القرص. ما المكون الذي تنقصه السعة غالبا؟"),
-        choices: [t("La RAM", "RAM"), t("L’imprimante", "الطابعة"), t("Le clavier", "لوحة المفاتيح")],
-        answer: 0,
-        feedback: t("La RAM accueille temporairement les programmes et données en cours d’utilisation.", "تستقبل RAM مؤقتا البرامج والمعطيات المستعملة حاليا."),
+        title: t("Conversions des unités de capacité", "تحويل وحدات السعة"),
+        prompt: t("Complète toutes les conversions. Utilise l’échelle ci-dessous pour choisir multiplication ou division.", "أكمل جميع التحويلات. استعمل السلم أسفله لاختيار الضرب أو القسمة."),
+        image: session2Image("regle-conversion-capacites.png", "Règle de conversion entre bit, octet, Ko, Mo, Go et To", "قاعدة التحويل بين bit وoctet وKo وMo وGo وTo"),
+        rows: [
+          { before: "12 Mo =", after: "Ko", accepted: ["12000", "12 000"] },
+          { before: "20 Go =", after: "Mo", accepted: ["20000", "20 000"] },
+          { before: "312 Octets =", after: "bits", accepted: ["2496", "2 496"] },
+          { before: "4 To =", after: "Ko", accepted: ["4000000000", "4 000 000 000"] },
+          { before: "100 bits =", after: "octets", accepted: ["12.5", "12,5"] },
+          { before: "30 Go =", after: "Mo", accepted: ["30000", "30 000"] },
+          { before: "902 Octets =", after: "bits", accepted: ["7216", "7 216"] },
+          { before: "16 000 000 Mo =", after: "To", accepted: ["16"] },
+        ],
+        hint: t("Vers une unité plus petite : multiplier. Vers une unité plus grande : diviser. Entre bit et octet, utiliser 8.", "نحو وحدة أصغر: نضرب. نحو وحدة أكبر: نقسم. بين bit وoctet نستعمل 8."),
+        feedback: t("Toutes les conversions sont correctes. Tu sais utiliser l’échelle des capacités.", "جميع التحويلات صحيحة. أصبحت تعرف استعمال سلم وحدات السعة."),
       },
       {
-        id: "s2-stockage-choix",
+        id: "s2-choisir-ordinateur-complexe",
         type: "choice",
         level: "challenge",
-        title: t("Choisir un support", "اختيار وسيط تخزين"),
-        prompt: t("Tu dois transporter un fichier vidéo de 4 GB. Quel support est le plus adapté ?", "تريد نقل فيديو حجمه 4 GB. ما الوسيط الأنسب؟"),
-        choices: [t("Une clé USB de 16 GB", "مفتاح USB بسعة 16 GB"), t("Une feuille de papier", "ورقة"), t("Une RAM de 2 GB éteinte", "RAM بسعة 2 GB بعد الإطفاء")],
-        answer: 0,
-        feedback: t("Le support doit conserver les données et offrir une capacité supérieure au fichier.", "يجب أن يحفظ الوسيط المعطيات وأن تكون سعته أكبر من حجم الملف."),
-      },
-      {
-        id: "s2-configuration",
-        type: "choice",
-        level: "challenge",
-        title: t("Situation-problème : club multimédia", "وضعية مشكلة: نادي الوسائط"),
-        prompt: t("Pour monter des vidéos, quelle configuration est la plus adaptée ?", "لتركيب الفيديوهات، أي تجهيز هو الأنسب؟"),
+        title: t("Choisir un ordinateur · projet multimédia", "اختيار حاسوب · مشروع وسائط متعددة"),
+        prompt: t("Le club doit monter des vidéos Full HD, travailler avec plusieurs applications et conserver de nombreux projets. Quelle configuration est la plus équilibrée ?", "يحتاج النادي إلى تركيب فيديوهات Full HD وتشغيل عدة تطبيقات وحفظ مشاريع كثيرة. ما التجهيز الأكثر توازنا؟"),
         choices: [
-          t("Processeur rapide, 16 GB RAM, SSD 1 TB", "معالج سريع وRAM 16 GB وSSD 1 TB"),
-          t("4 GB RAM et disque presque plein", "RAM 4 GB وقرص شبه ممتلئ"),
-          t("Très bon clavier mais aucun stockage", "لوحة مفاتيح جيدة دون تخزين"),
+          t("Core i5 / Ryzen 5 récent, 16 Go RAM, SSD 512 Go, carte graphique adaptée", "Core i5 / Ryzen 5 حديث، وRAM 16 Go، وSSD 512 Go، وبطاقة رسومية مناسبة"),
+          t("Core i3 ancien, 4 Go RAM, disque HDD 250 Go", "Core i3 قديم، وRAM 4 Go، وقرص HDD بسعة 250 Go"),
+          t("Processeur rapide, 8 Go RAM, SSD 128 Go presque plein", "معالج سريع، وRAM 8 Go، وSSD 128 Go شبه ممتلئ"),
         ],
         answer: 0,
-        feedback: t("Le montage vidéo demande traitement rapide, mémoire suffisante et stockage durable.", "يتطلب تركيب الفيديو معالجة سريعة وذاكرة كافية وتخزينا دائما."),
+        feedback: t("Le montage vidéo exige un processeur récent, assez de RAM, un SSD spacieux et une capacité graphique adaptée. Il faut équilibrer tous les composants.", "يتطلب تركيب الفيديو معالجا حديثا وRAM كافية وSSD واسعا وقدرة رسومية مناسبة. يجب تحقيق التوازن بين جميع المكونات."),
       },
       {
-        id: "s2-carte-mere",
-        type: "text",
+        id: "s2-diagnostic-lenteur",
+        type: "choice",
         level: "challenge",
-        title: t("Nommer le composant central", "تسمية المكون المركزي"),
-        prompt: t("Quel composant relie le processeur, la RAM, le stockage et les cartes ?", "ما المكون الذي يربط المعالج وRAM والتخزين والبطاقات؟"),
-        placeholder: t("Écris le nom du composant", "اكتب اسم المكون"),
-        accepted: { fr: ["carte mere", "carte mère"], ar: ["اللوحة الام", "اللوحة الأم", "لوحة أم", "لوحة الام"] },
-        feedback: t("La carte mère relie et permet la communication entre les composants.", "تربط اللوحة الأم المكونات وتسمح بتواصلها."),
+        title: t("Diagnostic · L’ordinateur devient lent", "تشخيص · الحاسوب أصبح بطيئا"),
+        prompt: t("Plusieurs applications sont ouvertes et l’ordinateur devient lent, alors que le disque possède encore beaucoup d’espace. Quel composant faut-il probablement augmenter ?", "هناك تطبيقات كثيرة مفتوحة والحاسوب بطيء رغم وجود مساحة كبيرة في القرص. ما المكون الذي نحتاج غالبا إلى زيادة سعته؟"),
+        choices: [t("La mémoire RAM", "ذاكرة RAM"), t("L’imprimante", "الطابعة"), t("Le clavier", "لوحة المفاتيح")],
+        answer: 0,
+        feedback: t("La RAM conserve temporairement les programmes en cours d’utilisation ; une capacité insuffisante ralentit le travail.", "تحتفظ RAM مؤقتا بالبرامج المستعملة، وقد يؤدي نقص سعتها إلى بطء العمل."),
+      },
+      {
+        id: "s2-securite",
+        type: "multi",
+        level: "challenge",
+        title: t("Avant de manipuler le matériel", "قبل لمس المعدات"),
+        prompt: t("Sélectionne les trois règles de sécurité indispensables.", "حدد قواعد السلامة الثلاث الضرورية."),
+        choices: [
+          t("Éteindre et débrancher l’ordinateur", "إطفاء الحاسوب وفصله"),
+          t("Garder les mains sèches", "الحفاظ على جفاف اليدين"),
+          t("Demander l’autorisation du professeur", "طلب إذن الأستاذ"),
+          t("Forcer le connecteur s’il résiste", "إجبار الموصل إذا لم يدخل"),
+          t("Tirer sur le câble pour le débrancher", "سحب السلك لفصله"),
+        ],
+        answers: [0, 1, 2],
+        feedback: t("On travaille hors tension, avec les mains sèches, sous la responsabilité du professeur et sans jamais forcer.", "نشتغل بعد فصل الكهرباء وبيدين جافتين وتحت إشراف الأستاذ، ولا نجبر أي موصل."),
+      },
+      {
+        id: "s2-defi-final",
+        type: "choice",
+        level: "challenge",
+        title: t("Défi final · Sauver le travail", "التحدي النهائي · حفظ العمل"),
+        prompt: t("Youssef termine son document. Il veut l’emporter et le modifier sur un autre ordinateur. Quelle action est correcte ?", "أنهى يوسف وثيقته ويريد نقلها وتعديلها في حاسوب آخر. ما الإجراء الصحيح؟"),
+        choices: [
+          t("Enregistrer le fichier sur une clé USB puis l’éjecter correctement", "حفظ الملف في مفتاح USB ثم إخراجه بطريقة صحيحة"),
+          t("Le laisser uniquement dans la RAM puis éteindre", "تركه في RAM ثم إطفاء الحاسوب"),
+          t("Prendre une photo de l’écran sans enregistrer", "التقاط صورة للشاشة دون حفظ الملف"),
+        ],
+        answer: 0,
+        feedback: t("La clé USB conserve le fichier après l’arrêt et permet de le transporter ; la RAM est temporaire.", "يحفظ مفتاح USB الملف بعد إطفاء الحاسوب ويسمح بنقله، أما RAM فذاكرة مؤقتة."),
       },
     ],
   },

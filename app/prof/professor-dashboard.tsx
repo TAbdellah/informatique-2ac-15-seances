@@ -33,20 +33,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   teacherDashboard,
   teacherDeleteAllData,
   teacherExport,
   teacherLearnerReport,
   teacherLogin,
   teacherLogout,
+  teacherToken,
   teacherUpdateSessionAccess,
   type ProfessorFilters,
   type SessionAccess,
@@ -64,7 +57,7 @@ type Attempt = {
   activityType: string;
   activityId: string;
   responseJson: string;
-  isCorrect: number | null;
+  isCorrect: boolean | number | null;
   score: number | null;
   maxScore: number | null;
   createdAt: string;
@@ -124,6 +117,40 @@ const activityLabels: Record<string, string> = {
   workshop: "Atelier pratique",
   session_completion: "Validation de séance",
 };
+
+const session2ActivityLabels: Record<string, string> = {
+  "s2-poste-reperes": "Reconnaître le poste informatique",
+  "s2-poste-fonctions": "Fonctions des éléments du poste",
+  "s2-peripherique-ou-composant": "Périphérique ou composant interne",
+  "s2-sens-information": "Sens de circulation de l’information",
+  "s2-peripheriques-roles": "Rôle des périphériques",
+  "s2-situation-expose": "Matériel nécessaire pour un exposé",
+  "s2-choisir-ordinateur-simple": "Choisir un ordinateur · besoin simple",
+  "s2-branchements": "Branchements et ports",
+  "s2-composants-roles": "Composants internes et rôles",
+  "s2-unites-ordre": "Ordre des unités de capacité",
+  "s2-conversions-capacites": "Conversions des unités de capacité",
+  "s2-choisir-ordinateur-complexe": "Choisir un ordinateur · multimédia",
+  "s2-diagnostic-lenteur": "Diagnostic de la mémoire RAM",
+  "s2-securite": "Sécurité du matériel",
+  "s2-defi-final": "Stockage et transport d’un fichier",
+  "session-2-quiz": "Évaluation de la séance 2",
+  "session-2-completion": "Validation de la séance 2",
+};
+
+const session2Competencies = [
+  { label: "Poste informatique", ids: ["s2-poste-reperes", "s2-poste-fonctions", "s2-peripherique-ou-composant"] },
+  { label: "Périphériques et fonctions", ids: ["s2-sens-information", "s2-peripheriques-roles", "s2-situation-expose"] },
+  { label: "Ports et branchements", ids: ["s2-branchements"] },
+  { label: "Composants internes", ids: ["s2-composants-roles", "s2-diagnostic-lenteur"] },
+  { label: "Unités et conversions", ids: ["s2-unites-ordre", "s2-conversions-capacites"] },
+  { label: "Choix d’une configuration", ids: ["s2-choisir-ordinateur-simple", "s2-choisir-ordinateur-complexe"] },
+  { label: "Sécurité et stockage", ids: ["s2-securite", "s2-defi-final"] },
+] as const;
+
+function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
+  return session2ActivityLabels[attempt.activityId] ?? activityLabels[attempt.activityType] ?? attempt.activityType;
+}
 
 const answerLabels: Record<string, string> = {
   answers: "Réponses au QCM",
@@ -204,6 +231,10 @@ function answerPreview(row: Attempt) {
     if (quizAnswers.length > 0) {
       return quizAnswers.map((item, index) => `Q${index + 1}: ${displayAnswerValue(item.selectedChoice)}`).join(" · ");
     }
+    const conversions = Array.isArray(record.conversions) ? record.conversions as Array<Record<string, unknown>> : [];
+    if (conversions.length > 0) {
+      return conversions.map((item) => `${displayAnswerValue(item.conversion)} : ${displayAnswerValue(item.answer)}`).join(" · ");
+    }
     return displayAnswerValue(
       record.selectedChoice ?? record.selectedChoices ?? record.text ?? record.sequence ?? record.matches ?? record.completed,
     );
@@ -221,6 +252,18 @@ function attemptPercentage(attempt: Attempt) {
 
 function percentageToGrade(percentage: number | null) {
   return percentage === null ? null : Math.round((percentage / 5) * 10) / 10;
+}
+
+function session2SummaryForAttempts(attempts: Attempt[]) {
+  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === 2);
+  const successfulIds = new Set(sessionAttempts.filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect)).map((attempt) => attempt.activityId));
+  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === "session-2-quiz");
+  const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => !best || (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best, null);
+  const competencies = session2Competencies.map((competency) => {
+    const acquired = competency.ids.filter((id) => successfulIds.has(id)).length;
+    return `${competency.label}: ${acquired === competency.ids.length ? "Acquis" : acquired > 0 ? "En cours" : "À travailler"} (${acquired}/${competency.ids.length})`;
+  }).join(" · ");
+  return { attempts: sessionAttempts.length, exercises: successfulIds.size, bestQuiz, competencies };
 }
 
 function attemptExportRows(row: Attempt) {
@@ -243,7 +286,7 @@ function attemptExportRows(row: Attempt) {
     row.studentTwo ?? "",
     row.isPair ? "Binôme" : "Individuel",
     row.sessionId,
-    activityLabels[row.activityType] ?? row.activityType,
+    activityName(row),
     row.activityId,
   ];
   const scorePercent = attemptPercentage(row);
@@ -252,6 +295,10 @@ function attemptExportRows(row: Attempt) {
   const quizAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
     Array.isArray((answer as Record<string, unknown>).answers)
     ? (answer as { answers: Array<Record<string, unknown>> }).answers
+    : [];
+  const conversionAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
+    Array.isArray((answer as Record<string, unknown>).conversions)
+    ? (answer as { conversions: Array<Record<string, unknown>> }).conversions
     : [];
 
   const details = quizAnswers.length > 0
@@ -262,7 +309,15 @@ function attemptExportRows(row: Attempt) {
       expected: displayAnswerValue(item.correctChoice),
       result: item.correct ? "Correct" : "Incorrect",
     }))
-    : [{
+    : conversionAnswers.length > 0
+      ? conversionAnswers.map((item, index) => ({
+        number: index + 1,
+        question: displayAnswerValue(item.conversion),
+        selected: displayAnswerValue(item.answer),
+        expected: displayAnswerValue(item.expected),
+        result: item.correct ? "Correct" : "Incorrect",
+      }))
+      : [{
       number: "",
       question: answer && typeof answer === "object" && !Array.isArray(answer)
         ? displayAnswerValue((answer as Record<string, unknown>).question)
@@ -333,6 +388,25 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
     );
   }
 
+  if (answer && typeof answer === "object" && !Array.isArray(answer) && Array.isArray((answer as Record<string, unknown>).conversions)) {
+    const conversions = (answer as { conversions: Array<Record<string, unknown>> }).conversions;
+    return (
+      <div className="prof-conversion-details">
+        {conversions.map((item, index) => (
+          <article key={`${index}-${displayAnswerValue(item.conversion)}`}>
+            <strong>{displayAnswerValue(item.conversion)}</strong>
+            <span>Réponse : <b>{displayAnswerValue(item.answer)}</b></span>
+            <span>Attendu : <b>{displayAnswerValue(item.expected)}</b></span>
+            <em className={item.correct ? "prof-result-good" : "prof-result-bad"}>
+              {item.correct ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+              {item.correct ? "Correcte" : "Incorrecte"}
+            </em>
+          </article>
+        ))}
+      </div>
+    );
+  }
+
   if (answer && typeof answer === "object" && !Array.isArray(answer)) {
     const record = answer as Record<string, unknown>;
     if (record.question) {
@@ -362,6 +436,66 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
   return <p className="prof-answer-plain">{displayAnswerValue(answer)}</p>;
 }
 
+function Session2Report({ attempts }: { attempts: Attempt[] }) {
+  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === 2);
+  if (sessionAttempts.length === 0) return null;
+
+  const successfulIds = new Set(
+    sessionAttempts
+      .filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect))
+      .map((attempt) => attempt.activityId),
+  );
+  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === "session-2-quiz");
+  const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => {
+    if (!best) return attempt;
+    return (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best;
+  }, null);
+  const progressPercent = Math.round((successfulIds.size / 15) * 100);
+  const gradedAttempts = sessionAttempts.filter((attempt) => attempt.isCorrect !== null);
+  const correctAttempts = gradedAttempts.filter((attempt) => Boolean(attempt.isCorrect)).length;
+  const successPercent = gradedAttempts.length > 0 ? Math.round((correctAttempts / gradedAttempts.length) * 100) : 0;
+
+  return (
+    <section className="prof-session2-report" aria-label="Bilan de la séance 2">
+      <div className="prof-session2-head">
+        <div><small>BILAN PÉDAGOGIQUE · SÉANCE 02</small><strong>Environnement matériel d’un système informatique</strong></div>
+        <span>{sessionAttempts.length} tentative(s)</span>
+      </div>
+      <div className="prof-session2-overview">
+        <article className="prof-session2-progress-card">
+          <div className="prof-progress-ring" style={{ "--progress": `${progressPercent * 3.6}deg` } as React.CSSProperties}>
+            <span><strong>{progressPercent}%</strong><small>progression</small></span>
+          </div>
+          <div><strong>{successfulIds.size}/15</strong><span>exercices différents réussis</span></div>
+        </article>
+        <article className="prof-session2-score-card">
+          <span className="prof-session2-card-icon"><GraduationCap size={20} /></span>
+          <div><small>MEILLEURE ÉVALUATION</small><strong>{bestQuiz ? `${bestQuiz.score ?? 0}/${bestQuiz.maxScore ?? 10}` : "—/10"}</strong><span>{bestQuiz ? `${attemptPercentage(bestQuiz) ?? 0}% de réussite` : "Évaluation non réalisée"}</span></div>
+        </article>
+        <article className="prof-session2-score-card success">
+          <span className="prof-session2-card-icon"><Target size={20} /></span>
+          <div><small>RÉUSSITE DES TENTATIVES</small><strong>{successPercent}%</strong><span>{correctAttempts}/{gradedAttempts.length} réponses corrigées réussies</span></div>
+        </article>
+      </div>
+      <div className="prof-competency-title"><strong>Maîtrise des compétences</strong><span>Une compétence est acquise lorsque tous ses exercices sont réussis.</span></div>
+      <div className="prof-competency-grid">
+        {session2Competencies.map((competency) => {
+          const acquired = competency.ids.filter((id) => successfulIds.has(id)).length;
+          const percentage = Math.round((acquired / competency.ids.length) * 100);
+          const status = percentage === 100 ? "Acquis" : percentage > 0 ? "En cours" : "À travailler";
+          return (
+            <article className={percentage === 100 ? "acquired" : percentage > 0 ? "progress" : "missing"} key={competency.label}>
+              <div><strong>{competency.label}</strong><span>{percentage}%</span></div>
+              <i><b style={{ width: `${percentage}%` }} /></i>
+              <footer><small>{status}</small><span>{acquired}/{competency.ids.length} exercices</span></footer>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function ProfessorDashboard() {
   const [authState, setAuthState] = useState<"checking" | "login" | "ready">("checking");
   const [password, setPassword] = useState("");
@@ -381,8 +515,15 @@ export default function ProfessorDashboard() {
   const [learnerAttempts, setLearnerAttempts] = useState<Attempt[]>([]);
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportScope, setReportScope] = useState<"session2" | "all">("session2");
+  const [reportView, setReportView] = useState<"answers" | "summary">("answers");
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
+    if (!teacherToken()) {
+      setAuthState("login");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -396,7 +537,9 @@ export default function ProfessorDashboard() {
         setData(null);
         return;
       }
-      setError(loadError instanceof Error ? loadError.message : "Chargement impossible.");
+      const message = loadError instanceof Error ? loadError.message : "Chargement impossible.";
+      setError(message);
+      setAuthState("ready");
     } finally {
       setLoading(false);
     }
@@ -484,32 +627,42 @@ export default function ProfessorDashboard() {
         "Classe", "Groupe", "Élève 1", "Élève 2", "Organisation", "Nombre de tentatives",
         "Tentatives corrigées", "Réponses correctes", "Taux de réussite (%)", "Note indicative (/20)",
         "Score moyen des QCM (%)", "Meilleur score QCM (%)", "Séances terminées", "Total des séances",
-        "Dernière tentative (Maroc)",
+        "Dernière tentative (Maroc)", "S2 - Tentatives", "S2 - Exercices réussis (/15)",
+        "S2 - Meilleur QCM (/10)", "S2 - Meilleur QCM (%)", "S2 - Bilan des compétences",
       ];
-      const summaryRows = (data?.learners ?? []).map((learner) => [
-        learner.className,
-        `Groupe ${learner.groupName}`,
-        learner.studentOne,
-        learner.studentTwo ?? "",
-        learner.isPair ? "Binôme" : "Individuel",
-        learner.totalAttempts,
-        learner.gradedAttempts,
-        learner.correctAttempts,
-        learner.successRate ?? "",
-        learner.gradeOutOf20 ?? "",
-        learner.averageScore ?? "",
-        learner.bestScore ?? "",
-        learner.completedSessions,
-        15,
-        learner.lastAttemptAt ? formatDateTime(learner.lastAttemptAt) : "Aucune tentative",
-      ]);
+      const summaryRows = (data?.learners ?? []).map((learner) => {
+        const session2 = session2SummaryForAttempts(payload.rows.filter((attempt) => attempt.participantId === learner.id));
+        return [
+          learner.className,
+          `Groupe ${learner.groupName}`,
+          learner.studentOne,
+          learner.studentTwo ?? "",
+          learner.isPair ? "Binôme" : "Individuel",
+          learner.totalAttempts,
+          learner.gradedAttempts,
+          learner.correctAttempts,
+          learner.successRate ?? "",
+          learner.gradeOutOf20 ?? "",
+          learner.averageScore ?? "",
+          learner.bestScore ?? "",
+          learner.completedSessions,
+          15,
+          learner.lastAttemptAt ? formatDateTime(learner.lastAttemptAt) : "Aucune tentative",
+          session2.attempts,
+          session2.exercises,
+          session2.bestQuiz?.score ?? "",
+          session2.bestQuiz ? attemptPercentage(session2.bestQuiz) ?? "" : "",
+          session2.competencies,
+        ];
+      });
       const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
       summaryWorksheet["!cols"] = [
         { wch: 10 }, { wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 20 },
         { wch: 21 }, { wch: 20 }, { wch: 21 }, { wch: 21 }, { wch: 24 }, { wch: 24 },
-        { wch: 19 }, { wch: 18 }, { wch: 25 },
+        { wch: 19 }, { wch: 18 }, { wch: 25 }, { wch: 17 }, { wch: 28 },
+        { wch: 24 }, { wch: 24 }, { wch: 90 },
       ];
-      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:O${summaryRows.length + 1}` };
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:T${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
@@ -573,6 +726,8 @@ export default function ProfessorDashboard() {
     setSelectedLearner(learner);
     setLearnerAttempts([]);
     setSelectedAttemptId(null);
+    setReportScope("session2");
+    setReportView("answers");
     setReportLoading(true);
     setError("");
     try {
@@ -750,42 +905,29 @@ export default function ProfessorDashboard() {
             {loading && <span className="prof-refreshing"><LoaderCircle className="spin" size={16} /> Actualisation…</span>}
           </div>
           {data && data.learners.length > 0 ? (
-                <Table className="prof-table prof-learner-table">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Élève(s)</TableHead>
-                      <TableHead>Organisation</TableHead>
-                      <TableHead>Classe et groupe</TableHead>
-                      <TableHead>Tentatives</TableHead>
-                      <TableHead>Réussite</TableHead>
-                      <TableHead>Taux</TableHead>
-                      <TableHead>Note indicative</TableHead>
-                      <TableHead>Score moyen</TableHead>
-                      <TableHead>Meilleur score</TableHead>
-                      <TableHead>Séances terminées</TableHead>
-                      <TableHead>Dernière tentative</TableHead>
-                      <TableHead>Rapport détaillé</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.learners.map((learner) => (
-                      <TableRow key={learner.id}>
-                        <TableCell><strong>{studentName(learner)}</strong></TableCell>
-                        <TableCell>{learner.isPair ? "Binôme" : "Individuel"}</TableCell>
-                        <TableCell><span className="prof-class-badge">{learner.className} · G{learner.groupName}</span></TableCell>
-                        <TableCell><strong>{learner.totalAttempts}</strong></TableCell>
-                        <TableCell><strong>{learner.gradedAttempts > 0 ? `${learner.correctAttempts}/${learner.gradedAttempts}` : "—"}</strong></TableCell>
-                        <TableCell><strong className="prof-percentage">{learner.successRate === null ? "—" : `${learner.successRate}%`}</strong></TableCell>
-                        <TableCell><strong className="prof-grade">{learner.gradeOutOf20 === null ? "—" : `${learner.gradeOutOf20}/20`}</strong></TableCell>
-                        <TableCell><strong>{learner.averageScore === null ? "—" : `${learner.averageScore}%`}</strong></TableCell>
-                        <TableCell><strong>{learner.bestScore === null ? "—" : `${learner.bestScore}%`}</strong></TableCell>
-                        <TableCell><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 15) * 100)}%` }} /></i><strong>{learner.completedSessions}/15</strong></span></TableCell>
-                        <TableCell><span className="prof-date"><Clock3 size={14} />{formatDateTime(learner.lastAttemptAt)}</span></TableCell>
-                        <TableCell><button className="prof-detail-button" onClick={() => void openLearnerReport(learner)}><Eye size={15} /> Consulter</button></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="prof-learner-list">
+                  {data.learners.map((learner) => (
+                    <article className="prof-learner-card" key={learner.id}>
+                      <header>
+                        <div className="prof-learner-identity">
+                          <strong>{studentName(learner)}</strong>
+                          <span>{learner.isPair ? "Binôme" : "Individuel"} · {learner.className} · Groupe {learner.groupName}</span>
+                        </div>
+                        <button className="prof-detail-button" onClick={() => void openLearnerReport(learner)}><Eye size={15} /> Consulter le rapport</button>
+                      </header>
+                      <div className="prof-learner-metrics">
+                        <div><span>Tentatives</span><strong>{learner.totalAttempts}</strong></div>
+                        <div><span>Réussite</span><strong>{learner.gradedAttempts > 0 ? `${learner.correctAttempts}/${learner.gradedAttempts}` : "—"}</strong></div>
+                        <div><span>Pourcentage</span><strong className="prof-percentage">{learner.successRate === null ? "—" : `${learner.successRate}%`}</strong></div>
+                        <div><span>Note indicative</span><strong className="prof-grade">{learner.gradeOutOf20 === null ? "—" : `${learner.gradeOutOf20}/20`}</strong></div>
+                        <div><span>Score moyen</span><strong>{learner.averageScore === null ? "—" : `${learner.averageScore}%`}</strong></div>
+                        <div><span>Meilleur score</span><strong>{learner.bestScore === null ? "—" : `${learner.bestScore}%`}</strong></div>
+                        <div className="prof-metric-progress"><span>Séances terminées</span><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 15) * 100)}%` }} /></i><strong>{learner.completedSessions}/15</strong></span></div>
+                        <div className="prof-metric-date"><span>Dernière tentative</span><strong><Clock3 size={13} />{formatDateTime(learner.lastAttemptAt)}</strong></div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               ) : (
                 <div className="prof-empty"><Users size={28} /><strong>Aucun élève</strong><p>Aucune inscription ne correspond aux filtres sélectionnés.</p></div>
               )}
@@ -810,18 +952,34 @@ export default function ProfessorDashboard() {
                 <article className="grade"><small>Note indicative</small><strong>{selectedLearner.gradeOutOf20 === null ? "—" : `${selectedLearner.gradeOutOf20}/20`}</strong></article>
                 <article><small>Progression</small><strong>{selectedLearner.completedSessions}/15</strong></article>
               </div>
+              {!reportLoading && learnerAttempts.length > 0 && (
+                <div className="prof-report-view-tabs">
+                  <button className={reportView === "answers" ? "active" : ""} onClick={() => setReportView("answers")}><Eye size={15} /> Réponses <span>{learnerAttempts.filter((attempt) => attempt.sessionId === 2).length}</span></button>
+                  <button className={reportView === "summary" ? "active" : ""} onClick={() => setReportView("summary")}><Target size={15} /> Bilan pédagogique</button>
+                </div>
+              )}
+              {!reportLoading && reportView === "summary" && <Session2Report attempts={learnerAttempts} />}
+              {!reportLoading && reportView === "answers" && learnerAttempts.length > 0 && (
+                <div className="prof-report-toolbar">
+                  <div><strong>Historique des réponses</strong><span>{reportScope === "session2" ? "Séance 2 uniquement" : "Toutes les séances"}</span></div>
+                  <div>
+                    <button className={reportScope === "session2" ? "active" : ""} onClick={() => setReportScope("session2")}>Séance 2</button>
+                    <button className={reportScope === "all" ? "active" : ""} onClick={() => setReportScope("all")}>Toutes</button>
+                  </div>
+                </div>
+              )}
               {reportLoading ? (
                 <div className="prof-report-loading"><LoaderCircle className="spin" size={22} /> Chargement des réponses…</div>
-              ) : learnerAttempts.length > 0 ? (
+              ) : reportView === "answers" && learnerAttempts.length > 0 ? (
                 <div className="prof-report-attempts">
-                  {learnerAttempts.map((attempt) => {
+                  {learnerAttempts.filter((attempt) => reportScope === "all" || attempt.sessionId === 2).map((attempt) => {
                     const expanded = selectedAttemptId === attempt.id;
                     const percentage = attemptPercentage(attempt);
                     const grade = percentageToGrade(percentage);
                     return (
                       <article className={`prof-report-attempt ${expanded ? "expanded" : ""}`} key={attempt.id}>
                         <button type="button" onClick={() => setSelectedAttemptId(expanded ? null : attempt.id)}>
-                          <span><strong>S{String(attempt.sessionId).padStart(2, "0")} · {activityLabels[attempt.activityType] ?? attempt.activityType}</strong><small>{formatDateTime(attempt.createdAt)} · {attempt.activityId}</small></span>
+                          <span><strong>S{String(attempt.sessionId).padStart(2, "0")} · {activityName(attempt)}</strong><small>{formatDateTime(attempt.createdAt)} · {attempt.activityId}</small></span>
                           <span className={`prof-result ${attempt.isCorrect === null ? "neutral" : attempt.isCorrect ? "good" : "bad"}`}>
                             {attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}
                           </span>
@@ -835,10 +993,13 @@ export default function ProfessorDashboard() {
                       </article>
                     );
                   })}
+                  {reportScope === "session2" && !learnerAttempts.some((attempt) => attempt.sessionId === 2) && (
+                    <div className="prof-report-no-session"><Activity size={22} /><strong>Aucune réponse pour la séance 2</strong><span>Choisissez « Toutes » pour consulter les autres séances.</span></div>
+                  )}
                 </div>
-              ) : (
+              ) : reportView === "answers" ? (
                 <div className="prof-empty"><Activity size={25} /><strong>Aucune tentative</strong><p>Cet élève n’a encore envoyé aucune réponse.</p></div>
-              )}
+              ) : null}
             </>
           )}
         </DialogContent>

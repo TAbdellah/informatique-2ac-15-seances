@@ -1,6 +1,7 @@
 const allowedOrigins = new Set([
   "https://tabdellah.github.io",
   "https://lab-2ac-v3-test.tahtoh-abdellah.chatgpt.site",
+  "https://lab-2ac-seance2-atelier.tahtoh-abdellah.chatgpt.site",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ]);

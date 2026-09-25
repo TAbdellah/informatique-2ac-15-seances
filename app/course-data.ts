@@ -11,6 +11,13 @@ export type QuizQuestion = {
   answer: number;
 };
 
+export type TraceSection = {
+  title: LocalizedText;
+  items: LocalizedText[];
+  image?: { src: string; alt: LocalizedText };
+  cards?: { title: LocalizedText; text: LocalizedText; image?: string }[];
+};
+
 export type CourseSession = {
   id: number;
   unit: 1 | 2 | 3 | 4;
@@ -22,7 +29,7 @@ export type CourseSession = {
   workshops: { label: string; duration: number; text: LocalizedText }[];
   deliverable: LocalizedText;
   trace: LocalizedText[];
-  traceSections?: { title: LocalizedText; items: LocalizedText[] }[];
+  traceSections?: TraceSection[];
   vocabulary: LocalizedText[];
   quiz: QuizQuestion[];
 };
@@ -155,7 +162,7 @@ export const sessions: CourseSession[] = [
       { label: "A", duration: 45, text: t("Identifier et classer périphériques et composants à partir de photographies réelles.", "التعرف على الملحقات والمكونات وتصنيفها انطلاقا من صور حقيقية.") },
       { label: "B", duration: 40, text: t("Résoudre des diagnostics puis choisir la configuration du club multimédia.", "حل تشخيصات ثم اختيار تجهيز نادي الوسائط.") },
     ],
-    deliverable: t("13 exercices réussis + fiche de configuration argumentée.", "إنجاز 13 تمرينا + بطاقة تجهيز مبررة."),
+    deliverable: t("15 exercices réussis + fiche de configuration argumentée.", "إنجاز 15 تمرينا + بطاقة تجهيز مبررة."),
     trace: [
       t("Un ordinateur comprend une unité centrale et des périphériques.", "يتكون الحاسوب من وحدة مركزية وملحقات."),
       t("Les périphériques servent à saisir, afficher, communiquer ou stocker l’information.", "تستخدم الملحقات لإدخال المعلومات أو عرضها أو التواصل بها أو تخزينها."),
@@ -181,29 +188,39 @@ export const sessions: CourseSession[] = [
       },
       {
         title: t("3. Composants internes", "3. المكونات الداخلية"),
-        items: [
-          t("La carte mère relie les composants ; le processeur exécute les instructions.", "تربط اللوحة الأم المكونات وينفذ المعالج التعليمات."),
-          t("La RAM conserve temporairement les données utilisées ; elle se vide à l’arrêt.", "تحفظ RAM المعطيات المستعملة مؤقتا وتفرغ عند الإطفاء."),
-          t("Le SSD ou disque dur conserve durablement les fichiers ; l’alimentation fournit l’énergie.", "يحفظ SSD أو القرص الملفات بشكل دائم ويوفر مزود الطاقة الكهرباء."),
-          t("La carte graphique traite les images, la carte son gère l’audio et la carte réseau assure la connexion.", "تعالج بطاقة الرسوم الصور وتدير بطاقة الصوت الصوت وتوفر بطاقة الشبكة الاتصال."),
+        items: [],
+        cards: [
+          { title: t("Carte mère", "اللوحة الأم"), text: t("Connecte tous les composants.", "تربط جميع المكونات."), image: "session2/items/ex12-card-02.jpg" },
+          { title: t("Processeur (CPU)", "المعالج (CPU)"), text: t("Cerveau de l’ordinateur.", "عقل الحاسوب."), image: "session2/items/ex12-card-01.png" },
+          { title: t("Mémoire RAM", "ذاكرة RAM"), text: t("Stockage temporaire rapide.", "تخزين مؤقت وسريع."), image: "session2/items/ex12-card-03.jpg" },
+          { title: t("Disque SSD", "قرص SSD"), text: t("Stockage permanent.", "تخزين دائم."), image: "session2/items/ex12-card-05.jpg" },
+          { title: t("Carte graphique", "بطاقة الرسوم"), text: t("Traite les images.", "تعالج الصور."), image: "session2/items/ex12-card-06.jpg" },
+          { title: t("Carte réseau", "بطاقة الشبكة"), text: t("Assure la connexion au réseau.", "تؤمّن الاتصال بالشبكة."), image: "session2/items/ex12-card-09.jpg" },
+          { title: t("Alimentation", "مزود الطاقة"), text: t("Fournit l’énergie aux composants.", "يوفر الطاقة للمكونات."), image: "session2/items/ex12-card-07.jpg" },
+          { title: t("Carte son", "بطاقة الصوت"), text: t("Gère le son et l’audio de l’ordinateur.", "تدير الصوت في الحاسوب."), image: "session2/items/carte-son.png" },
         ],
       },
       {
         title: t("4. Unités de capacité", "4. وحدات السعة"),
-        items: [
-          t("1 octet (B) = 8 bits ; les unités courantes sont B, kB, MB, GB et TB.", "1 octet (B) يساوي 8 bits، والوحدات الشائعة هي B وkB وMB وGB وTB."),
-          t("En notation décimale : 1 kB = 1 000 B, 1 MB = 1 000 kB, 1 GB = 1 000 MB.", "في النظام العشري: 1 kB = 1000 B و1 MB = 1000 kB و1 GB = 1000 MB."),
-        ],
+        items: [],
+        image: {
+          src: "session2/regle-conversion-capacites.png",
+          alt: t("Échelle de conversion entre bit, octet, Ko, Mo, Go et To", "سلم التحويل بين bit وoctet وKo وMo وGo وTo"),
+        },
       },
     ],
     vocabulary: [t("Unité centrale", "وحدة مركزية"), t("Périphérique", "ملحق"), t("Processeur", "معالج"), t("Mémoire vive", "ذاكرة حية"), t("Stockage", "تخزين"), t("Capacité", "سعة")],
     quiz: [
-      { question: t("Le clavier est un périphérique…", "لوحة المفاتيح ملحق…"), choices: [t("d’entrée", "إدخال"), t("de sortie", "إخراج"), t("de stockage", "تخزين")], answer: 0 },
-      { question: t("L’écran sert principalement à…", "تستعمل الشاشة أساسا لـ…"), choices: [t("afficher", "العرض"), t("numériser", "الرقمنة"), t("stocker", "التخزين")], answer: 0 },
-      { question: t("Quel composant relie les autres ?", "أي مكون يربط باقي المكونات؟"), choices: [t("Carte mère", "اللوحة الأم"), t("Souris", "الفأرة"), t("Imprimante", "الطابعة")], answer: 0 },
-      { question: t("Quelle mémoire se vide à l’arrêt ?", "أي ذاكرة تفرغ عند إيقاف الحاسوب؟"), choices: [t("RAM", "RAM"), t("SSD", "SSD"), t("Clé USB", "مفتاح USB")], answer: 0 },
-      { question: t("Quelle unité est la plus grande ?", "ما الوحدة الأكبر؟"), choices: [t("MB", "MB"), t("GB", "GB"), t("kB", "kB")], answer: 1 },
-      { question: t("Pour conserver durablement un fichier, on utilise…", "لحفظ ملف بشكل دائم نستعمل…"), choices: [t("un SSD", "SSD"), t("la RAM seule", "RAM فقط"), t("le pointeur", "المؤشر")], answer: 0 },
+      { question: t("Quel élément se trouve à l’intérieur de l’unité centrale ?", "أي عنصر يوجد داخل الوحدة المركزية؟"), choices: [t("Le processeur", "المعالج"), t("La souris", "الفأرة"), t("L’imprimante", "الطابعة")], answer: 0 },
+      { question: t("Le microphone est un périphérique…", "الميكروفون ملحق…"), choices: [t("d’entrée", "إدخال"), t("de sortie", "إخراج"), t("de stockage", "تخزين")], answer: 0 },
+      { question: t("L’écran tactile est un périphérique…", "الشاشة اللمسية ملحق…"), choices: [t("d’entrée et de sortie", "إدخال وإخراج"), t("de stockage", "تخزين"), t("de sortie seulement", "إخراج فقط")], answer: 0 },
+      { question: t("Quel appareil transforme une feuille en image numérique ?", "أي جهاز يحول ورقة إلى صورة رقمية؟"), choices: [t("Le scanner", "الماسح الضوئي"), t("L’imprimante", "الطابعة"), t("Le haut-parleur", "مكبر الصوت")], answer: 0 },
+      { question: t("Quel composant relie tous les composants internes ?", "أي مكون يربط جميع المكونات الداخلية؟"), choices: [t("La carte mère", "اللوحة الأم"), t("La RAM", "RAM"), t("Le SSD", "SSD")], answer: 0 },
+      { question: t("Quelle mémoire conserve temporairement les programmes ouverts ?", "أي ذاكرة تحفظ البرامج المفتوحة مؤقتا؟"), choices: [t("La RAM", "RAM"), t("Le SSD", "SSD"), t("La clé USB", "مفتاح USB")], answer: 0 },
+      { question: t("Quel port relie généralement un vidéoprojecteur récent ?", "أي منفذ يربط عادة مسلاطا حديثا؟"), choices: [t("HDMI", "HDMI"), t("RJ45", "RJ45"), t("Jack audio", "Jack صوتي")], answer: 0 },
+      { question: t("En notation décimale, 1 Go correspond à…", "في النظام العشري، 1 Go يساوي…"), choices: [t("1 000 Mo", "1000 Mo"), t("100 Mo", "100 Mo"), t("8 Mo", "8 Mo")], answer: 0 },
+      { question: t("Pour conserver durablement les fichiers, on utilise…", "لحفظ الملفات بشكل دائم نستعمل…"), choices: [t("un SSD", "SSD"), t("la RAM seule", "RAM فقط"), t("le processeur", "المعالج")], answer: 0 },
+      { question: t("Pour le montage vidéo, quelle configuration est la plus équilibrée ?", "ما التجهيز الأكثر توازنا لتركيب الفيديو؟"), choices: [t("Processeur récent, 16 Go RAM et SSD 512 Go", "معالج حديث وRAM 16 Go وSSD 512 Go"), t("2 Go RAM et disque 80 Go", "RAM 2 Go وقرص 80 Go"), t("Un clavier plus grand seulement", "لوحة مفاتيح أكبر فقط")], answer: 0 },
     ],
   },
   {

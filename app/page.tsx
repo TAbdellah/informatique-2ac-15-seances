@@ -733,6 +733,33 @@ function MissionView({ session, lang, onStartPractice }: { session: CourseSessio
           ))}
         </div>
       </article>
+      {session.id === 2 && (
+        <section className="mission-visual-library" aria-labelledby="mission-visual-title">
+          <div className="mission-visual-heading">
+            <span className="card-kicker"><ImageIcon size={16} />{lang === "fr" ? "J’observe avant de pratiquer" : "ألاحظ قبل التطبيق"}</span>
+            <h2 id="mission-visual-title">{lang === "fr" ? "Trois repères pour comprendre le matériel" : "ثلاث دعامات لفهم معدات الحاسوب"}</h2>
+            <p>{lang === "fr" ? "Observe les images avec ton binôme. Ne cherche pas à tout mémoriser : repère le sens de circulation de l’information et le rôle de chaque matériel." : "لاحظ الصور مع زميلك. لا تحاول حفظ كل شيء، بل ابحث عن اتجاه انتقال المعلومة ووظيفة كل جهاز."}</p>
+          </div>
+          <div className="mission-visual-grid">
+            {[
+              { src: "session2/mission-categories.png", fr: "1 · Comment circule l’information ?", ar: "1 · كيف تنتقل المعلومة؟" },
+              { src: "session2/mission-fonctions.png", fr: "2 · À quoi sert chaque périphérique ?", ar: "2 · ما وظيفة كل ملحق؟" },
+              { src: "session2/mission-composants.png", fr: "3 · Que trouve-t-on dans l’unité centrale ?", ar: "3 · ماذا نجد داخل الوحدة المركزية؟" },
+            ].map((visual) => (
+          <figure key={visual.src}>
+            <img src={visual.src} alt={lang === "fr" ? visual.fr : visual.ar} loading="lazy" />
+            <figcaption>
+              <span>{lang === "fr" ? visual.fr : visual.ar}</span>
+              <a href={visual.src} target="_blank" rel="noreferrer">
+                <ImageIcon size={15} />
+                {lang === "fr" ? "Agrandir l’image" : "تكبير الصورة"}
+              </a>
+            </figcaption>
+          </figure>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="mission-support-grid">
         <article className="content-card objective-card">
           <span className="card-kicker">{labels.objectives}</span>
@@ -802,6 +829,7 @@ function ExercisePlayer({
   const [matches, setMatches] = useState<Record<number, number>>({});
   const [sequence, setSequence] = useState<number[]>([]);
   const [textValue, setTextValue] = useState("");
+  const [conversionValues, setConversionValues] = useState<Record<number, string>>({});
   const [gestureProgress, setGestureProgress] = useState(
     exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0
   );
@@ -831,6 +859,7 @@ function ExercisePlayer({
     match: { fr: "Classement", ar: "تصنيف" },
     sequence: { fr: "Mise en ordre", ar: "ترتيب" },
     text: { fr: "Réponse courte", ar: "جواب قصير" },
+    conversions: { fr: "Conversions", ar: "تحويلات" },
     gesture: { fr: "Manipulation", ar: "تطبيق عملي" },
   };
 
@@ -846,6 +875,7 @@ function ExercisePlayer({
     setMatches({});
     setSequence([]);
     setTextValue("");
+    setConversionValues({});
     setGestureProgress(0);
     setResult(null);
   }
@@ -898,6 +928,14 @@ function ExercisePlayer({
         acceptedAnswers,
       });
     }
+    if (exercise.type === "conversions") {
+      const details = exercise.rows.map((row, index) => {
+        const proposed = normalizeAnswer(conversionValues[index] ?? "").replace(/\s/g, "").replace(",", ".");
+        const correct = row.accepted.some((answer) => normalizeAnswer(answer).replace(/\s/g, "").replace(",", ".") === proposed);
+        return { conversion: `${row.before} … ${row.after}`, answer: conversionValues[index] ?? "", expected: row.accepted[0], correct };
+      });
+      recordResult(details.every((item) => item.correct), { question: exercise.prompt, conversions: details });
+    }
   }
 
   const canCheck =
@@ -905,7 +943,8 @@ function ExercisePlayer({
     (exercise.type === "multi" && multi.size > 0) ||
     (exercise.type === "match" && Object.keys(matches).length === exercise.rows.length) ||
     (exercise.type === "sequence" && sequence.length === exercise.steps.length) ||
-    (exercise.type === "text" && textValue.trim().length > 0);
+    (exercise.type === "text" && textValue.trim().length > 0) ||
+    (exercise.type === "conversions" && exercise.rows.every((_, index) => conversionValues[index]?.trim()));
 
   return (
     <article className={`exercise-player level-${exercise.level}`}>
@@ -976,22 +1015,51 @@ function ExercisePlayer({
       {exercise.type === "match" && (
         <div className="match-board">
           {exercise.rows.map((row, rowIndex) => (
-            <div className="match-row" key={row.label.fr}>
-              <strong><BilingualText value={row.label} /></strong>
-              <div>
-                {categoryOrder.map((categoryIndex) => {
+            <div
+              className={`match-row ${result === false ? (matches[rowIndex] === row.answer ? "answer-correct" : "answer-wrong") : ""}`}
+              key={row.label.fr}
+            >
+              <div className="match-item">
+                {row.image && <img src={row.image} alt="" loading="lazy" />}
+                <strong><BilingualText value={row.label} /></strong>
+              </div>
+              <div className="match-answers">
+                {exercise.categories.length > 5 ? (
+                  <select
+                    value={matches[rowIndex] ?? ""}
+                    onChange={(event) => {
+                      setMatches((current) => ({ ...current, [rowIndex]: Number(event.target.value) }));
+                      setResult(null);
+                    }}
+                    aria-label={`${row.label.fr} / ${row.label.ar}`}
+                  >
+                    <option value="" disabled>{lang === "fr" ? "Choisir la réponse…" : "اختر الجواب…"}</option>
+                    {categoryOrder.map((categoryIndex) => (
+                      <option key={categoryIndex} value={categoryIndex}>
+                        {exercise.categories[categoryIndex].fr} — {exercise.categories[categoryIndex].ar}
+                      </option>
+                    ))}
+                  </select>
+                ) : categoryOrder.map((categoryIndex) => {
                   const category = exercise.categories[categoryIndex];
                   return (
                   <button
                     key={category.fr}
-                    className={matches[rowIndex] === categoryIndex ? "selected" : ""}
+                    className={`${matches[rowIndex] === categoryIndex ? "selected" : ""} ${exercise.categoryImages?.[categoryIndex] ? "visual-answer" : ""}`}
                     onClick={() => { setMatches((current) => ({ ...current, [rowIndex]: categoryIndex })); setResult(null); }}
                   >
+                    {exercise.categoryImages?.[categoryIndex] && <img src={exercise.categoryImages[categoryIndex] ?? ""} alt="" loading="lazy" />}
                     <BilingualText value={category} />
                   </button>
                   );
                 })}
               </div>
+              {result === false && matches[rowIndex] !== row.answer && (
+                <small className="match-correction">
+                  {lang === "fr" ? "Réponse attendue : " : "الجواب الصحيح: "}
+                  <b>{txt(exercise.categories[row.answer], lang)}</b>
+                </small>
+              )}
             </div>
           ))}
         </div>
@@ -1043,6 +1111,27 @@ function ExercisePlayer({
             aria-label={bilingualAria(exercise.prompt)}
           />
           <small>{lang === "fr" ? "Entrée ou le bouton Vérifier" : "اضغط Enter أو زر التحقق"}</small>
+        </div>
+      )}
+
+      {exercise.type === "conversions" && (
+        <div className="conversion-board">
+          {exercise.rows.map((row, index) => (
+            <label className={result === false ? "conversion-review" : ""} key={`${row.before}-${row.after}`}>
+              <strong>{row.before}</strong>
+              <input
+                inputMode="decimal"
+                value={conversionValues[index] ?? ""}
+                onChange={(event) => {
+                  setConversionValues((current) => ({ ...current, [index]: event.target.value }));
+                  setResult(null);
+                }}
+                aria-label={`${row.before} ${row.after}`}
+              />
+              <strong>{row.after}</strong>
+              {result === false && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
+            </label>
+          ))}
         </div>
       )}
 
@@ -1132,12 +1221,10 @@ function ExercisePlayer({
             <strong>{result ? (lang === "fr" ? "Exercice réussi" : "تمرين ناجح") : (lang === "fr" ? "Pas encore" : "ليس بعد")}</strong>
             <p>
               <BilingualText
-                value={result
-                  ? exercise.feedback
-                  : {
-                    fr: "Relis la consigne, corrige ta réponse puis vérifie de nouveau.",
-                    ar: "أعد قراءة التعليمة وصحح جوابك ثم تحقق من جديد.",
-                  }}
+                value={result ? exercise.feedback : {
+                  fr: `Observe la correction, comprends ton erreur puis essaie de nouveau. ${exercise.feedback.fr}`,
+                  ar: `لاحظ التصحيح وافهم خطأك ثم حاول من جديد. ${exercise.feedback.ar}`,
+                }}
               />
             </p>
           </div>
@@ -1430,18 +1517,41 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
             <span>{labels.session} {padTime(session.id)}</span>
             <h2>{session.id === 1
               ? txt({ fr: "Rappel sur le système informatique", ar: "تذكير بالنظام المعلوماتي" }, lang)
+              : session.id === 2
+                ? txt({ fr: "Environnement matériel d’un système informatique", ar: "البيئة المادية لنظام معلوماتي" }, lang)
               : txt(session.title, lang)}</h2>
+            {session.id === 2 && (
+              <h3 className="notebook-subtitle">
+                {txt({ fr: "I- La configuration monoposte", ar: "I- التجهيز أحادي الحاسوب" }, lang)}
+              </h3>
+            )}
           </div>
           <BookOpen size={29} />
         </div>
         {hasSections ? (
           <div className="notebook-sections">
             {session.traceSections!.map((section) => (
-              <section className="trace-section" key={section.title.fr}>
+              <section className={`trace-section ${section.cards?.length ? "trace-section-with-cards" : ""}`} key={section.title.fr}>
                 <h3>{txt(section.title, lang)}</h3>
-                <ul>
-                  {section.items.map((item) => <li key={item.fr}>{txt(item, lang)}</li>)}
-                </ul>
+                {section.image && <img className="trace-section-image" src={section.image.src} alt={bilingualAria(section.image.alt)} loading="lazy" />}
+                {section.cards?.length ? (
+                  <div className="trace-component-grid">
+                    {section.cards.map((card) => (
+                      <article className="trace-component-card" key={card.title.fr}>
+                        {card.image
+                          ? <img src={card.image} alt={bilingualAria(card.title)} loading="lazy" />
+                          : <span className="trace-component-symbol" aria-hidden="true">♫</span>}
+                        <strong>{txt(card.title, lang)}</strong>
+                        <p>{txt(card.text, lang)}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+                {section.items.length > 0 && (
+                  <ul>
+                    {section.items.map((item) => <li key={item.fr}>{txt(item, lang)}</li>)}
+                  </ul>
+                )}
               </section>
             ))}
           </div>
