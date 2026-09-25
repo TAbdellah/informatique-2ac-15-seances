@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [import-site.tar.gz]
+    paths:
+      - "import-site*.tar.gz"
 
 permissions:
   contents: write
@@ -15,14 +16,21 @@ jobs:
     steps:
       - name: Recuperer le depot
         uses: actions/checkout@v4
+
       - name: Extraire le projet
         run: |
-          tar -xzf import-site.tar.gz
-          rm -f import-site.tar.gz
+          archive="$(find . -maxdepth 1 -type f -name 'import-site*.tar.gz' -size +1024c -print -quit)"
+          if [ -z "$archive" ]; then
+            echo "Aucune archive valide trouvee."
+            exit 1
+          fi
+          tar -xzf "$archive"
+          rm -f import-site*.tar.gz
+
       - name: Publier les fichiers extraits
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Publier le site informatique 2AC - 15 seances"
+          git commit -m "Publier les mises a jour du site informatique 2AC"
           git push
