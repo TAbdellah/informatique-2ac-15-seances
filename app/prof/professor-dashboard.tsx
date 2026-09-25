@@ -183,6 +183,15 @@ function studentName(item: Pick<Attempt, "studentOne" | "studentTwo">) {
   return item.studentTwo ? `${item.studentOne} + ${item.studentTwo}` : item.studentOne;
 }
 
+function sortLearnersByLatestSubmission(learners: Learner[]) {
+  return [...learners].sort((left, right) => {
+    const leftTime = left.lastAttemptAt ? Date.parse(left.lastAttemptAt) : 0;
+    const rightTime = right.lastAttemptAt ? Date.parse(right.lastAttemptAt) : 0;
+    if (rightTime !== leftTime) return rightTime - leftTime;
+    return studentName(left).localeCompare(studentName(right), "fr", { sensitivity: "base" });
+  });
+}
+
 function parseDatabaseDate(value: string) {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   return new Date(/(?:Z|[+-]\d{2}:\d{2})$/.test(normalized) ? normalized : `${normalized}Z`);
@@ -906,7 +915,7 @@ export default function ProfessorDashboard() {
           </div>
           {data && data.learners.length > 0 ? (
                 <div className="prof-learner-list">
-                  {data.learners.map((learner) => (
+                  {sortLearnersByLatestSubmission(data.learners).map((learner) => (
                     <article className="prof-learner-card" key={learner.id}>
                       <header>
                         <div className="prof-learner-identity">

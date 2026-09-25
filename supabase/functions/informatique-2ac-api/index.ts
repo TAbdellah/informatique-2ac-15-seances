@@ -330,12 +330,16 @@ async function dashboard(filtersValue: unknown, pageValue: unknown) {
         lastAttemptAt: participantSubmissions[0]?.created_at || null,
       };
     })
-    .sort((left, right) =>
-      `${left.className}-${left.groupName}-${left.studentOne}`.localeCompare(
-        `${right.className}-${right.groupName}-${right.studentOne}`,
+    .sort((left, right) => {
+      const leftTime = left.lastAttemptAt ? Date.parse(left.lastAttemptAt) : 0;
+      const rightTime = right.lastAttemptAt ? Date.parse(right.lastAttemptAt) : 0;
+      if (rightTime !== leftTime) return rightTime - leftTime;
+      return `${left.studentOne} ${left.studentTwo || ""}`.localeCompare(
+        `${right.studentOne} ${right.studentTwo || ""}`,
         "fr",
-      ),
-    )
+        { sensitivity: "base" },
+      );
+    })
     .slice(0, 500);
 
   return {
