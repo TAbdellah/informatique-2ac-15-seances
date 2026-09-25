@@ -24,7 +24,7 @@ jobs:
             echo "Aucune archive valide trouvee."
             exit 1
           fi
-          tar -xzf "$archive"
+          tar --exclude='./.github/workflows' --exclude='./.github/workflows/*' -xzf "$archive"
           rm -f import-site*.tar.gz
 
       - name: Publier les fichiers extraits
