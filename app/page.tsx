@@ -1239,11 +1239,13 @@ function Unit1Workshop({
   lang,
   participantId,
   onRecordSubmission,
+  onGoToTrace,
 }: {
   session: CourseSession;
   lang: Lang;
   participantId: string;
   onRecordSubmission: (submission: SubmissionInput) => void;
+  onGoToTrace: () => void;
 }) {
   const lab = unit1Labs[session.id as 1 | 2 | 3];
   const [exerciseIndex, setExerciseIndex] = useState(0);
@@ -1364,7 +1366,35 @@ function Unit1Workshop({
         <div><span>{ui[lang].deliverable}</span><strong>{txt(session.deliverable, lang)}</strong></div>
         <div className="quality-stamp"><Check size={16} />{completedExercises.size === lab.exercises.length ? (lang === "fr" ? "Parcours entièrement réussi" : "تم إنجاز المسار كاملا") : (lang === "fr" ? "Progression enregistrée pendant la séance" : "يتم حفظ التقدم خلال الحصة")}</div>
       </article>
+      <TraceTransition lang={lang} onContinue={onGoToTrace} />
     </div>
+  );
+}
+
+function TraceTransition({ lang, onContinue }: { lang: Lang; onContinue: () => void }) {
+  return (
+    <section className="trace-transition" aria-label={lang === "fr" ? "Passage vers la trace écrite" : "الانتقال إلى خلاصة الدرس"}>
+      <div className="trace-transition-orbit" aria-hidden="true"><Sparkles size={20} /><BookOpen size={29} /></div>
+      <div className="trace-transition-copy">
+        <span>{lang === "fr" ? "DE L’EXPÉRIENCE À LA MÉMOIRE" : "مِنَ التَّجْرِبَةِ إِلَى التَّذَكُّرِ"}</span>
+        <h3>{lang === "fr" ? "Tu as observé, essayé et réussi." : "لقد لاحظتَ وجرّبتَ ونجحتَ."}</h3>
+        <p>{lang === "fr"
+          ? "Transforme maintenant ce que tu viens de découvrir en une trace claire que tu pourras retrouver dans ton cahier."
+          : "حوّل الآن ما اكتشفته إلى خلاصة واضحة يمكنك الرجوع إليها في دفترك."}</p>
+      </div>
+      <div className="trace-transition-path" aria-hidden="true">
+        <span>01<small>{lang === "fr" ? "Observer" : "ألاحظ"}</small></span>
+        <i />
+        <span>02<small>{lang === "fr" ? "Pratiquer" : "أطبّق"}</small></span>
+        <i />
+        <span>03<small>{lang === "fr" ? "Retenir" : "أحتفظ"}</small></span>
+      </div>
+      <button type="button" onClick={onContinue}>
+        <BookOpen size={19} />
+        <span><strong>{lang === "fr" ? "Construire ma trace écrite" : "أبني خلاصة درسي"}</strong><small>{lang === "fr" ? "Je garde l’essentiel" : "أحتفظ بالأهم"}</small></span>
+        <ArrowRight size={19} />
+      </button>
+    </section>
   );
 }
 
@@ -1372,10 +1402,12 @@ function StandardWorkshopView({
   session,
   lang,
   onRecordSubmission,
+  onGoToTrace,
 }: {
   session: CourseSession;
   lang: Lang;
   onRecordSubmission: (submission: SubmissionInput) => void;
+  onGoToTrace: () => void;
 }) {
   const labels = ui[lang];
   const [checked, setChecked] = useState<boolean[]>([false, false]);
@@ -1484,6 +1516,7 @@ function StandardWorkshopView({
         <div><span>{labels.deliverable}</span><strong>{txt(session.deliverable, lang)}</strong></div>
         <div className="quality-stamp"><Check size={16} /> {labels.peerCheck}</div>
       </article>
+      <TraceTransition lang={lang} onContinue={onGoToTrace} />
     </div>
   );
 }
@@ -1493,16 +1526,18 @@ function WorkshopView({
   lang,
   participantId,
   onRecordSubmission,
+  onGoToTrace,
 }: {
   session: CourseSession;
   lang: Lang;
   participantId: string;
   onRecordSubmission: (submission: SubmissionInput) => void;
+  onGoToTrace: () => void;
 }) {
   if (session.unit === 1) {
-    return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} />;
+    return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
   }
-  return <StandardWorkshopView session={session} lang={lang} onRecordSubmission={onRecordSubmission} />;
+  return <StandardWorkshopView session={session} lang={lang} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
 }
 
 function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
@@ -1715,6 +1750,12 @@ function SessionPage({
 }) {
   const labels = ui[lang];
   const unit = getUnit(session.unit);
+  function goToTrace() {
+    onTab("trace");
+    window.requestAnimationFrame(() => {
+      document.querySelector(".notebook")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
       <button className="back-link" onClick={onBack}><ArrowLeft size={17} />{labels.back}</button>
@@ -1759,6 +1800,7 @@ function SessionPage({
           lang={lang}
           participantId={participantId}
           onRecordSubmission={onRecordSubmission}
+          onGoToTrace={goToTrace}
         />
       )}
       {activeTab === "trace" && <TraceView session={session} lang={lang} />}
@@ -1878,20 +1920,27 @@ export default function HomePage() {
       return;
     }
     let cancelled = false;
-    const refreshAccess = () => void getSessionAccess()
-      .then((access) => {
+    let refreshTimer: number | null = null;
+    const refreshAccess = async () => {
+      try {
+        const access = await getSessionAccess();
         if (cancelled) return;
         setSessionAccess(access);
         setSessionAccessLoaded(true);
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
-        setSessionAccess([]);
+        // Conserver la dernière autorisation valide pendant une coupure réseau.
+        // Une séance ne doit être verrouillée que par une réponse réussie du backend.
         setSessionAccessLoaded(true);
-      });
-    refreshAccess();
-    const interval = window.setInterval(refreshAccess, 10_000);
-    return () => { cancelled = true; window.clearInterval(interval); };
+      } finally {
+        if (!cancelled) refreshTimer = window.setTimeout(() => void refreshAccess(), 10_000);
+      }
+    };
+    void refreshAccess();
+    return () => {
+      cancelled = true;
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+    };
   }, [studentProfile]);
 
   const unlockedSessions = useMemo(

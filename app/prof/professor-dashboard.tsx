@@ -35,6 +35,7 @@ import {
 import {
   teacherDashboard,
   teacherDeleteAllData,
+  teacherDeleteLearner,
   teacherExport,
   teacherLearnerReport,
   teacherLogin,
@@ -118,6 +119,25 @@ const activityLabels: Record<string, string> = {
   session_completion: "Validation de séance",
 };
 
+const session1ActivityLabels: Record<string, string> = {
+  "s1-geste-clic": "Précision de la souris",
+  "s1-geste-double": "Ouvrir par double-clic",
+  "s1-geste-saisie": "Écrire et valider avec Entrée",
+  "s1-definition-mot": "Construire le mot informatique",
+  "s1-definition-informatique": "Définir l’informatique",
+  "s1-formes-associer": "Associer les formes d’information",
+  "s1-formes-selection": "Reconnaître les formes d’information",
+  "s1-traitement-ordre": "De la photo sombre à la photo claire",
+  "s1-traitement-definition": "Définir un traitement",
+  "s1-types-image": "Reconnaître un traitement manuel",
+  "s1-types-associer": "Classer les types de traitement",
+  "s1-automatique-caracteristiques": "Caractéristiques d’un traitement automatique",
+  "s1-situation-notes": "Situation-problème · élection du délégué",
+  "s1-exemple-automatique": "Produire un exemple de traitement automatique",
+  "session-1-quiz": "Évaluation de la séance 1",
+  "session-1-completion": "Validation de la séance 1",
+};
+
 const session2ActivityLabels: Record<string, string> = {
   "s2-poste-reperes": "Reconnaître le poste informatique",
   "s2-poste-fonctions": "Fonctions des éléments du poste",
@@ -148,8 +168,29 @@ const session2Competencies = [
   { label: "Sécurité et stockage", ids: ["s2-securite", "s2-defi-final"] },
 ] as const;
 
+const session1Competencies = [
+  { label: "Gestes de base", ids: ["s1-geste-clic", "s1-geste-double", "s1-geste-saisie"] },
+  { label: "Informatique et information", ids: ["s1-definition-mot", "s1-definition-informatique"] },
+  { label: "Formes de l’information", ids: ["s1-formes-associer", "s1-formes-selection"] },
+  { label: "Étapes d’un traitement", ids: ["s1-traitement-ordre", "s1-traitement-definition", "s1-situation-notes"] },
+  { label: "Types de traitement", ids: ["s1-types-image", "s1-types-associer", "s1-automatique-caracteristiques", "s1-exemple-automatique"] },
+] as const;
+
+const pedagogicalSessions = {
+  1: {
+    title: "Information et traitement",
+    exerciseCount: 14,
+    competencies: session1Competencies,
+  },
+  2: {
+    title: "Environnement matériel d’un système informatique",
+    exerciseCount: 15,
+    competencies: session2Competencies,
+  },
+} as const;
+
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
-  return session2ActivityLabels[attempt.activityId] ?? activityLabels[attempt.activityType] ?? attempt.activityType;
+  return session1ActivityLabels[attempt.activityId] ?? session2ActivityLabels[attempt.activityId] ?? activityLabels[attempt.activityType] ?? attempt.activityType;
 }
 
 const answerLabels: Record<string, string> = {
@@ -263,12 +304,13 @@ function percentageToGrade(percentage: number | null) {
   return percentage === null ? null : Math.round((percentage / 5) * 10) / 10;
 }
 
-function session2SummaryForAttempts(attempts: Attempt[]) {
-  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === 2);
+function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2) {
+  const config = pedagogicalSessions[sessionId];
+  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === sessionId);
   const successfulIds = new Set(sessionAttempts.filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect)).map((attempt) => attempt.activityId));
-  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === "session-2-quiz");
+  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === `session-${sessionId}-quiz`);
   const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => !best || (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best, null);
-  const competencies = session2Competencies.map((competency) => {
+  const competencies = config.competencies.map((competency) => {
     const acquired = competency.ids.filter((id) => successfulIds.has(id)).length;
     return `${competency.label}: ${acquired === competency.ids.length ? "Acquis" : acquired > 0 ? "En cours" : "À travailler"} (${acquired}/${competency.ids.length})`;
   }).join(" · ");
@@ -445,8 +487,9 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
   return <p className="prof-answer-plain">{displayAnswerValue(answer)}</p>;
 }
 
-function Session2Report({ attempts }: { attempts: Attempt[] }) {
-  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === 2);
+function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; sessionId: 1 | 2 }) {
+  const config = pedagogicalSessions[sessionId];
+  const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === sessionId);
   if (sessionAttempts.length === 0) return null;
 
   const successfulIds = new Set(
@@ -454,20 +497,20 @@ function Session2Report({ attempts }: { attempts: Attempt[] }) {
       .filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect))
       .map((attempt) => attempt.activityId),
   );
-  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === "session-2-quiz");
+  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === `session-${sessionId}-quiz`);
   const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => {
     if (!best) return attempt;
     return (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best;
   }, null);
-  const progressPercent = Math.round((successfulIds.size / 15) * 100);
+  const progressPercent = Math.round((successfulIds.size / config.exerciseCount) * 100);
   const gradedAttempts = sessionAttempts.filter((attempt) => attempt.isCorrect !== null);
   const correctAttempts = gradedAttempts.filter((attempt) => Boolean(attempt.isCorrect)).length;
   const successPercent = gradedAttempts.length > 0 ? Math.round((correctAttempts / gradedAttempts.length) * 100) : 0;
 
   return (
-    <section className="prof-session2-report" aria-label="Bilan de la séance 2">
+    <section className="prof-session2-report" aria-label={`Bilan de la séance ${sessionId}`}>
       <div className="prof-session2-head">
-        <div><small>BILAN PÉDAGOGIQUE · SÉANCE 02</small><strong>Environnement matériel d’un système informatique</strong></div>
+        <div><small>BILAN PÉDAGOGIQUE · SÉANCE {String(sessionId).padStart(2, "0")}</small><strong>{config.title}</strong></div>
         <span>{sessionAttempts.length} tentative(s)</span>
       </div>
       <div className="prof-session2-overview">
@@ -475,7 +518,7 @@ function Session2Report({ attempts }: { attempts: Attempt[] }) {
           <div className="prof-progress-ring" style={{ "--progress": `${progressPercent * 3.6}deg` } as React.CSSProperties}>
             <span><strong>{progressPercent}%</strong><small>progression</small></span>
           </div>
-          <div><strong>{successfulIds.size}/15</strong><span>exercices différents réussis</span></div>
+          <div><strong>{successfulIds.size}/{config.exerciseCount}</strong><span>exercices différents réussis</span></div>
         </article>
         <article className="prof-session2-score-card">
           <span className="prof-session2-card-icon"><GraduationCap size={20} /></span>
@@ -488,7 +531,7 @@ function Session2Report({ attempts }: { attempts: Attempt[] }) {
       </div>
       <div className="prof-competency-title"><strong>Maîtrise des compétences</strong><span>Une compétence est acquise lorsque tous ses exercices sont réussis.</span></div>
       <div className="prof-competency-grid">
-        {session2Competencies.map((competency) => {
+        {config.competencies.map((competency) => {
           const acquired = competency.ids.filter((id) => successfulIds.has(id)).length;
           const percentage = Math.round((acquired / competency.ids.length) * 100);
           const status = percentage === 100 ? "Acquis" : percentage > 0 ? "En cours" : "À travailler";
@@ -518,13 +561,15 @@ export default function ProfessorDashboard() {
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [learnerToDelete, setLearnerToDelete] = useState<Learner | null>(null);
+  const [deletingLearnerId, setDeletingLearnerId] = useState<string | null>(null);
   const [updatingSessionId, setUpdatingSessionId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
   const [learnerAttempts, setLearnerAttempts] = useState<Attempt[]>([]);
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
-  const [reportScope, setReportScope] = useState<"session2" | "all">("session2");
+  const [reportScope, setReportScope] = useState<"session1" | "session2" | "all">("session1");
   const [reportView, setReportView] = useState<"answers" | "summary">("answers");
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
@@ -636,11 +681,15 @@ export default function ProfessorDashboard() {
         "Classe", "Groupe", "Élève 1", "Élève 2", "Organisation", "Nombre de tentatives",
         "Tentatives corrigées", "Réponses correctes", "Taux de réussite (%)", "Note indicative (/20)",
         "Score moyen des QCM (%)", "Meilleur score QCM (%)", "Séances terminées", "Total des séances",
-        "Dernière tentative (Maroc)", "S2 - Tentatives", "S2 - Exercices réussis (/15)",
+        "Dernière tentative (Maroc)", "S1 - Tentatives", "S1 - Exercices réussis (/14)",
+        "S1 - Meilleur QCM (/10)", "S1 - Meilleur QCM (%)", "S1 - Bilan des compétences",
+        "S2 - Tentatives", "S2 - Exercices réussis (/15)",
         "S2 - Meilleur QCM (/10)", "S2 - Meilleur QCM (%)", "S2 - Bilan des compétences",
       ];
       const summaryRows = (data?.learners ?? []).map((learner) => {
-        const session2 = session2SummaryForAttempts(payload.rows.filter((attempt) => attempt.participantId === learner.id));
+        const learnerRows = payload.rows.filter((attempt) => attempt.participantId === learner.id);
+        const session1 = sessionSummaryForAttempts(learnerRows, 1);
+        const session2 = sessionSummaryForAttempts(learnerRows, 2);
         return [
           learner.className,
           `Groupe ${learner.groupName}`,
@@ -657,6 +706,11 @@ export default function ProfessorDashboard() {
           learner.completedSessions,
           15,
           learner.lastAttemptAt ? formatDateTime(learner.lastAttemptAt) : "Aucune tentative",
+          session1.attempts,
+          session1.exercises,
+          session1.bestQuiz?.score ?? "",
+          session1.bestQuiz ? attemptPercentage(session1.bestQuiz) ?? "" : "",
+          session1.competencies,
           session2.attempts,
           session2.exercises,
           session2.bestQuiz?.score ?? "",
@@ -669,9 +723,10 @@ export default function ProfessorDashboard() {
         { wch: 10 }, { wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 20 },
         { wch: 21 }, { wch: 20 }, { wch: 21 }, { wch: 21 }, { wch: 24 }, { wch: 24 },
         { wch: 19 }, { wch: 18 }, { wch: 25 }, { wch: 17 }, { wch: 28 },
+        { wch: 24 }, { wch: 24 }, { wch: 90 }, { wch: 17 }, { wch: 28 },
         { wch: 24 }, { wch: 24 }, { wch: 90 },
       ];
-      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:T${summaryRows.length + 1}` };
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:Y${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
@@ -714,6 +769,30 @@ export default function ProfessorDashboard() {
     }
   }
 
+  async function deleteSelectedLearner() {
+    if (!learnerToDelete) return;
+    setDeletingLearnerId(learnerToDelete.id);
+    setError("");
+    try {
+      await teacherDeleteLearner(learnerToDelete.id);
+      if (selectedLearner?.id === learnerToDelete.id) {
+        setSelectedLearner(null);
+        setLearnerAttempts([]);
+      }
+      setLearnerToDelete(null);
+      setPage(1);
+      await loadDashboard(appliedFilters, 1);
+    } catch (deleteError) {
+      if ((deleteError as Error & { status?: number }).status === 401) {
+        logout();
+        return;
+      }
+      setError(deleteError instanceof Error ? deleteError.message : "Suppression de l’élève impossible.");
+    } finally {
+      setDeletingLearnerId(null);
+    }
+  }
+
   async function toggleSessionAccess(session: SessionAccess) {
     setUpdatingSessionId(session.sessionId);
     setError("");
@@ -735,7 +814,7 @@ export default function ProfessorDashboard() {
     setSelectedLearner(learner);
     setLearnerAttempts([]);
     setSelectedAttemptId(null);
-    setReportScope("session2");
+    setReportScope("session1");
     setReportView("answers");
     setReportLoading(true);
     setError("");
@@ -922,7 +1001,10 @@ export default function ProfessorDashboard() {
                           <strong>{studentName(learner)}</strong>
                           <span>{learner.isPair ? "Binôme" : "Individuel"} · {learner.className} · Groupe {learner.groupName}</span>
                         </div>
-                        <button className="prof-detail-button" onClick={() => void openLearnerReport(learner)}><Eye size={15} /> Consulter le rapport</button>
+                        <div className="prof-learner-actions">
+                          <button className="prof-detail-button" onClick={() => void openLearnerReport(learner)}><Eye size={15} /> Consulter le rapport</button>
+                          <button className="prof-delete-learner-button" onClick={() => setLearnerToDelete(learner)} aria-label={`Supprimer ${studentName(learner)}`}><Trash2 size={15} /> Supprimer</button>
+                        </div>
                       </header>
                       <div className="prof-learner-metrics">
                         <div><span>Tentatives</span><strong>{learner.totalAttempts}</strong></div>
@@ -963,15 +1045,24 @@ export default function ProfessorDashboard() {
               </div>
               {!reportLoading && learnerAttempts.length > 0 && (
                 <div className="prof-report-view-tabs">
-                  <button className={reportView === "answers" ? "active" : ""} onClick={() => setReportView("answers")}><Eye size={15} /> Réponses <span>{learnerAttempts.filter((attempt) => attempt.sessionId === 2).length}</span></button>
+                  <button className={reportView === "answers" ? "active" : ""} onClick={() => setReportView("answers")}><Eye size={15} /> Réponses <span>{learnerAttempts.length}</span></button>
                   <button className={reportView === "summary" ? "active" : ""} onClick={() => setReportView("summary")}><Target size={15} /> Bilan pédagogique</button>
                 </div>
               )}
-              {!reportLoading && reportView === "summary" && <Session2Report attempts={learnerAttempts} />}
+              {!reportLoading && reportView === "summary" && (
+                <div className="prof-session-reports">
+                  <SessionLearningReport attempts={learnerAttempts} sessionId={1} />
+                  <SessionLearningReport attempts={learnerAttempts} sessionId={2} />
+                  {!learnerAttempts.some((attempt) => attempt.sessionId === 1 || attempt.sessionId === 2) && (
+                    <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1 ou 2.</p></div>
+                  )}
+                </div>
+              )}
               {!reportLoading && reportView === "answers" && learnerAttempts.length > 0 && (
                 <div className="prof-report-toolbar">
-                  <div><strong>Historique des réponses</strong><span>{reportScope === "session2" ? "Séance 2 uniquement" : "Toutes les séances"}</span></div>
+                  <div><strong>Historique des réponses</strong><span>{reportScope === "session1" ? "Séance 1 uniquement" : reportScope === "session2" ? "Séance 2 uniquement" : "Toutes les séances"}</span></div>
                   <div>
+                    <button className={reportScope === "session1" ? "active" : ""} onClick={() => setReportScope("session1")}>Séance 1</button>
                     <button className={reportScope === "session2" ? "active" : ""} onClick={() => setReportScope("session2")}>Séance 2</button>
                     <button className={reportScope === "all" ? "active" : ""} onClick={() => setReportScope("all")}>Toutes</button>
                   </div>
@@ -981,7 +1072,7 @@ export default function ProfessorDashboard() {
                 <div className="prof-report-loading"><LoaderCircle className="spin" size={22} /> Chargement des réponses…</div>
               ) : reportView === "answers" && learnerAttempts.length > 0 ? (
                 <div className="prof-report-attempts">
-                  {learnerAttempts.filter((attempt) => reportScope === "all" || attempt.sessionId === 2).map((attempt) => {
+                  {learnerAttempts.filter((attempt) => reportScope === "all" || attempt.sessionId === (reportScope === "session1" ? 1 : 2)).map((attempt) => {
                     const expanded = selectedAttemptId === attempt.id;
                     const percentage = attemptPercentage(attempt);
                     const grade = percentageToGrade(percentage);
@@ -1002,6 +1093,9 @@ export default function ProfessorDashboard() {
                       </article>
                     );
                   })}
+                  {reportScope === "session1" && !learnerAttempts.some((attempt) => attempt.sessionId === 1) && (
+                    <div className="prof-report-no-session"><Activity size={22} /><strong>Aucune réponse pour la séance 1</strong><span>Choisissez « Toutes » pour consulter les autres séances.</span></div>
+                  )}
                   {reportScope === "session2" && !learnerAttempts.some((attempt) => attempt.sessionId === 2) && (
                     <div className="prof-report-no-session"><Activity size={22} /><strong>Aucune réponse pour la séance 2</strong><span>Choisissez « Toutes » pour consulter les autres séances.</span></div>
                   )}
@@ -1038,6 +1132,26 @@ export default function ProfessorDashboard() {
             <button type="button" className="danger" onClick={() => void deleteAllData()} disabled={deleteConfirmation !== "EFFACER" || deleting}>
               {deleting ? <LoaderCircle className="spin" size={17} /> : <Trash2 size={17} />}
               {deleting ? "Suppression…" : "Effacer définitivement"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(learnerToDelete)} onOpenChange={(open) => { if (!open && !deletingLearnerId) setLearnerToDelete(null); }}>
+        <DialogContent className="prof-delete-dialog prof-delete-learner-dialog">
+          <DialogHeader>
+            <span className="prof-delete-icon"><AlertTriangle size={24} /></span>
+            <DialogTitle>Supprimer cet élève ?</DialogTitle>
+            <DialogDescription>
+              {learnerToDelete && <><strong>{studentName(learnerToDelete)}</strong><br />{learnerToDelete.className} · Groupe {learnerToDelete.groupName}</>}
+            </DialogDescription>
+          </DialogHeader>
+          <p className="prof-delete-learner-warning">L’élève et toutes ses réponses, tentatives, notes et données de progression seront définitivement supprimés. Les autres élèves ne seront pas affectés.</p>
+          <div className="prof-delete-actions">
+            <button type="button" onClick={() => setLearnerToDelete(null)} disabled={Boolean(deletingLearnerId)}>Annuler</button>
+            <button type="button" className="danger" onClick={() => void deleteSelectedLearner()} disabled={Boolean(deletingLearnerId)}>
+              {deletingLearnerId ? <LoaderCircle className="spin" size={17} /> : <Trash2 size={17} />}
+              {deletingLearnerId ? "Suppression…" : "Supprimer définitivement"}
             </button>
           </div>
         </DialogContent>

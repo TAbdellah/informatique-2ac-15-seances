@@ -401,6 +401,21 @@ async function deleteAllStudentData() {
   return { deleted: true };
 }
 
+async function deleteLearner(participantIdValue: unknown) {
+  const participantId = cleanText(participantIdValue, 50);
+  if (!/^[0-9a-f-]{36}$/i.test(participantId)) throw new Error("Invalid participant id");
+  const participants = (await database(
+    `course_2ac_participants?select=id&id=eq.${encodeURIComponent(participantId)}&limit=1`,
+  )) as Array<{ id: string }>;
+  if (!participants[0]) return null;
+  // La clé étrangère ON DELETE CASCADE supprime automatiquement toutes les tentatives associées.
+  await database(`course_2ac_participants?id=eq.${encodeURIComponent(participantId)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  return { deleted: true };
+}
+
 async function sessionAccess() {
   const rows = (await database(
     "course_2ac_session_access?select=session_id,is_unlocked,updated_at&order=session_id.asc",
@@ -557,6 +572,11 @@ Deno.serve(async (request) => {
     if (body.action === "delete_all_data") {
       if (body.confirmation !== "EFFACER") return json({ error: "Confirmation invalide." }, 400, headers);
       return json(await deleteAllStudentData(), 200, headers);
+    }
+    if (body.action === "delete_learner") {
+      if (body.confirmation !== "SUPPRIMER") return json({ error: "Confirmation invalide." }, 400, headers);
+      const result = await deleteLearner(body.participantId);
+      return result ? json(result, 200, headers) : json({ error: "Élève introuvable." }, 404, headers);
     }
     return json({ error: "Action inconnue." }, 400, headers);
   } catch (error) {

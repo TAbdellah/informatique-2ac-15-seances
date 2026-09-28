@@ -91,6 +91,15 @@ const treatmentImage: ExerciseImage = {
   caption: t("Support du cours · trois types de traitement", "دعامة الدرس · ثلاثة أنواع من المعالجة"),
 };
 
+const enterKeysImage: ExerciseImage = {
+  src: "keyboard-enter-keys.png",
+  alt: t(
+    "Les deux touches Entrée d’un clavier entourées en rouge et en vert",
+    "زرا الإدخال Enter في لوحة المفاتيح محددان بدائرتين حمراء وخضراء"
+  ),
+  caption: t("Repère les deux touches Entrée du clavier", "لاحظ زري Enter في لوحة المفاتيح"),
+};
+
 const desktopImage: ExerciseImage = {
   src: "https://i.imgur.com/cwhu6dv.png",
   alt: t("Capture réelle d’un bureau Windows", "لقطة حقيقية لسطح مكتب Windows"),
@@ -140,6 +149,7 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
         level: "start",
         title: t("Écrire et valider", "الكتابة والتأكيد"),
         prompt: t("Écris ton prénom puis appuie sur Entrée.", "اكتب اسمك ثم اضغط Enter."),
+        image: enterKeysImage,
         hint: t("Clique d’abord dans la zone blanche.", "انقر أولا داخل الخانة البيضاء."),
         feedback: t("Tu as utilisé le clavier et la touche Entrée.", "استعملت لوحة المفاتيح وزر Enter."),
       },
@@ -207,15 +217,15 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
         id: "s1-traitement-ordre",
         type: "sequence",
         level: "train",
-        title: t("Remettre un traitement en ordre", "ترتيب مراحل المعالجة"),
-        prompt: t("Clique les trois étapes dans l’ordre logique.", "انقر المراحل الثلاث حسب ترتيبها المنطقي."),
+        title: t("De la photo sombre à la photo claire", "من صورة مظلمة إلى صورة واضحة"),
+        prompt: t("Lina veut améliorer une photo trop sombre. Remets les trois moments du traitement dans l’ordre logique.", "تريد لينا تحسين صورة مظلمة جدا. رتب مراحل المعالجة الثلاث ترتيبا منطقيا."),
         steps: [
-          t("État initial : les données de départ", "الحالة الابتدائية: المعطيات الأولية"),
-          t("Opérations : calculer, trier ou modifier", "العمليات: الحساب أو الترتيب أو التعديل"),
-          t("État final : le résultat obtenu", "الحالة النهائية: النتيجة المحصل عليها"),
+          t("État initial : une photo trop sombre", "الحالة الابتدائية: صورة مظلمة جدا"),
+          t("Opération : augmenter la luminosité", "العملية: زيادة سطوع الصورة"),
+          t("État final : une photo claire et lisible", "الحالة النهائية: صورة واضحة ومقروءة"),
         ],
         shuffled: [1, 2, 0],
-        feedback: t("Un traitement fait passer des données d’un état initial à un état final.", "تنقل المعالجة المعطيات من حالة ابتدائية إلى حالة نهائية."),
+        feedback: t("Le traitement transforme ici une photo sombre en une photo claire grâce à une opération précise.", "تحول المعالجة هنا صورة مظلمة إلى صورة واضحة بفضل عملية محددة."),
       },
       {
         id: "s1-traitement-definition",
@@ -240,7 +250,6 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
         choices: [t("Manuel", "يدوي"), t("Semi-automatique", "شبه آلي"), t("Automatique", "آلي")],
         answer: 0,
         feedback: t("Le traitement est manuel quand l’humain réalise seul toutes les opérations.", "تكون المعالجة يدوية عندما ينجز الإنسان كل العمليات وحده."),
-        image: treatmentImage,
       },
       {
         id: "s1-types-associer",
@@ -264,7 +273,7 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
         type: "multi",
         level: "challenge",
         title: t("Caractéristiques d’un traitement automatique", "خصائص المعالجة الآلية"),
-        prompt: t("Quelles affirmations décrivent un traitement automatique ?", "ما العبارات التي تصف معالجة آلية؟"),
+        prompt: t("Choisis exactement les 3 affirmations qui décrivent un traitement automatique.", "اختر بالضبط 3 عبارات تصف المعالجة الآلية."),
         choices: [
           t("La machine exécute entièrement le traitement", "تنجز الآلة المعالجة كاملة"),
           t("Il est généralement très rapide", "تكون عادة سريعة جدا"),
@@ -278,15 +287,15 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
         id: "s1-situation-notes",
         type: "sequence",
         level: "challenge",
-        title: t("Situation-problème : moyenne de classe", "وضعية مشكلة: معدل القسم"),
-        prompt: t("Remets le traitement des notes dans l’ordre.", "رتب مراحل معالجة النقط."),
+        title: t("Situation-problème : élection du délégué", "وضعية مشكلة: انتخاب ممثل القسم"),
+        prompt: t("La classe a terminé le vote. Remets les étapes du dépouillement dans l’ordre pour connaître l’élève élu.", "أنهى القسم عملية التصويت. رتب مراحل فرز الأصوات لمعرفة التلميذ المنتخب."),
         steps: [
-          t("Saisir les notes des élèves", "إدخال نقط التلاميذ"),
-          t("Calculer la somme puis diviser par le nombre d’élèves", "حساب المجموع ثم القسمة على عدد التلاميذ"),
-          t("Afficher la moyenne de la classe", "عرض معدل القسم"),
+          t("État initial : les bulletins de vote", "الحالة الابتدائية: أوراق التصويت"),
+          t("Traitement : compter les voix de chaque candidat", "المعالجة: حساب أصوات كل مترشح"),
+          t("État final : afficher le nom de l’élève élu", "الحالة النهائية: عرض اسم التلميذ المنتخب"),
         ],
         shuffled: [2, 0, 1],
-        feedback: t("Les notes sont les données, le calcul est le traitement et la moyenne est le résultat.", "النقط معطيات والحساب معالجة والمعدل نتيجة."),
+        feedback: t("Les bulletins sont les données, le comptage est le traitement et le nom de l’élu est le résultat.", "أوراق التصويت هي المعطيات، وعد الأصوات هو المعالجة، واسم المنتخب هو النتيجة."),
       },
       {
         id: "s1-exemple-automatique",
@@ -300,6 +309,7 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
           ar: ["موزع", "موزع آلي", "روبوت", "روبوت صناعي", "نسخ احتياطي", "حفظ تلقائي"],
         },
         feedback: t("Oui : la machine réalise seule les opérations prévues.", "صحيح: تنجز الآلة وحدها العمليات المبرمجة."),
+        image: treatmentImage,
       },
     ],
   },

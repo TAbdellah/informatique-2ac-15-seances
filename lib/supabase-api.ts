@@ -100,6 +100,10 @@ export function teacherDeleteAllData(token = teacherToken()) {
   return call<{ deleted: true }>({ action: "delete_all_data", token, confirmation: "EFFACER" });
 }
 
+export function teacherDeleteLearner(participantId: string, token = teacherToken()) {
+  return call<{ deleted: true }>({ action: "delete_learner", token, participantId, confirmation: "SUPPRIMER" });
+}
+
 export async function teacherUpdateSessionAccess(sessionId: number, isUnlocked: boolean, token = teacherToken()) {
   const data = await call<{ sessions: SessionAccess[] }>({
     action: "update_session_access",

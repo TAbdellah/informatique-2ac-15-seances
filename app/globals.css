@@ -1954,6 +1954,110 @@ a:focus-visible {
 .deliverable-card > div:nth-child(2) strong { font-size: 12px; }
 .quality-stamp { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.7); color: #7a6a3c; font-size: 9px; font-weight: 800; }
 
+.trace-transition {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(250px, 1fr) auto auto;
+  gap: 22px;
+  align-items: center;
+  margin-top: 22px;
+  padding: 22px 24px;
+  overflow: hidden;
+  border: 1px solid #b9d8d8;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 10%, rgba(44,183,197,.18), transparent 28%),
+    linear-gradient(120deg, #eefafa 0%, #fffdf3 54%, #fff3c7 100%);
+  box-shadow: 0 18px 40px rgba(16, 38, 63, .08);
+}
+
+.trace-transition::after {
+  position: absolute;
+  inset: auto -34px -52px auto;
+  width: 145px;
+  height: 145px;
+  border: 24px solid rgba(255,197,49,.16);
+  border-radius: 50%;
+  content: "";
+}
+
+.trace-transition-orbit {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  border-radius: 19px;
+  background: var(--navy);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(16, 38, 63, .2);
+}
+
+.trace-transition-orbit svg:first-child {
+  position: absolute;
+  inset: -8px -8px auto auto;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.trace-transition-copy { position: relative; z-index: 1; }
+.trace-transition-copy > span { color: #147884; font-size: 9px; font-weight: 900; letter-spacing: .13em; }
+.trace-transition-copy h3 { margin: 6px 0 5px; color: var(--navy); font-size: 20px; letter-spacing: -.025em; }
+.trace-transition-copy p { max-width: 620px; margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
+
+.trace-transition-path {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.trace-transition-path > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #b9d8d8;
+  border-radius: 50%;
+  background: rgba(255,255,255,.82);
+  color: #147884;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.trace-transition-path small { position: absolute; margin-top: 58px; color: var(--muted); font-family: inherit; font-size: 7px; white-space: nowrap; }
+.trace-transition-path i { width: 18px; height: 1px; background: #9bc8ca; }
+
+.trace-transition > button {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 238px;
+  grid-template-columns: auto 1fr auto;
+  gap: 11px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--navy);
+  box-shadow: 0 10px 24px rgba(16,38,63,.16);
+  color: #fff;
+  cursor: pointer;
+  text-align: start;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.trace-transition > button:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(16,38,63,.22); }
+.trace-transition > button span { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.trace-transition > button strong { font-size: 11px; }
+.trace-transition > button small { color: #9fb3c4; font-size: 8px; }
+[dir="rtl"] .trace-transition > button > svg:last-child { transform: rotate(180deg); }
+
 /* Unit 1 interactive laboratory */
 
 .unit1-lab {
@@ -2192,7 +2296,30 @@ a:focus-visible {
 .photo-question { margin: 12px 0 15px; padding: 15px 17px; border: 2px solid #e0c34f; border-radius: 11px; background: #fffbe9; }
 .photo-question h3 { margin: 0; }
 
-.exercise-prompt .bilingual-copy { gap: 6px; }
+.exercise-prompt .bilingual-copy {
+  align-items: baseline;
+  flex-flow: row wrap;
+  gap: 7px;
+}
+
+.exercise-prompt .bilingual-copy-fr::after {
+  content: " ||";
+  color: #9f8522;
+  font-weight: 900;
+}
+
+.exercise-image:has(img[src$="keyboard-enter-keys.png"]) {
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 10px 10px 0;
+  background: #fff;
+}
+
+.exercise-image:has(img[src$="keyboard-enter-keys.png"]) img {
+  max-height: 285px;
+  border-radius: 8px;
+  object-fit: cover;
+}
 
 .exercise-image {
   position: relative;
@@ -2949,6 +3076,8 @@ a:focus-visible {
   .complete-button { grid-column: 2; justify-self: start; }
   .session-hero-number { grid-row: span 2; }
   .choices { grid-template-columns: 1fr; }
+  .trace-transition { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .trace-transition-path { display: none; }
 }
 
 @media (max-width: 860px) {
@@ -3080,6 +3209,10 @@ a:focus-visible {
   .workshop-grid { grid-template-columns: 1fr; }
   .deliverable-card { grid-template-columns: auto 1fr; }
   .quality-stamp { grid-column: span 2; }
+  .trace-transition { grid-template-columns: auto minmax(0, 1fr); gap: 15px; padding: 20px; }
+  .trace-transition-orbit { width: 58px; height: 58px; }
+  .trace-transition-copy h3 { font-size: 18px; }
+  .trace-transition > button { min-width: 0; grid-column: span 2; width: 100%; }
   .notebook { padding: 30px 23px 30px 54px; }
   [dir="rtl"] .notebook { padding: 30px 54px 30px 23px; }
   .notebook-margin { inset-inline-start: 35px; }
