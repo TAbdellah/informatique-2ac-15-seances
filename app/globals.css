@@ -2407,7 +2407,7 @@ a:focus-visible {
 .match-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(180px, .8fr) minmax(0, 1.8fr);
+  grid-template-columns: minmax(300px, 1.15fr) minmax(0, 1.5fr);
   gap: 15px;
   align-items: center;
   padding: 12px 13px;
@@ -2434,16 +2434,16 @@ a:focus-visible {
 }
 
 .match-item > img {
-  width: 72px;
-  height: 62px;
+  width: 132px;
+  height: 86px;
   flex: 0 0 auto;
-  object-fit: contain;
+  object-fit: cover;
   border: 1px solid #e1e6e5;
   border-radius: 9px;
   background: #fff;
 }
 
-.match-item > strong { font-size: 12px; line-height: 1.45; }
+.match-item > strong { font-size: 13px; line-height: 1.5; }
 
 .match-row > .match-answers {
   display: flex;
