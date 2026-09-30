@@ -11,9 +11,6 @@ Parcours bilingue français–arabe destiné aux élèves de 2AC. Chaque séance
 
 ## Accès
 
-- Espace élève : <https://tabdellah.github.io/informatique-2ac-15-seances/>
-- Espace professeur : <https://tabdellah.github.io/informatique-2ac-15-seances/enseignant/>
-
 L’espace professeur est protégé par mot de passe. Il affiche les élèves et binômes, chaque tentative avec sa date et son heure au Maroc, les réponses détaillées, les scores, la progression et l’export CSV.
 
 ## Architecture
