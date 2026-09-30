@@ -15,7 +15,7 @@
     </filter>
     <style>
       .latin { font-family: "Segoe UI", Arial, sans-serif; }
-      .arabic { font-family: Tahoma, Arial, sans-serif; direction: rtl; unicode-bidi: bidi-override; }
+      .arabic { font-family: Tahoma, Arial, sans-serif; direction: rtl; unicode-bidi: bidi-override; text-anchor: end; }
       .regular { font-weight: 400; }
       .medium { font-weight: 600; }
       .muted { fill: #63758A; }
@@ -42,7 +42,7 @@
 
   <text x="58" y="143" class="latin regular" font-size="17" letter-spacing="2" fill="#48C9D5">PROJET PÉDAGOGIQUE NUMÉRIQUE</text>
   <text x="58" y="191" class="latin medium" font-size="42" fill="#FFFFFF">Un parcours interactif, de la mission à l’évaluation</text>
-  <text x="58" y="226" class="arabic regular" font-size="25" fill="#C7D7E6">مسار تفاعلي موجّه من المهمة إلى التقويم</text>
+  <text x="590" y="226" class="arabic regular" font-size="25" fill="#C7D7E6">مسار تفاعلي موجّه من المهمة إلى التقويم</text>
 
   <circle cx="1450" cy="125" r="78" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
   <circle cx="1450" cy="125" r="63" fill="none" stroke="#FFFFFF" stroke-opacity="0.06" stroke-width="9"/>
@@ -54,13 +54,13 @@
   <circle cx="91" cy="313" r="18" fill="#E6F7F9"/>
   <text x="91" y="320" text-anchor="middle" class="latin medium" font-size="18" fill="#169EAF">2h</text>
   <text x="122" y="307" class="latin medium" font-size="18" fill="#14253A">Deux heures par séance</text>
-  <text x="122" y="330" class="arabic regular" font-size="15" fill="#63758A">ساعتان لكل حصة</text>
+  <text x="385" y="330" class="arabic regular" font-size="15" fill="#63758A">ساعتان لكل حصة</text>
 
   <rect x="435" y="278" width="350" height="70" rx="18" fill="#FFFFFF" stroke="#D8E2E8"/>
   <circle cx="471" cy="313" r="18" fill="#FFF5CF"/>
   <text x="471" y="320" text-anchor="middle" class="latin medium" font-size="19" fill="#8C6A09">2</text>
   <text x="502" y="307" class="latin medium" font-size="18" fill="#14253A">Travail en binôme</text>
-  <text x="502" y="330" class="arabic regular" font-size="15" fill="#63758A">عمل ثنائي منظم</text>
+  <text x="765" y="330" class="arabic regular" font-size="15" fill="#63758A">عمل ثنائي منظم</text>
 
   <rect x="815" y="278" width="350" height="70" rx="18" fill="#FFFFFF" stroke="#D8E2E8"/>
   <circle cx="851" cy="313" r="18" fill="#E9F7EF"/>
@@ -96,7 +96,7 @@
   <text x="92" y="513" text-anchor="middle" class="latin medium" font-size="21" fill="#169EAF">1</text>
   <text x="126" y="499" class="latin regular" font-size="13" letter-spacing="1" fill="#63758A">ÉTAPE 01</text>
   <text x="77" y="550" class="card-title latin">Identification</text>
-  <text x="77" y="578" class="card-ar arabic">التعاريف التلميًذ</text>
+  <text x="298" y="578" class="card-ar arabic">التعاريف التلميًذ</text>
   <circle cx="82" cy="611" r="4" fill="#F6C843"/><text x="96" y="617" class="body latin">Nom(s), classe et groupe</text>
   <circle cx="82" cy="643" r="4" fill="#F6C843"/><text x="96" y="649" class="body latin">Séance autorisée</text>
 
@@ -106,7 +106,7 @@
   <text x="389" y="513" text-anchor="middle" class="latin medium" font-size="21" fill="#8C6A09">2</text>
   <text x="423" y="499" class="latin regular" font-size="13" letter-spacing="1" fill="#63758A">ÉTAPE 02</text>
   <text x="374" y="550" class="card-title latin">Mission</text>
-  <text x="374" y="578" class="card-ar arabic">المهمة</text>
+  <text x="595" y="578" class="card-ar arabic">المهمة</text>
   <circle cx="379" cy="611" r="4" fill="#F6C843"/><text x="393" y="617" class="body latin">Situation-problème</text>
   <circle cx="379" cy="643" r="4" fill="#F6C843"/><text x="393" y="649" class="body latin">Objectifs et binôme</text>
 
@@ -116,7 +116,7 @@
   <text x="686" y="513" text-anchor="middle" class="latin medium" font-size="21" fill="#258C5C">3</text>
   <text x="720" y="499" class="latin regular" font-size="13" letter-spacing="1" fill="#63758A">ÉTAPE 03</text>
   <text x="671" y="550" class="card-title latin">Atelier</text>
-  <text x="671" y="578" class="card-ar arabic">الورشة التطبيقية</text>
+  <text x="892" y="578" class="card-ar arabic">الورشة التطبيقية</text>
   <circle cx="676" cy="611" r="4" fill="#F6C843"/><text x="690" y="617" class="body latin">Exercices progressifs</text>
   <circle cx="676" cy="643" r="4" fill="#F6C843"/><text x="690" y="649" class="body latin">Réussir pour continuer</text>
 
@@ -126,7 +126,7 @@
   <text x="983" y="513" text-anchor="middle" class="latin medium" font-size="21" fill="#7255B6">4</text>
   <text x="1017" y="499" class="latin regular" font-size="13" letter-spacing="1" fill="#63758A">ÉTAPE 04</text>
   <text x="968" y="550" class="card-title latin">Trace écrite</text>
-  <text x="968" y="578" class="card-ar arabic">الخلاصة المكتوبة</text>
+  <text x="1189" y="578" class="card-ar arabic">الخلاصة المكتوبة</text>
   <circle cx="973" cy="611" r="4" fill="#F6C843"/><text x="987" y="617" class="body latin">Synthèse visuelle</text>
   <circle cx="973" cy="643" r="4" fill="#F6C843"/><text x="987" y="649" class="body latin">Cours bilingue</text>
 
@@ -136,7 +136,7 @@
   <text x="1280" y="513" text-anchor="middle" class="latin medium" font-size="21" fill="#D34A47">5</text>
   <text x="1314" y="499" class="latin regular" font-size="13" letter-spacing="1" fill="#63758A">ÉTAPE 05</text>
   <text x="1265" y="550" class="card-title latin">Évaluation</text>
-  <text x="1265" y="578" class="card-ar arabic">التقويم</text>
+  <text x="1523" y="578" class="card-ar arabic">التقويم</text>
   <circle cx="1270" cy="611" r="4" fill="#F6C843"/><text x="1284" y="617" class="body latin">Résultat immédiat</text>
   <circle cx="1270" cy="643" r="4" fill="#F6C843"/><text x="1284" y="649" class="body latin">Pourcentage et note /20</text>
 
@@ -146,7 +146,7 @@
   <circle cx="101" cy="760" r="27" fill="#FFF5CF"/>
   <text x="101" y="768" text-anchor="middle" class="latin medium" font-size="20" fill="#8C6A09">P</text>
   <text x="144" y="752" class="latin medium" font-size="27" fill="#14253A">Espace enseignant</text>
-  <text x="144" y="780" class="arabic regular" font-size="19" fill="#63758A">فضاء الأستاذ للتحكم والتوجيه</text>
+  <text x="580" y="780" class="arabic regular" font-size="19" fill="#63758A">فضاء الأستاذ للتحكم والتوجيه</text>
   <rect x="620" y="738" width="118" height="34" rx="17" fill="#E9F7EF"/>
   <circle cx="641" cy="755" r="6" fill="#258C5C"/>
   <text x="659" y="761" class="latin medium" font-size="14" fill="#258C5C">Temps réel</text>
