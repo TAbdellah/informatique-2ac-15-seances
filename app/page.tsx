@@ -13,7 +13,6 @@ import {
   FileCheck2,
   FlaskConical,
   FolderKanban,
-  Gauge,
   Home,
   ImageIcon,
   Languages,
@@ -30,12 +29,11 @@ import {
   RefreshCw,
   Sparkles,
   Target,
-  TimerReset,
   UserRoundPen,
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getUnit,
   sessions,
@@ -46,9 +44,7 @@ import {
 } from "./course-data";
 import { photoChallenges } from "./practice-data";
 import {
-  levelLabels,
   unit1Labs,
-  type ExerciseLevel,
   type Unit1Exercise,
 } from "./unit1-labs";
 import {
@@ -77,6 +73,17 @@ type QueuedSubmission = SubmissionInput & {
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+type ExerciseDraft = {
+  choice: number | null;
+  multi: number[];
+  matches: Record<number, number>;
+  sequence: number[];
+  textValue: string;
+  conversionValues: Record<number, string>;
+  gestureProgress: number;
+  result: boolean | null;
+};
 
 const activeParticipantKey = "lab2ac-active-participant";
 const submissionQueueKey = "lab2ac-submission-queue";
@@ -705,8 +712,16 @@ function Dashboard({
   );
 }
 
-function MissionView({ session, lang, onStartPractice }: { session: CourseSession; lang: Lang; onStartPractice: () => void }) {
+function MissionView({ session, lang, completed, onToggleCompleted, onBack, onStartPractice }: {
+  session: CourseSession;
+  lang: Lang;
+  completed: boolean;
+  onToggleCompleted: () => void;
+  onBack: () => void;
+  onStartPractice: () => void;
+}) {
   const labels = ui[lang];
+  const unit = getUnit(session.unit);
   const situationParts = lang === "fr"
     ? [
         { label: "Contexte", value: session.situation.fr },
@@ -722,6 +737,27 @@ function MissionView({ session, lang, onStartPractice }: { session: CourseSessio
       ];
   return (
     <div className="tab-content simple-mission page-enter">
+      <section className={`session-hero unit-${session.unit}`}>
+        <div className="session-hero-number"><span>{labels.session}</span><strong>{padTime(session.id)}</strong></div>
+        <div className="session-hero-copy">
+          <div className="session-meta">
+            <UnitMark unit={session.unit} />
+            <span>{txt(unit.title, lang)}</span>
+            <span className="meta-dot" />
+            <Clock3 size={15} />
+            <strong>2H · {session.unit === 1
+              ? `${unit1Labs[session.id as 1 | 2 | 3].exercises.length} ${lang === "fr" ? "EXERCICES" : "تمرينًا"}`
+              : "85 MIN PRATIQUE"}</strong>
+          </div>
+          <h1>{txt(session.title, lang)}</h1>
+          <p>{txt(session.subtitle, lang)}</p>
+        </div>
+        <button className={`complete-button ${completed ? "done" : ""}`} onClick={onToggleCompleted}>
+          {completed ? <CheckCircle2 size={19} /> : <Circle size={19} />}
+          {completed ? labels.completed : labels.complete}
+        </button>
+        <div className="session-hero-pattern" aria-hidden="true"><span /><span /><span /><span /></div>
+      </section>
       <article className="content-card situation-card simple-situation">
         <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
         <div className="situation-parts">
@@ -779,7 +815,50 @@ function MissionView({ session, lang, onStartPractice }: { session: CourseSessio
         <MousePointer2 size={18} />
         {labels.startPractice}
       </button>
+      <button className="back-link mission-back-link" onClick={onBack}><ArrowLeft size={17} />{labels.back}</button>
     </div>
+  );
+}
+
+function ExerciseNavigation({ index, total, done, lang, onPrevious, onNext, nextLabel, nextDisabled = false, progressLabel, resultStatus }: {
+  index: number;
+  total: number;
+  done: number;
+  lang: Lang;
+  onPrevious: () => void;
+  onNext: () => void;
+  nextLabel?: LocalizedText;
+  nextDisabled?: boolean;
+  progressLabel?: LocalizedText;
+  resultStatus?: boolean | null;
+}) {
+  const percent = total ? Math.round(done / total * 100) : 0;
+  return (
+    <nav className="exercise-navigation simple-exercise-navigation" aria-label="Navigation des exercices / التنقل بين التمارين">
+      <button type="button" disabled={index === 0} onClick={onPrevious}>
+        <ArrowLeft size={18} />
+        <BilingualText value={{ fr: "Exercice précédent", ar: "التمرين السابق" }} />
+      </button>
+      <div className="exercise-progress-summary" aria-live="polite">
+        <strong>{lang === "fr" ? "Exercice" : "التمرين"} {index + 1} / {total}</strong>
+        <div className="exercise-progress-track" role="progressbar" aria-label="Progression / التقدم" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+          <span style={{ width: `${percent}%` }} />
+        </div>
+        <small>{done}/{total} {txt(progressLabel ?? { fr: "réussis", ar: "ناجحة" }, lang)} · {percent}%</small>
+        {resultStatus !== undefined && resultStatus !== null && (
+          <div className={`exercise-current-status ${resultStatus === true ? "success" : resultStatus === false ? "retry" : "waiting"}`} role="status" aria-live="polite">
+            {resultStatus === true ? <CheckCircle2 size={16} /> : resultStatus === false ? <AlertTriangle size={16} /> : <LockKeyhole size={16} />}
+            <BilingualText value={resultStatus === true
+              ? { fr: "Exercice réussi · la suite est débloquée", ar: "تم التمرين بنجاح · تم فتح التالي" }
+              : { fr: "Pas encore réussi · corrige puis réessaie", ar: "لم ينجح بعد · صحح ثم أعد المحاولة" }} />
+          </div>
+        )}
+      </div>
+      <button type="button" className="exercise-next-button" disabled={nextDisabled} onClick={onNext}>
+        <BilingualText value={nextLabel ?? { fr: "Exercice suivant", ar: "التمرين التالي" }} />
+        <ArrowRight size={18} />
+      </button>
+    </nav>
   );
 }
 
@@ -817,23 +896,32 @@ function ExercisePlayer({
   alreadyCompleted,
   onComplete,
   onResult,
+  draft,
+  onDraftChange,
 }: {
   exercise: Unit1Exercise;
   lang: Lang;
   alreadyCompleted: boolean;
   onComplete: () => void;
   onResult: (answer: unknown, correct: boolean) => void;
+  draft?: ExerciseDraft;
+  onDraftChange: (draft: ExerciseDraft) => void;
 }) {
-  const [choice, setChoice] = useState<number | null>(null);
-  const [multi, setMulti] = useState<Set<number>>(new Set());
-  const [matches, setMatches] = useState<Record<number, number>>({});
-  const [sequence, setSequence] = useState<number[]>([]);
-  const [textValue, setTextValue] = useState("");
-  const [conversionValues, setConversionValues] = useState<Record<number, string>>({});
+  const [choice, setChoice] = useState<number | null>(draft?.choice ?? null);
+  const [multi, setMulti] = useState<Set<number>>(() => new Set(draft?.multi ?? []));
+  const [matches, setMatches] = useState<Record<number, number>>(draft?.matches ?? {});
+  const [sequence, setSequence] = useState<number[]>(draft?.sequence ?? []);
+  const [textValue, setTextValue] = useState(draft?.textValue ?? "");
+  const [conversionValues, setConversionValues] = useState<Record<number, string>>(draft?.conversionValues ?? {});
   const [gestureProgress, setGestureProgress] = useState(
-    exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0
+    draft?.gestureProgress ?? (exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0)
   );
-  const [result, setResult] = useState<boolean | null>(alreadyCompleted ? true : null);
+  const [result, setResult] = useState<boolean | null>(draft ? draft.result : (alreadyCompleted ? true : null));
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, gestureProgress, result });
+  }, [choice, multi, matches, sequence, textValue, conversionValues, gestureProgress, result, onDraftChange]);
   const choiceOrder = useMemo(
     () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
     [exercise],
@@ -846,12 +934,6 @@ function ExercisePlayer({
     () => shuffledIndices(exercise.type === "sequence" ? exercise.steps.length : 0, `${exercise.id}-sequence`),
     [exercise],
   );
-
-  useEffect(() => {
-    if (!alreadyCompleted) return;
-    setResult(true);
-    if (exercise.type === "gesture" && exercise.mode === "precision") setGestureProgress(5);
-  }, [alreadyCompleted, exercise]);
 
   const typeLabel: Record<Unit1Exercise["type"], LocalizedText> = {
     choice: { fr: "Choix unique", ar: "اختيار واحد" },
@@ -867,17 +949,9 @@ function ExercisePlayer({
     setResult(correct);
     onResult(answer, correct);
     if (correct) onComplete();
-  }
-
-  function resetAttempt() {
-    setChoice(null);
-    setMulti(new Set());
-    setMatches({});
-    setSequence([]);
-    setTextValue("");
-    setConversionValues({});
-    setGestureProgress(0);
-    setResult(null);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
   }
 
   function checkCurrent() {
@@ -950,7 +1024,6 @@ function ExercisePlayer({
     <article className={`exercise-player level-${exercise.level}`}>
       <div className="exercise-copy">
         <div className="exercise-meta">
-          <span>{txt(levelLabels[exercise.level], lang)}</span>
           <strong>{txt(typeLabel[exercise.type], lang)}</strong>
           {alreadyCompleted && <small><CheckCircle2 size={14} />{lang === "fr" ? "Déjà réussi" : "تم بنجاح"}</small>}
         </div>
@@ -1200,11 +1273,10 @@ function ExercisePlayer({
           <button className="check-exercise" disabled={!canCheck} onClick={checkCurrent}>
             <CheckCircle2 size={17} />{lang === "fr" ? "Vérifier ma réponse" : "التحقق من جوابي"}
           </button>
-          <button className="clear-exercise" onClick={resetAttempt}><RefreshCw size={15} />{lang === "fr" ? "Effacer" : "مسح"}</button>
         </div>
       )}
 
-      {exercise.hint && result !== true && (
+      {exercise.hint && result === false && (
         <div className="exercise-hint">
           <Lightbulb size={16} />
           <span>
@@ -1215,7 +1287,7 @@ function ExercisePlayer({
       )}
 
       {result !== null && (
-        <div className={`exercise-result ${result ? "correct" : "wrong"}`} role="status">
+        <div ref={resultRef} className={`exercise-result ${result ? "correct" : "wrong"}`} role="status" aria-live="assertive">
           {result ? <CheckCircle2 size={20} /> : <Lightbulb size={20} />}
           <div>
             <strong>{result ? (lang === "fr" ? "Exercice réussi" : "تمرين ناجح") : (lang === "fr" ? "Pas encore" : "ليس بعد")}</strong>
@@ -1251,10 +1323,13 @@ function Unit1Workshop({
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
   const exerciseAnchorRef = useRef<HTMLDivElement>(null);
   const exercise = lab.exercises[exerciseIndex];
-  const levels: ExerciseLevel[] = ["start", "train", "challenge"];
-  const progress = Math.round((completedExercises.size / lab.exercises.length) * 100);
+  const currentResult = completedExercises.has(exercise.id) ? true : (drafts[exercise.id]?.result ?? null);
+  const keepDraft = useCallback((draft: ExerciseDraft) => {
+    setDrafts((current) => ({ ...current, [exercise.id]: draft }));
+  }, [exercise.id]);
 
   useEffect(() => {
     setProgressLoaded(false);
@@ -1288,46 +1363,16 @@ function Unit1Workshop({
 
   return (
     <div className="tab-content unit1-lab page-enter">
-      <div className="lab-head">
-        <div>
-          <span className="card-kicker"><FlaskConical size={16} />{lang === "fr" ? "Atelier pratique intégré" : "ورشة تطبيقية مدمجة"}</span>
-          <h2>{txt(lab.title, lang)}</h2>
-          <p>{txt(lab.subtitle, lang)}</p>
-        </div>
-        <div className="lab-score">
-          <strong>{completedExercises.size}<span>/{lab.exercises.length}</span></strong>
-          <small>{lang === "fr" ? "exercices réussis" : "تمارين ناجحة"}</small>
-        </div>
-      </div>
-
-      <div className="lab-progress" aria-label={`${progress}%`}><span style={{ width: `${progress}%` }} /></div>
-
-      <div className="level-switcher" role="group" aria-label={lang === "fr" ? "Niveaux d’exercices" : "مستويات التمارين"}>
-        {levels.map((level) => {
-          const indices = lab.exercises.map((item, index) => item.level === level ? index : -1).filter((index) => index >= 0);
-          const completeCount = indices.filter((index) => completedExercises.has(lab.exercises[index].id)).length;
-          return (
-            <button
-              key={level}
-              className={exercise.level === level ? "active" : ""}
-              onClick={() => setExerciseIndex(indices[0])}
-            >
-              <span>{txt(levelLabels[level], lang)}</span>
-              <small>{completeCount}/{indices.length}</small>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="exercise-counter" ref={exerciseAnchorRef}>
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
-        <strong>{exerciseIndex + 1} / {lab.exercises.length}</strong>
       </div>
 
       <ExercisePlayer
         key={exercise.id}
         exercise={exercise}
         lang={lang}
+        draft={drafts[exercise.id]}
+        onDraftChange={keepDraft}
         alreadyCompleted={completedExercises.has(exercise.id)}
         onComplete={() => markCompleted(exercise.id)}
         onResult={(answer, correct) => onRecordSubmission({
@@ -1339,62 +1384,18 @@ function Unit1Workshop({
         })}
       />
 
-      <nav className="exercise-navigation" aria-label={lang === "fr" ? "Navigation entre les exercices" : "التنقل بين التمارين"}>
-        <button disabled={exerciseIndex === 0} onClick={() => setExerciseIndex((current) => Math.max(0, current - 1))}>
-          <ArrowLeft size={18} />{lang === "fr" ? "Exercice précédent" : "التمرين السابق"}
-        </button>
-        <div>
-          {lab.exercises.map((item, index) => (
-            <button
-              key={item.id}
-              className={`${index === exerciseIndex ? "active" : ""} ${completedExercises.has(item.id) ? "done" : ""}`}
-              onClick={() => setExerciseIndex(index)}
-              aria-label={`${lang === "fr" ? "Exercice" : "تمرين"} ${index + 1}`}
-            />
-          ))}
-        </div>
-        <button
-          disabled={exerciseIndex === lab.exercises.length - 1 || !completedExercises.has(exercise.id)}
-          onClick={() => setExerciseIndex((current) => Math.min(lab.exercises.length - 1, current + 1))}
-        >
-          {lang === "fr" ? "Exercice suivant" : "التمرين التالي"}<ArrowRight size={18} />
-        </button>
-      </nav>
-
-      <article className="deliverable-card lab-deliverable">
-        <div className="deliverable-icon"><FileCheck2 size={24} /></div>
-        <div><span>{ui[lang].deliverable}</span><strong>{txt(session.deliverable, lang)}</strong></div>
-        <div className="quality-stamp"><Check size={16} />{completedExercises.size === lab.exercises.length ? (lang === "fr" ? "Parcours entièrement réussi" : "تم إنجاز المسار كاملا") : (lang === "fr" ? "Progression enregistrée pendant la séance" : "يتم حفظ التقدم خلال الحصة")}</div>
-      </article>
-      <TraceTransition lang={lang} onContinue={onGoToTrace} />
+      <ExerciseNavigation
+        index={exerciseIndex}
+        total={lab.exercises.length}
+        done={completedExercises.size}
+        lang={lang}
+        onPrevious={() => setExerciseIndex((current) => Math.max(0, current - 1))}
+        onNext={() => exerciseIndex === lab.exercises.length - 1 ? onGoToTrace() : setExerciseIndex((current) => current + 1)}
+        nextLabel={exerciseIndex === lab.exercises.length - 1 ? { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
+        nextDisabled={currentResult !== true}
+        resultStatus={currentResult}
+      />
     </div>
-  );
-}
-
-function TraceTransition({ lang, onContinue }: { lang: Lang; onContinue: () => void }) {
-  return (
-    <section className="trace-transition" aria-label={lang === "fr" ? "Passage vers la trace écrite" : "الانتقال إلى خلاصة الدرس"}>
-      <div className="trace-transition-orbit" aria-hidden="true"><Sparkles size={20} /><BookOpen size={29} /></div>
-      <div className="trace-transition-copy">
-        <span>{lang === "fr" ? "DE L’EXPÉRIENCE À LA MÉMOIRE" : "مِنَ التَّجْرِبَةِ إِلَى التَّذَكُّرِ"}</span>
-        <h3>{lang === "fr" ? "Tu as observé, essayé et réussi." : "لقد لاحظتَ وجرّبتَ ونجحتَ."}</h3>
-        <p>{lang === "fr"
-          ? "Transforme maintenant ce que tu viens de découvrir en une trace claire que tu pourras retrouver dans ton cahier."
-          : "حوّل الآن ما اكتشفته إلى خلاصة واضحة يمكنك الرجوع إليها في دفترك."}</p>
-      </div>
-      <div className="trace-transition-path" aria-hidden="true">
-        <span>01<small>{lang === "fr" ? "Observer" : "ألاحظ"}</small></span>
-        <i />
-        <span>02<small>{lang === "fr" ? "Pratiquer" : "أطبّق"}</small></span>
-        <i />
-        <span>03<small>{lang === "fr" ? "Retenir" : "أحتفظ"}</small></span>
-      </div>
-      <button type="button" onClick={onContinue}>
-        <BookOpen size={19} />
-        <span><strong>{lang === "fr" ? "Construire ma trace écrite" : "أبني خلاصة درسي"}</strong><small>{lang === "fr" ? "Je garde l’essentiel" : "أحتفظ بالأهم"}</small></span>
-        <ArrowRight size={19} />
-      </button>
-    </section>
   );
 }
 
@@ -1410,7 +1411,8 @@ function StandardWorkshopView({
   onGoToTrace: () => void;
 }) {
   const labels = ui[lang];
-  const [checked, setChecked] = useState<boolean[]>([false, false]);
+  const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [checked, setChecked] = useState<boolean[]>(() => session.workshops.map(() => false));
   const [photoAnswer, setPhotoAnswer] = useState<number | null>(null);
   const challenge = photoChallenges[session.id];
   const photoChoiceOrder = useMemo(
@@ -1418,12 +1420,22 @@ function StandardWorkshopView({
     [challenge, session.id],
   );
   const photoCorrect = photoAnswer === challenge.answer;
+  const total = session.workshops.length + 1;
+  const currentResult = exerciseIndex === 0
+    ? photoAnswer === null ? null : photoCorrect
+    : checked[exerciseIndex - 1] ? true : null;
+  const exerciseAnchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    exerciseAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [exerciseIndex]);
+
   return (
-    <div className="tab-content page-enter">
-      <div className="workshop-head">
-        <div><span className="card-kicker"><FlaskConical size={16} /> {labels.workshop}</span><h2>{labels.workshopTitle}</h2><small>{labels.practiceTime}</small></div>
-        <span>{checked.filter(Boolean).length + (photoCorrect ? 1 : 0)}/3</span>
+    <div className="tab-content standard-workshop simple-workshop page-enter">
+      <div className="exercise-counter" ref={exerciseAnchorRef}>
+        <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
+      {exerciseIndex === 0 && (
       <article className="photo-challenge">
         <div className="photo-frame">
           <img src={challenge.image.src} alt={txt(challenge.image.alt, lang)} loading="lazy" referrerPolicy="no-referrer" />
@@ -1469,7 +1481,7 @@ function StandardWorkshopView({
                   }}
                 >
                   <span>{String.fromCharCode(65 + displayIndex)}</span>
-                  {txt(choice, lang)}
+                  <BilingualText value={choice} />
                   {correct && <Check size={16} />}
                 </button>
               );
@@ -1483,15 +1495,20 @@ function StandardWorkshopView({
           )}
         </div>
       </article>
-      <div className="workshop-grid">
-        {session.workshops.map((workshop, index) => (
+      )}
+      {exerciseIndex > 0 && (
+      <div className="workshop-grid single-workshop-grid">
+        {session.workshops.map((workshop, index) => exerciseIndex !== index + 1 ? null : (
           <article className={`workshop-card ${checked[index] ? "checked" : ""}`} key={workshop.label}>
             <div className="workshop-card-top">
               <span className="workshop-letter">{workshop.label}</span>
               <span><Clock3 size={14} /> {workshop.duration} {labels.minutes}</span>
             </div>
             <h3>{lang === "fr" ? `Atelier ${workshop.label}` : `الورشة ${workshop.label}`}</h3>
-            <p>{txt(workshop.text, lang)}</p>
+            <div className="exercise-prompt">
+              <span className="instruction-label">Consigne / التعليمة</span>
+              <BilingualText value={workshop.text} />
+            </div>
             <button onClick={() => setChecked((current) => {
               const nextValue = !current[index];
               if (nextValue) {
@@ -1511,12 +1528,18 @@ function StandardWorkshopView({
           </article>
         ))}
       </div>
-      <article className="deliverable-card">
-        <div className="deliverable-icon"><FileCheck2 size={24} /></div>
-        <div><span>{labels.deliverable}</span><strong>{txt(session.deliverable, lang)}</strong></div>
-        <div className="quality-stamp"><Check size={16} /> {labels.peerCheck}</div>
-      </article>
-      <TraceTransition lang={lang} onContinue={onGoToTrace} />
+      )}
+      <ExerciseNavigation
+        index={exerciseIndex}
+        total={total}
+        done={checked.filter(Boolean).length + (photoCorrect ? 1 : 0)}
+        lang={lang}
+        onPrevious={() => setExerciseIndex((current) => Math.max(0, current - 1))}
+        onNext={() => exerciseIndex === total - 1 ? onGoToTrace() : setExerciseIndex((current) => current + 1)}
+        nextLabel={exerciseIndex === total - 1 ? { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
+        nextDisabled={currentResult !== true}
+        resultStatus={currentResult}
+      />
     </div>
   );
 }
@@ -1621,6 +1644,7 @@ function QuizView({
 }) {
   const labels = ui[lang];
   const isBilingual = true;
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [shuffleRound, setShuffleRound] = useState(0);
@@ -1634,6 +1658,12 @@ function QuizView({
     [session, shuffleRound],
   );
   const score = session.quiz.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+  const question = session.quiz[questionIndex];
+  const questionAnchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    questionAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+  }, [questionIndex]);
 
   function submitQuiz() {
     const detailedAnswers = session.quiz.map((question, questionIndex) => {
@@ -1663,19 +1693,15 @@ function QuizView({
   }
 
   return (
-    <div className="tab-content page-enter">
-      <div className="quiz-layout">
-        <div className="quiz-intro">
-          <span className="card-kicker"><FileCheck2 size={16} /> {labels.quiz}</span>
-          <h2>{labels.quizTitle}</h2>
-          <p>{labels.quizIntro}</p>
-          <div className="quiz-gauge"><Gauge size={22} /><span>{session.quiz.length} {lang === "fr" ? "questions" : "أسئلة"}</span><strong>{session.quiz.length > 3 ? "10 min" : "5 min"}</strong></div>
-        </div>
+    <div className="tab-content simple-quiz page-enter">
+      <div className="exercise-counter" ref={questionAnchorRef}>
+        <span>{lang === "fr" ? "QUESTION" : "السؤال"} {padTime(questionIndex + 1)}</span>
+      </div>
+      <div className="quiz-layout simple-quiz-layout">
         <div className="quiz-questions">
-          {session.quiz.map((question, questionIndex) => (
             <article className="quiz-question" key={question.question.fr}>
               <div className="question-title">
-                <span>0{questionIndex + 1}</span>
+                <span>{padTime(questionIndex + 1)}</span>
                 <div><small>Question / السؤال</small><h3><BilingualText value={question.question} /></h3></div>
               </div>
               <div className="choices">
@@ -1686,6 +1712,8 @@ function QuizView({
                   const wrong = submitted && selected && originalIndex !== question.answer;
                   return (
                     <button
+                      type="button"
+                      disabled={submitted}
                       className={`${selected ? "selected" : ""} ${correct ? "correct" : ""} ${wrong ? "wrong" : ""}`}
                       key={choice.fr}
                       onClick={() => !submitted && setAnswers((current) => ({ ...current, [questionIndex]: originalIndex }))}
@@ -1707,18 +1735,36 @@ function QuizView({
                 </div>
               )}
             </article>
-          ))}
-          {!submitted ? (
-            <button className="primary-button quiz-submit" disabled={Object.keys(answers).length < session.quiz.length} onClick={submitQuiz}>{labels.check}<CheckCircle2 size={18} /></button>
-          ) : (
+          {submitted && (
             <div className="quiz-result">
               <div><span>{labels.score}</span><strong>{score}/{session.quiz.length}</strong></div>
               <p>{score === session.quiz.length ? (lang === "fr" ? "Excellent, la notion est maîtrisée." : "ممتاز، تم التحكم في التعلم.") : (lang === "fr" ? "Relisez la trace écrite puis réessayez." : "راجع الخلاصة ثم أعد المحاولة.")}</p>
-              <button onClick={() => { setAnswers({}); setSubmitted(false); setShuffleRound((current) => current + 1); }}><TimerReset size={17} />{labels.retry}</button>
             </div>
           )}
         </div>
       </div>
+      <ExerciseNavigation
+        index={questionIndex}
+        total={session.quiz.length}
+        done={Object.keys(answers).length}
+        lang={lang}
+        progressLabel={{ fr: "réponses choisies", ar: "إجابات مختارة" }}
+        onPrevious={() => setQuestionIndex((current) => Math.max(0, current - 1))}
+        onNext={() => {
+          if (questionIndex < session.quiz.length - 1) setQuestionIndex((current) => current + 1);
+          else if (!submitted) submitQuiz();
+          else {
+            setAnswers({});
+            setSubmitted(false);
+            setQuestionIndex(0);
+            setShuffleRound((current) => current + 1);
+          }
+        }}
+        nextDisabled={questionIndex === session.quiz.length - 1 && !submitted && Object.keys(answers).length < session.quiz.length}
+        nextLabel={questionIndex === session.quiz.length - 1
+          ? submitted ? { fr: "Recommencer", ar: "إعادة المحاولة" } : { fr: "Valider l’évaluation", ar: "تأكيد التقويم" }
+          : undefined}
+      />
     </div>
   );
 }
@@ -1729,71 +1775,54 @@ function SessionPage({
   activeTab,
   completed,
   participantId,
-  unlockedSessions,
   onTab,
   onToggleCompleted,
   onBack,
-  onNavigate,
   onRecordSubmission,
+  saveStatus,
 }: {
   session: CourseSession;
   lang: Lang;
   activeTab: ViewTab;
   completed: boolean;
   participantId: string;
-  unlockedSessions: Set<number>;
   onTab: (tab: ViewTab) => void;
   onToggleCompleted: () => void;
   onBack: () => void;
-  onNavigate: (id: number) => void;
   onRecordSubmission: (submission: SubmissionInput) => void;
+  saveStatus: SaveStatus;
 }) {
-  const labels = ui[lang];
-  const unit = getUnit(session.unit);
-  function goToTrace() {
-    onTab("trace");
+  const [visitedTabs, setVisitedTabs] = useState<ViewTab[]>([activeTab]);
+
+  function showTab(tab: ViewTab) {
+    setVisitedTabs((current) => current.includes(tab) ? current : [...current, tab]);
+    onTab(tab);
     window.requestAnimationFrame(() => {
-      document.querySelector(".notebook")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector(".main-scroll")?.scrollTo({ top: 0, behavior: "auto" });
     });
+  }
+
+  function goToTrace() {
+    showTab("trace");
   }
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
-      <button className="back-link" onClick={onBack}><ArrowLeft size={17} />{labels.back}</button>
-      <section className={`session-hero unit-${session.unit}`}>
-        <div className="session-hero-number"><span>{labels.session}</span><strong>{padTime(session.id)}</strong></div>
-        <div className="session-hero-copy">
-          <div className="session-meta">
-            <UnitMark unit={session.unit} />
-            <span>{txt(unit.title, lang)}</span>
-            <span className="meta-dot" />
-            <Clock3 size={15} />
-            <strong>
-              2H · {session.unit === 1
-                ? `${unit1Labs[session.id as 1 | 2 | 3].exercises.length} ${lang === "fr" ? "EXERCICES" : "تمرينًا"}`
-                : "85 MIN PRATIQUE"}
-            </strong>
-          </div>
-          <h1>{txt(session.title, lang)}</h1>
-          <p>{txt(session.subtitle, lang)}</p>
-        </div>
-        <button className={`complete-button ${completed ? "done" : ""}`} onClick={onToggleCompleted}>
-          {completed ? <CheckCircle2 size={19} /> : <Circle size={19} />}
-          {completed ? labels.completed : labels.complete}
-        </button>
-        <div className="session-hero-pattern" aria-hidden="true"><span /><span /><span /><span /></div>
-      </section>
-
       <nav className="tab-nav" aria-label="Contenu de la séance">
         {tabItems.map(({ id, icon: Icon }) => (
-          <button className={activeTab === id ? "active" : ""} onClick={() => onTab(id)} key={id}>
+          <button className={activeTab === id ? "active" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => showTab(id)} key={id}>
             <Icon size={17} />
-            <span>{labels[id]}</span>
+            <span>{ui.fr[id]}<small lang="ar" dir="rtl">{ui.ar[id]}</small></span>
           </button>
         ))}
       </nav>
 
-      {activeTab === "mission" && <MissionView session={session} lang={lang} onStartPractice={() => onTab("workshop")} />}
-      {activeTab === "workshop" && (
+      {visitedTabs.includes("mission") && (
+        <section className="session-panel" data-panel="mission" hidden={activeTab !== "mission"}>
+          <MissionView session={session} lang={lang} completed={completed} onToggleCompleted={onToggleCompleted} onBack={onBack} onStartPractice={() => showTab("workshop")} />
+        </section>
+      )}
+      {visitedTabs.includes("workshop") && (
+        <section className="session-panel" data-panel="workshop" hidden={activeTab !== "workshop"}>
         <WorkshopView
           key={`${participantId}-${session.id}`}
           session={session}
@@ -1802,15 +1831,25 @@ function SessionPage({
           onRecordSubmission={onRecordSubmission}
           onGoToTrace={goToTrace}
         />
+        </section>
       )}
-      {activeTab === "trace" && <TraceView session={session} lang={lang} />}
-      {activeTab === "quiz" && <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />}
+      {visitedTabs.includes("trace") && (
+        <section className="session-panel" data-panel="trace" hidden={activeTab !== "trace"}>
+          <TraceView session={session} lang={lang} />
+        </section>
+      )}
+      {visitedTabs.includes("quiz") && (
+        <section className="session-panel" data-panel="quiz" hidden={activeTab !== "quiz"}>
+          <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />
+        </section>
+      )}
 
-      <footer className="session-navigation">
-        <button disabled={session.id === 1 || !unlockedSessions.has(session.id - 1)} onClick={() => onNavigate(session.id - 1)}><ArrowLeft size={17} /><span><small>{labels.previous}</small>{session.id > 1 && txt(sessions[session.id - 2].title, lang)}</span></button>
-        <span>{padTime(session.id)} / 15</span>
-        <button disabled={session.id === 15 || !unlockedSessions.has(session.id + 1)} onClick={() => onNavigate(session.id + 1)}><span><small>{labels.next}</small>{session.id < 15 && txt(sessions[session.id].title, lang)}</span><ArrowRight size={17} /></button>
-      </footer>
+      {saveStatus !== "idle" && (
+        <div className={`session-save-status ${saveStatus}`} role="status">
+          {saveStatus === "saving" ? <LoaderCircle size={14} className="spin" /> : saveStatus === "saved" ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+          {saveStatus === "saving" ? "Enregistrement… / جار الحفظ…" : saveStatus === "saved" ? "Réponse enregistrée / تم حفظ الإجابة" : "Réponse en attente d’envoi / الإجابة في انتظار الإرسال"}
+        </div>
+      )}
     </div>
   );
 }
@@ -2000,9 +2039,9 @@ export default function HomePage() {
     if (!unlockedSessions.has(id)) return;
     setSelectedId(id);
     setActiveTab("mission");
+    setSidebarOpen(false);
     setTimerSeconds(7200);
     setTimerRunning(false);
-    if (window.matchMedia("(max-width: 860px)").matches) setSidebarOpen(false);
     window.history.replaceState(null, "", `#seance-${id}`);
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2051,7 +2090,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="app-shell" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className={`app-shell ${selected ? "session-focus" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
       <Sidebar
         lang={lang}
         selectedId={selectedId}
@@ -2063,7 +2102,18 @@ export default function HomePage() {
         onHome={goHome}
         onOpenSession={openSession}
       />
+      {selected && (
+        <button
+          type="button"
+          className="session-sidebar-trigger"
+          onClick={() => setSidebarOpen(true)}
+          aria-label={lang === "fr" ? "Ouvrir le programme" : "فتح البرنامج"}
+        >
+          <Menu size={19} />
+        </button>
+      )}
       <div className="app-main">
+        {!selected && (
         <Topbar
           lang={lang}
           selected={selected}
@@ -2078,30 +2128,31 @@ export default function HomePage() {
           onChangeStudent={changeStudent}
           onRetrySave={() => void flushPendingSubmissions()}
         />
+        )}
         <main className="main-scroll" ref={mainRef}>
           {!sessionAccessLoaded ? (
             <div className="session-access-loading"><LoaderCircle className="spin" size={25} /><span>{lang === "fr" ? "Ouverture de la séance autorisée…" : "جار فتح الحصة المسموح بها…"}</span></div>
           ) : selected ? (
             <SessionPage
+              key={`${studentProfile.id}-${selected.id}`}
               session={selected}
               lang={lang}
               activeTab={activeTab}
               completed={completed.has(selected.id)}
               participantId={studentProfile.id}
-              unlockedSessions={unlockedSessions}
               onTab={setActiveTab}
               onToggleCompleted={toggleComplete}
               onBack={goHome}
-              onNavigate={openSession}
               onRecordSubmission={recordSubmission}
+              saveStatus={saveStatus}
             />
           ) : (
             <Dashboard lang={lang} completed={completed} unlockedSessions={unlockedSessions} onOpenSession={openSession} />
           )}
-          <div className="site-credit">
+          {!selected && <div className="site-credit">
             <span>LAB·2AC</span>
             <p>Prof. Abdellah TAHTOH · Collège Othmane Ibn Affane</p>
-          </div>
+          </div>}
         </main>
       </div>
     </div>
