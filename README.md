@@ -9,6 +9,12 @@
 
 Parcours bilingue français–arabe destiné aux élèves de 2AC. Chaque séance dure deux heures et privilégie la manipulation : exercices progressifs, situations-problèmes, ateliers, images réelles, évaluations et trace écrite.
 
+## Vue d’ensemble du projet
+
+![Schéma bilingue du projet pédagogique LAB·2AC](.github/assets/lab2ac-project-overview.svg)
+
+Le parcours élève associe identification, mission, atelier progressif, trace écrite et évaluation. L’espace enseignant permet de piloter l’accès aux séances et de suivre les réponses, les tentatives, la progression, le pourcentage de réussite et la note indicative de chaque élève.
+
 ## Accès
 
 L’espace professeur est protégé par mot de passe. Il affiche les élèves et binômes, chaque tentative avec sa date et son heure au Maroc, les réponses détaillées, les scores, la progression et l’export CSV.
