@@ -41,6 +41,7 @@ import {
   type CourseSession,
   type Lang,
   type LocalizedText,
+  type QuizQuestion,
 } from "./course-data";
 import { photoChallenges } from "./practice-data";
 import {
@@ -87,6 +88,14 @@ type ExerciseDraft = {
 
 const activeParticipantKey = "lab2ac-active-participant";
 const submissionQueueKey = "lab2ac-submission-queue";
+const evaluationPreviewKey = "lab2ac-session2-evaluation-preview-attempts";
+
+function isSession2EvaluationPreview() {
+  const previewEnabled = process.env.NODE_ENV === "development"
+    || process.env.NEXT_PUBLIC_SESSION2_EVALUATION_PREVIEW === "true";
+  if (!previewEnabled || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "session2-evaluation";
+}
 
 const ui = {
   fr: {
@@ -230,6 +239,16 @@ function BilingualText({ value, className = "" }: { value: LocalizedText; classN
       <span className="bilingual-copy-fr" lang="fr" dir="ltr">{value.fr}</span>
       <span className="bilingual-copy-ar" lang="ar" dir="rtl">{value.ar}</span>
     </span>
+  );
+}
+
+function quizHasJustification(question: QuizQuestion): question is QuizQuestion & {
+  justifications: LocalizedText[];
+  justificationAnswer: number;
+} {
+  return Boolean(
+    question.justifications?.length &&
+    Number.isInteger(question.justificationAnswer),
   );
 }
 
@@ -489,6 +508,44 @@ function Sidebar({
   );
 }
 
+function StudentIdentityBadge({
+  lang,
+  student,
+  onChangeStudent,
+}: {
+  lang: Lang;
+  student: StudentProfile;
+  onChangeStudent: () => void;
+}) {
+  const studentLabel = student.isPair && student.studentTwo
+    ? `${student.studentOne} + ${student.studentTwo}`
+    : student.studentOne;
+  const organizationLabel = student.isPair
+    ? (lang === "fr" ? "Binôme" : "ثنائي")
+    : (lang === "fr" ? "Individuel" : "فردي");
+
+  return (
+    <button
+      className={`student-chip ${student.isPair ? "pair" : "solo"}`}
+      onClick={onChangeStudent}
+      title={`${organizationLabel} · ${studentLabel}`}
+      aria-label={`${organizationLabel} : ${studentLabel}. ${lang === "fr" ? "Changer d’élève" : "تغيير التلميذ"}`}
+      type="button"
+    >
+      <span className="student-chip-icon" aria-hidden="true">
+        {student.isPair ? <Users size={16} /> : <UserRoundPen size={16} />}
+      </span>
+      <span className="student-chip-content">
+        <span className="student-chip-name-row">
+          <small className="student-mode-badge">{organizationLabel}</small>
+          <strong>{studentLabel}</strong>
+        </span>
+        <small className="student-chip-meta">{student.className} · G{student.groupName}</small>
+      </span>
+    </button>
+  );
+}
+
 function Topbar({
   lang,
   selected,
@@ -517,9 +574,6 @@ function Topbar({
   onRetrySave: () => void;
 }) {
   const labels = ui[lang];
-  const studentLabel = student.isPair && student.studentTwo
-    ? `${student.studentOne} + ${student.studentTwo}`
-    : student.studentOne;
   return (
     <header className="topbar">
       <div className="topbar-path">
@@ -560,10 +614,7 @@ function Topbar({
             </button>
           </div>
         )}
-        <button className="student-chip" onClick={onChangeStudent} title={lang === "fr" ? "Changer d’élève" : "تغيير التلميذ"}>
-          <UserRoundPen size={16} />
-          <span><strong>{studentLabel}</strong><small>{student.className} · G{student.groupName}</small></span>
-        </button>
+        <StudentIdentityBadge lang={lang} student={student} onChangeStudent={onChangeStudent} />
         <button className="lang-switch" onClick={onToggleLang}>
           <Languages size={17} />
           <span>{lang === "fr" ? "العربية" : "Français"}</span>
@@ -1646,6 +1697,7 @@ function QuizView({
   const isBilingual = true;
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [justifications, setJustifications] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [shuffleRound, setShuffleRound] = useState(0);
   const quizChoiceOrders = useMemo(
@@ -1657,8 +1709,33 @@ function QuizView({
     },
     [session, shuffleRound],
   );
-  const score = session.quiz.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+  const quizJustificationOrders = useMemo(
+    () => {
+      void shuffleRound;
+      return session.quiz.map((question, questionIndex) =>
+        quizHasJustification(question)
+          ? shuffledIndices(question.justifications.length, `session-${session.id}-quiz-${questionIndex}-justification-round-${shuffleRound}`)
+          : []
+      );
+    },
+    [session, shuffleRound],
+  );
+  const score = session.quiz.reduce((total, question, index) => {
+    const answerPoint = answers[index] === question.answer ? 1 : 0;
+    const justificationPoint = quizHasJustification(question) && justifications[index] === question.justificationAnswer ? 1 : 0;
+    return total + answerPoint + justificationPoint;
+  }, 0);
+  const maxScore = session.quiz.reduce((total, item) => total + (quizHasJustification(item) ? 2 : 1), 0);
+  const answeredQuestions = session.quiz.reduce((total, item, index) => {
+    const answerChosen = Number.isInteger(answers[index]);
+    const justificationChosen = !quizHasJustification(item) || Number.isInteger(justifications[index]);
+    return total + (answerChosen && justificationChosen ? 1 : 0);
+  }, 0);
   const question = session.quiz[questionIndex];
+  const hasJustification = quizHasJustification(question);
+  const answerCorrect = answers[questionIndex] === question.answer;
+  const justificationCorrect = hasJustification && justifications[questionIndex] === question.justificationAnswer;
+  const questionScore = (answerCorrect ? 1 : 0) + (justificationCorrect ? 1 : 0);
   const questionAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1668,6 +1745,12 @@ function QuizView({
   function submitQuiz() {
     const detailedAnswers = session.quiz.map((question, questionIndex) => {
       const selectedIndex = answers[questionIndex];
+      const selectedJustificationIndex = justifications[questionIndex];
+      const hasQuestionJustification = quizHasJustification(question);
+      const answerIsCorrect = selectedIndex === question.answer;
+      const justificationIsCorrect = hasQuestionJustification
+        ? selectedJustificationIndex === question.justificationAnswer
+        : null;
       return {
         questionIndex,
         question: question.question,
@@ -1677,7 +1760,17 @@ function QuizView({
         correctChoice: question.choices[question.answer],
         displayedChoice: String.fromCharCode(65 + quizChoiceOrders[questionIndex].indexOf(selectedIndex)),
         displayedCorrectChoice: String.fromCharCode(65 + quizChoiceOrders[questionIndex].indexOf(question.answer)),
-        correct: selectedIndex === question.answer,
+        selectedJustificationIndex: hasQuestionJustification ? selectedJustificationIndex : null,
+        selectedJustification: hasQuestionJustification ? question.justifications[selectedJustificationIndex] : null,
+        correctJustificationIndex: hasQuestionJustification ? question.justificationAnswer : null,
+        correctJustification: hasQuestionJustification ? question.justifications[question.justificationAnswer] : null,
+        displayedJustification: hasQuestionJustification ? quizJustificationOrders[questionIndex].indexOf(selectedJustificationIndex) + 1 : null,
+        displayedCorrectJustification: hasQuestionJustification ? quizJustificationOrders[questionIndex].indexOf(question.justificationAnswer) + 1 : null,
+        answerCorrect: answerIsCorrect,
+        justificationCorrect: justificationIsCorrect,
+        earnedPoints: (answerIsCorrect ? 1 : 0) + (justificationIsCorrect ? 1 : 0),
+        maxPoints: hasQuestionJustification ? 2 : 1,
+        correct: answerIsCorrect && (!hasQuestionJustification || justificationIsCorrect === true),
       };
     });
     onRecordSubmission({
@@ -1685,9 +1778,9 @@ function QuizView({
       activityType: "quiz",
       activityId: `session-${session.id}-quiz`,
       answer: { answers: detailedAnswers },
-      isCorrect: score === session.quiz.length,
+      isCorrect: score === maxScore,
       score,
-      maxScore: session.quiz.length,
+      maxScore,
     });
     setSubmitted(true);
   }
@@ -1697,6 +1790,16 @@ function QuizView({
       <div className="exercise-counter" ref={questionAnchorRef}>
         <span>{lang === "fr" ? "QUESTION" : "السؤال"} {padTime(questionIndex + 1)}</span>
       </div>
+      {session.quiz.some(quizHasJustification) && (
+        <div className="quiz-double-choice-intro">
+          <CheckCircle2 size={20} />
+          <BilingualText value={{
+            fr: "Pour chaque question : choisis la bonne réponse, puis la justification qui prouve ton raisonnement.",
+            ar: "في كل سؤال: اختر الجواب الصحيح ثم اختر التعليل الذي يثبت فهمك.",
+          }} />
+          <strong>2 points</strong>
+        </div>
+      )}
       <div className="quiz-layout simple-quiz-layout">
         <div className="quiz-questions">
             <article className="quiz-question" key={question.question.fr}>
@@ -1725,20 +1828,66 @@ function QuizView({
                   );
                 })}
               </div>
+              {hasJustification && (
+                <div className="quiz-justification-block">
+                  <div className="justification-title">
+                    <span aria-hidden="true">2</span>
+                    <div>
+                      <small>Justification / التعليل</small>
+                      <h4><BilingualText value={{
+                        fr: "Pourquoi cette réponse est-elle correcte ?",
+                        ar: "لماذا هذا الجواب صحيح؟",
+                      }} /></h4>
+                    </div>
+                  </div>
+                  <div className="choices justification-choices">
+                    {quizJustificationOrders[questionIndex].map((originalIndex, displayIndex) => {
+                      const justification = question.justifications[originalIndex];
+                      const selected = justifications[questionIndex] === originalIndex;
+                      const correct = submitted && originalIndex === question.justificationAnswer;
+                      const wrong = submitted && selected && originalIndex !== question.justificationAnswer;
+                      return (
+                        <button
+                          type="button"
+                          disabled={submitted}
+                          className={`${selected ? "selected" : ""} ${correct ? "correct" : ""} ${wrong ? "wrong" : ""}`}
+                          key={justification.fr}
+                          onClick={() => !submitted && setJustifications((current) => ({ ...current, [questionIndex]: originalIndex }))}
+                        >
+                          <span className="choice-letter">{displayIndex + 1}</span>
+                          <BilingualText value={justification} />
+                          {correct && <Check size={16} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {submitted && (
-                <div className={`answer-note ${answers[questionIndex] === question.answer ? "correct" : "wrong"}`}>
-                  {isBilingual
-                    ? <BilingualText value={answers[questionIndex] === question.answer
+                <div className={`answer-note ${questionScore === (hasJustification ? 2 : 1) ? "correct" : "wrong"}`}>
+                  {hasJustification ? (
+                    <>
+                      <strong>{questionScore}/2</strong>
+                      <BilingualText value={questionScore === 2
+                        ? { fr: "Réponse et justification correctes", ar: "الجواب والتعليل صحيحان" }
+                        : questionScore === 1 && answerCorrect
+                          ? { fr: "Bonne réponse, mais justification à revoir", ar: "الجواب صحيح لكن التعليل يحتاج إلى مراجعة" }
+                          : questionScore === 1
+                            ? { fr: "Justification correcte, mais réponse à revoir", ar: "التعليل صحيح لكن الجواب يحتاج إلى مراجعة" }
+                            : { fr: "Réponse et justification à revoir", ar: "الجواب والتعليل يحتاجان إلى مراجعة" }} />
+                    </>
+                  ) : isBilingual
+                    ? <BilingualText value={answerCorrect
                       ? { fr: "Réponse correcte", ar: "إجابة صحيحة" }
                       : { fr: "À revoir", ar: "تحتاج إلى مراجعة" }} />
-                    : (answers[questionIndex] === question.answer ? labels.correct : labels.wrong)}
+                    : (answerCorrect ? labels.correct : labels.wrong)}
                 </div>
               )}
             </article>
           {submitted && (
             <div className="quiz-result">
-              <div><span>{labels.score}</span><strong>{score}/{session.quiz.length}</strong></div>
-              <p>{score === session.quiz.length ? (lang === "fr" ? "Excellent, la notion est maîtrisée." : "ممتاز، تم التحكم في التعلم.") : (lang === "fr" ? "Relisez la trace écrite puis réessayez." : "راجع الخلاصة ثم أعد المحاولة.")}</p>
+              <div><span>{labels.score}</span><strong>{score}/{maxScore}</strong></div>
+              <p>{score === maxScore ? (lang === "fr" ? "Excellent : les réponses et leurs justifications sont maîtrisées." : "ممتاز: تم إتقان الأجوبة وتعليلاتها.") : (lang === "fr" ? "Consulte les questions à revoir, puis recommence l’évaluation." : "راجع الأسئلة التي تحتاج إلى تصحيح ثم أعد التقويم.")}</p>
             </div>
           )}
         </div>
@@ -1746,21 +1895,22 @@ function QuizView({
       <ExerciseNavigation
         index={questionIndex}
         total={session.quiz.length}
-        done={Object.keys(answers).length}
+        done={answeredQuestions}
         lang={lang}
-        progressLabel={{ fr: "réponses choisies", ar: "إجابات مختارة" }}
+        progressLabel={{ fr: "questions complétées", ar: "أسئلة مكتملة" }}
         onPrevious={() => setQuestionIndex((current) => Math.max(0, current - 1))}
         onNext={() => {
           if (questionIndex < session.quiz.length - 1) setQuestionIndex((current) => current + 1);
           else if (!submitted) submitQuiz();
           else {
             setAnswers({});
+            setJustifications({});
             setSubmitted(false);
             setQuestionIndex(0);
             setShuffleRound((current) => current + 1);
           }
         }}
-        nextDisabled={questionIndex === session.quiz.length - 1 && !submitted && Object.keys(answers).length < session.quiz.length}
+        nextDisabled={questionIndex === session.quiz.length - 1 && !submitted && answeredQuestions < session.quiz.length}
         nextLabel={questionIndex === session.quiz.length - 1
           ? submitted ? { fr: "Recommencer", ar: "إعادة المحاولة" } : { fr: "Valider l’évaluation", ar: "تأكيد التقويم" }
           : undefined}
@@ -1772,23 +1922,27 @@ function QuizView({
 function SessionPage({
   session,
   lang,
+  student,
   activeTab,
   completed,
   participantId,
   onTab,
   onToggleCompleted,
   onBack,
+  onChangeStudent,
   onRecordSubmission,
   saveStatus,
 }: {
   session: CourseSession;
   lang: Lang;
+  student: StudentProfile;
   activeTab: ViewTab;
   completed: boolean;
   participantId: string;
   onTab: (tab: ViewTab) => void;
   onToggleCompleted: () => void;
   onBack: () => void;
+  onChangeStudent: () => void;
   onRecordSubmission: (submission: SubmissionInput) => void;
   saveStatus: SaveStatus;
 }) {
@@ -1807,6 +1961,9 @@ function SessionPage({
   }
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
+      <div className="session-student-identity">
+        <StudentIdentityBadge lang={lang} student={student} onChangeStudent={onChangeStudent} />
+      </div>
       <nav className="tab-nav" aria-label="Contenu de la séance">
         {tabItems.map(({ id, icon: Icon }) => (
           <button className={activeTab === id ? "active" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => showTab(id)} key={id}>
@@ -1867,6 +2024,7 @@ export default function HomePage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [sessionAccess, setSessionAccess] = useState<SessionAccess[]>([]);
   const [sessionAccessLoaded, setSessionAccessLoaded] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const submissionFlushRef = useRef(false);
   const saveStatusTimerRef = useRef<number | null>(null);
@@ -1874,6 +2032,25 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
+      if (isSession2EvaluationPreview()) {
+        const previewProfile: StudentProfile = {
+          id: "00000000-0000-4000-8000-000000000002",
+          studentOne: "Élève test · Séance 2",
+          studentTwo: null,
+          className: "2/1",
+          groupName: "1",
+          isPair: false,
+        };
+        setPreviewMode(true);
+        setStudentProfile(previewProfile);
+        setSessionAccess([{ sessionId: 2, isUnlocked: true, updatedAt: new Date().toISOString() }]);
+        setSessionAccessLoaded(true);
+        setSelectedId(2);
+        setActiveTab("quiz");
+        autoOpenedSessionRef.current = true;
+        setIdentityLoaded(true);
+        return;
+      }
       const storedLang = window.localStorage.getItem("lab2ac-lang");
       if (storedLang === "ar") setLang("ar");
       const storedParticipant = window.sessionStorage.getItem(activeParticipantKey);
@@ -1949,13 +2126,18 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (studentProfile) void flushPendingSubmissions();
-  }, [studentProfile]);
+    if (studentProfile && !previewMode) void flushPendingSubmissions();
+  }, [previewMode, studentProfile]);
 
   useEffect(() => {
     if (!studentProfile) {
       setSessionAccess([]);
       setSessionAccessLoaded(false);
+      return;
+    }
+    if (previewMode) {
+      setSessionAccess([{ sessionId: 2, isUnlocked: true, updatedAt: new Date().toISOString() }]);
+      setSessionAccessLoaded(true);
       return;
     }
     let cancelled = false;
@@ -1980,7 +2162,7 @@ export default function HomePage() {
       cancelled = true;
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
     };
-  }, [studentProfile]);
+  }, [previewMode, studentProfile]);
 
   const unlockedSessions = useMemo(
     () => new Set(sessionAccess.filter((session) => session.isUnlocked).map((session) => session.sessionId)),
@@ -2006,6 +2188,36 @@ export default function HomePage() {
 
   function recordSubmission(submission: SubmissionInput) {
     if (!studentProfile) return;
+    if (previewMode) {
+      const previewAttempt = {
+        ...submission,
+        id: createClientSubmissionId(),
+        participantId: studentProfile.id,
+        studentOne: studentProfile.studentOne,
+        studentTwo: studentProfile.studentTwo,
+        className: studentProfile.className,
+        groupName: studentProfile.groupName,
+        isPair: studentProfile.isPair ? 1 : 0,
+        responseJson: JSON.stringify(submission.answer ?? null),
+        isCorrect: submission.isCorrect ?? null,
+        score: submission.score ?? null,
+        maxScore: submission.maxScore ?? null,
+        createdAt: new Date().toISOString(),
+        completedSessions: 0,
+      };
+      try {
+        const stored = window.localStorage.getItem(evaluationPreviewKey);
+        const current = stored ? JSON.parse(stored) as unknown : [];
+        const attempts = Array.isArray(current) ? current : [];
+        window.localStorage.setItem(evaluationPreviewKey, JSON.stringify([previewAttempt, ...attempts]));
+        setSaveStatus("saved");
+        if (saveStatusTimerRef.current !== null) window.clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 2400);
+      } catch {
+        setSaveStatus("error");
+      }
+      return;
+    }
     const queued: QueuedSubmission = {
       ...submission,
       id: createClientSubmissionId(),
@@ -2137,12 +2349,14 @@ export default function HomePage() {
               key={`${studentProfile.id}-${selected.id}`}
               session={selected}
               lang={lang}
+              student={studentProfile}
               activeTab={activeTab}
               completed={completed.has(selected.id)}
               participantId={studentProfile.id}
               onTab={setActiveTab}
               onToggleCompleted={toggleComplete}
               onBack={goHome}
+              onChangeStudent={changeStudent}
               onRecordSubmission={recordSubmission}
               saveStatus={saveStatus}
             />

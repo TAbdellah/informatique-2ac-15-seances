@@ -9,6 +9,8 @@ export type QuizQuestion = {
   question: LocalizedText;
   choices: LocalizedText[];
   answer: number;
+  justifications?: LocalizedText[];
+  justificationAnswer?: number;
 };
 
 export type TraceSection = {
@@ -211,16 +213,176 @@ export const sessions: CourseSession[] = [
     ],
     vocabulary: [t("Unité centrale", "وحدة مركزية"), t("Périphérique", "ملحق"), t("Processeur", "معالج"), t("Mémoire vive", "ذاكرة حية"), t("Stockage", "تخزين"), t("Capacité", "سعة")],
     quiz: [
-      { question: t("Quel élément se trouve à l’intérieur de l’unité centrale ?", "أي عنصر يوجد داخل الوحدة المركزية؟"), choices: [t("Le processeur", "المعالج"), t("La souris", "الفأرة"), t("L’imprimante", "الطابعة")], answer: 0 },
-      { question: t("Le microphone est un périphérique…", "الميكروفون ملحق…"), choices: [t("d’entrée", "إدخال"), t("de sortie", "إخراج"), t("de stockage", "تخزين")], answer: 0 },
-      { question: t("L’écran tactile est un périphérique…", "الشاشة اللمسية ملحق…"), choices: [t("d’entrée et de sortie", "إدخال وإخراج"), t("de stockage", "تخزين"), t("de sortie seulement", "إخراج فقط")], answer: 0 },
-      { question: t("Quel appareil transforme une feuille en image numérique ?", "أي جهاز يحول ورقة إلى صورة رقمية؟"), choices: [t("Le scanner", "الماسح الضوئي"), t("L’imprimante", "الطابعة"), t("Le haut-parleur", "مكبر الصوت")], answer: 0 },
-      { question: t("Quel composant relie tous les composants internes ?", "أي مكون يربط جميع المكونات الداخلية؟"), choices: [t("La carte mère", "اللوحة الأم"), t("La RAM", "RAM"), t("Le SSD", "SSD")], answer: 0 },
-      { question: t("Quelle mémoire conserve temporairement les programmes ouverts ?", "أي ذاكرة تحفظ البرامج المفتوحة مؤقتا؟"), choices: [t("La RAM", "RAM"), t("Le SSD", "SSD"), t("La clé USB", "مفتاح USB")], answer: 0 },
-      { question: t("Quel port relie généralement un vidéoprojecteur récent ?", "أي منفذ يربط عادة مسلاطا حديثا؟"), choices: [t("HDMI", "HDMI"), t("RJ45", "RJ45"), t("Jack audio", "Jack صوتي")], answer: 0 },
-      { question: t("En notation décimale, 1 Go correspond à…", "في النظام العشري، 1 Go يساوي…"), choices: [t("1 000 Mo", "1000 Mo"), t("100 Mo", "100 Mo"), t("8 Mo", "8 Mo")], answer: 0 },
-      { question: t("Pour conserver durablement les fichiers, on utilise…", "لحفظ الملفات بشكل دائم نستعمل…"), choices: [t("un SSD", "SSD"), t("la RAM seule", "RAM فقط"), t("le processeur", "المعالج")], answer: 0 },
-      { question: t("Pour le montage vidéo, quelle configuration est la plus équilibrée ?", "ما التجهيز الأكثر توازنا لتركيب الفيديو؟"), choices: [t("Processeur récent, 16 Go RAM et SSD 512 Go", "معالج حديث وRAM 16 Go وSSD 512 Go"), t("2 Go RAM et disque 80 Go", "RAM 2 Go وقرص 80 Go"), t("Un clavier plus grand seulement", "لوحة مفاتيح أكبر فقط")], answer: 0 },
+      {
+        question: t("Quel composant exécute les instructions et traite les données ?", "أي مكوّن ينفّذ التعليمات ويعالج المعطيات؟"),
+        choices: [
+          t("Le processeur (CPU)", "المعالج (CPU)"),
+          t("La mémoire RAM", "ذاكرة RAM"),
+          t("La carte mère", "اللوحة الأم"),
+          t("L’alimentation", "مزود الطاقة"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il effectue les calculs et exécute les instructions des programmes.", "ينجز العمليات الحسابية وينفّذ تعليمات البرامج."),
+          t("Elle conserve temporairement les données des programmes ouverts.", "تحفظ مؤقتا معطيات البرامج المفتوحة."),
+          t("Elle relie les composants entre eux grâce à ses connecteurs.", "تربط المكوّنات فيما بينها بواسطة موصلاتها."),
+          t("Elle fournit l’énergie électrique aux composants.", "تزوّد المكوّنات بالطاقة الكهربائية."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Le microphone appartient à quelle catégorie de périphériques ?", "إلى أي صنف من الملحقات ينتمي الميكروفون؟"),
+        choices: [
+          t("Périphérique d’entrée", "ملحق إدخال"),
+          t("Périphérique de sortie", "ملحق إخراج"),
+          t("Périphérique de stockage", "ملحق تخزين"),
+          t("Périphérique d’entrée et de sortie", "ملحق إدخال وإخراج"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il capte la voix et envoie le son vers l’unité centrale.", "يلتقط الصوت ويرسله إلى الوحدة المركزية."),
+          t("Il diffuse le son produit par l’ordinateur vers l’utilisateur.", "يبث الصوت الصادر عن الحاسوب نحو المستعمل."),
+          t("Il conserve durablement des fichiers audio.", "يحفظ الملفات الصوتية بشكل دائم."),
+          t("Il affiche des informations et reçoit des commandes tactiles.", "يعرض المعلومات ويستقبل الأوامر باللمس."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Comment classe-t-on un écran tactile ?", "كيف نصنّف الشاشة اللمسية؟"),
+        choices: [
+          t("Périphérique d’entrée et de sortie", "ملحق إدخال وإخراج"),
+          t("Périphérique d’entrée seulement", "ملحق إدخال فقط"),
+          t("Périphérique de sortie seulement", "ملحق إخراج فقط"),
+          t("Périphérique de stockage", "ملحق تخزين"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il affiche les informations et reçoit les actions du doigt.", "يعرض المعلومات ويستقبل أوامر الإصبع."),
+          t("Il sert uniquement à envoyer des commandes à l’ordinateur.", "يستعمل فقط لإرسال الأوامر إلى الحاسوب."),
+          t("Il sert uniquement à présenter les résultats à l’utilisateur.", "يستعمل فقط لعرض النتائج للمستعمل."),
+          t("Il conserve les fichiers même lorsque l’ordinateur est éteint.", "يحفظ الملفات حتى بعد إطفاء الحاسوب."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quel appareil transforme un document papier en fichier numérique ?", "أي جهاز يحوّل وثيقة ورقية إلى ملف رقمي؟"),
+        choices: [
+          t("Le scanner", "الماسح الضوئي"),
+          t("L’imprimante", "الطابعة"),
+          t("L’écran", "الشاشة"),
+          t("La webcam", "كاميرا الويب"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il analyse la feuille et transmet son image à l’ordinateur.", "يمسح الورقة ويرسل صورتها إلى الحاسوب."),
+          t("Elle produit une copie sur papier à partir d’un fichier.", "تنتج نسخة ورقية انطلاقا من ملف."),
+          t("Il affiche le document sans le numériser.", "يعرض الوثيقة دون رقمنتها."),
+          t("Elle filme principalement une scène placée devant l’ordinateur.", "تصوّر أساسا مشهدا أمام الحاسوب."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quel composant relie les composants internes entre eux ?", "أي مكوّن يربط المكوّنات الداخلية فيما بينها؟"),
+        choices: [
+          t("La carte mère", "اللوحة الأم"),
+          t("La carte graphique", "بطاقة الرسوميات"),
+          t("Le disque SSD", "قرص SSD"),
+          t("L’alimentation", "مزود الطاقة"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Ses connecteurs et ses circuits permettent aux composants de communiquer.", "تسمح موصلاتها ودوائرها للمكوّنات بالتواصل."),
+          t("Elle calcule principalement les images affichées à l’écran.", "تعالج أساسا الصور المعروضة على الشاشة."),
+          t("Il conserve durablement le système et les fichiers.", "يحفظ النظام والملفات بشكل دائم."),
+          t("Elle transforme et distribue l’énergie électrique.", "تحوّل الطاقة الكهربائية وتوزعها."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quelle mémoire contient temporairement les programmes ouverts ?", "أي ذاكرة تحتوي مؤقتا على البرامج المفتوحة؟"),
+        choices: [
+          t("La mémoire RAM", "ذاكرة RAM"),
+          t("Le disque SSD", "قرص SSD"),
+          t("Le processeur", "المعالج"),
+          t("La clé USB", "مفتاح USB"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Elle garde rapidement les données en cours d’utilisation et se vide à l’arrêt.", "تحفظ بسرعة المعطيات المستعملة حاليا وتُفرغ عند الإطفاء."),
+          t("Il conserve durablement le système, les logiciels et les fichiers.", "يحفظ النظام والبرامج والملفات بشكل دائم."),
+          t("Il exécute les instructions et réalise les calculs.", "ينفّذ التعليمات وينجز العمليات الحسابية."),
+          t("Elle transporte des fichiers d’un appareil à un autre.", "تنقل الملفات من جهاز إلى آخر."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quel port utilise-t-on généralement pour relier un vidéoprojecteur récent ?", "أي منفذ نستعمل عادة لربط مسلاط حديث؟"),
+        choices: [
+          t("HDMI", "HDMI"),
+          t("RJ45", "RJ45"),
+          t("Jack audio", "منفذ Jack الصوتي"),
+          t("USB-B", "USB-B"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il transporte une image et du son numériques dans un même câble.", "ينقل الصورة والصوت الرقميين عبر الكابل نفسه."),
+          t("Il sert principalement à connecter l’ordinateur à un réseau câblé.", "يستعمل أساسا لربط الحاسوب بشبكة سلكية."),
+          t("Il transporte uniquement un signal audio analogique.", "ينقل فقط إشارة صوتية تماثلية."),
+          t("Il est surtout utilisé pour relier certaines imprimantes à l’ordinateur.", "يستعمل غالبا لربط بعض الطابعات بالحاسوب."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("En notation décimale, combien de Mo contient 1 Go ?", "في النظام العشري، كم Mo يحتويه 1 Go؟"),
+        choices: [
+          t("1 000 Mo", "1 000 Mo"),
+          t("8 Mo", "8 Mo"),
+          t("100 Mo", "100 Mo"),
+          t("1 024 bits", "1 024 bit"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Pour passer de Go à Mo, on descend d’un niveau et on multiplie par 1 000.", "للانتقال من Go إلى Mo ننزل درجة ونضرب في 1 000."),
+          t("On multiplie par 8 uniquement pour passer des octets aux bits.", "نضرب في 8 فقط للانتقال من الأوكتات إلى البتات."),
+          t("Chaque changement d’unité correspond toujours à une multiplication par 100.", "كل تغيير للوحدة يوافق دائما الضرب في 100."),
+          t("Go et bit sont deux unités successives dans l’échelle.", "Go وbit وحدتان متتاليتان في السلم."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quel composant convient pour conserver durablement les fichiers ?", "أي مكوّن يناسب حفظ الملفات بشكل دائم؟"),
+        choices: [
+          t("Le disque SSD", "قرص SSD"),
+          t("La mémoire RAM", "ذاكرة RAM"),
+          t("Le processeur", "المعالج"),
+          t("Le ventilateur", "المروحة"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Il garde les données même lorsque l’ordinateur est éteint.", "يحفظ المعطيات حتى عندما يكون الحاسوب مطفأ."),
+          t("Elle perd les données temporaires lorsque l’ordinateur s’éteint.", "تفقد المعطيات المؤقتة عند إطفاء الحاسوب."),
+          t("Il traite les données mais n’est pas un espace de stockage.", "يعالج المعطيات لكنه ليس وسيلة تخزين."),
+          t("Il refroidit les composants pour éviter leur surchauffe.", "يبرّد المكوّنات لتجنب ارتفاع حرارتها."),
+        ],
+        justificationAnswer: 0,
+      },
+      {
+        question: t("Quelle configuration est la plus adaptée au montage vidéo ?", "ما التجهيز الأنسب لتركيب الفيديو؟"),
+        choices: [
+          t("Processeur récent, 16 Go de RAM et SSD de 512 Go", "معالج حديث وRAM بسعة 16 Go وSSD بسعة 512 Go"),
+          t("Processeur ancien, 2 Go de RAM et disque de 80 Go", "معالج قديم وRAM بسعة 2 Go وقرص بسعة 80 Go"),
+          t("Ordinateur avec un grand clavier uniquement", "حاسوب بلوحة مفاتيح كبيرة فقط"),
+          t("2 Go de RAM et disque dur de 1 To", "RAM بسعة 2 Go وقرص صلب بسعة 1 To"),
+        ],
+        answer: 0,
+        justifications: [
+          t("Le processeur calcule, la RAM facilite le travail simultané et le SSD accélère l’accès aux vidéos.", "يعالج المعالج الحسابات وتسهّل RAM العمل المتزامن ويسرّع SSD الوصول إلى الفيديوهات."),
+          t("Une faible mémoire RAM suffit toujours, quelle que soit la tâche demandée.", "تكفي ذاكرة RAM ضعيفة دائما مهما كانت المهمة المطلوبة."),
+          t("La taille du clavier détermine directement la vitesse du montage vidéo.", "يحدد حجم لوحة المفاتيح مباشرة سرعة تركيب الفيديو."),
+          t("Une grande capacité de stockage compense totalement le manque de RAM.", "تعوّض سعة التخزين الكبيرة كليا نقص RAM."),
+        ],
+        justificationAnswer: 0,
+      },
     ],
   },
   {
