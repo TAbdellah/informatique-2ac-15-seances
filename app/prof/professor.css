@@ -1003,6 +1003,11 @@
 .prof-quiz-details dl > div { display: grid; grid-template-columns: 120px 1fr; gap: 10px; }
 .prof-quiz-details dt { color: var(--prof-muted); font-size: 10px; }
 .prof-quiz-details dd { margin: 0; color: var(--prof-navy); font-size: 11px; font-weight: 700; }
+.prof-quiz-details dd small { display: inline-flex; margin-inline-start: 7px; padding: 3px 7px; border-radius: 999px; font-size: 8px; font-weight: 900; }
+.prof-quiz-details .prof-detail-correct { padding: 7px 9px; border-radius: 8px; background: #eef9f3; }
+.prof-quiz-details .prof-detail-correct dd small { background: #d9f0e4; color: var(--prof-green); }
+.prof-quiz-details .prof-detail-incorrect { padding: 7px 9px; border-radius: 8px; background: #fff2f1; }
+.prof-quiz-details .prof-detail-incorrect dd small { background: #f7ddda; color: var(--prof-red); }
 
 .prof-answer-list { display: grid; gap: 8px; margin: 0; }
 .prof-answer-list > div { display: grid; grid-template-columns: minmax(135px, .45fr) 1fr; gap: 15px; padding: 12px 13px; border: 1px solid var(--prof-line); border-radius: 9px; }

@@ -111,6 +111,15 @@ const emptyFilters: FilterState = {
   search: "",
 };
 
+const evaluationPreviewKey = "lab2ac-session2-evaluation-preview-attempts";
+
+function isSession2EvaluationPreview() {
+  const previewEnabled = process.env.NODE_ENV === "development"
+    || process.env.NEXT_PUBLIC_SESSION2_EVALUATION_PREVIEW === "true";
+  if (!previewEnabled || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "session2-evaluation";
+}
+
 const activityLabels: Record<string, string> = {
   unit1_exercise: "Exercice U1",
   quiz: "QCM",
@@ -154,7 +163,7 @@ const session2ActivityLabels: Record<string, string> = {
   "s2-diagnostic-lenteur": "Diagnostic de la mémoire RAM",
   "s2-securite": "Sécurité du matériel",
   "s2-defi-final": "Stockage et transport d’un fichier",
-  "session-2-quiz": "Évaluation de la séance 2",
+  "session-2-quiz": "Évaluation QCM + justification · séance 2",
   "session-2-completion": "Validation de la séance 2",
 };
 
@@ -215,6 +224,14 @@ const answerLabels: Record<string, string> = {
   correctIndices: "Indices attendus",
   displayedChoice: "Lettre affichée",
   displayedCorrectChoice: "Lettre attendue",
+  selectedJustification: "Justification choisie",
+  correctJustification: "Justification attendue",
+  displayedJustification: "Numéro de justification affiché",
+  displayedCorrectJustification: "Numéro de justification attendu",
+  answerCorrect: "Résultat de la réponse",
+  justificationCorrect: "Résultat de la justification",
+  earnedPoints: "Points obtenus",
+  maxPoints: "Points possibles",
   selectedChoices: "Réponses choisies",
   expectedSequence: "Ordre attendu",
   acceptedAnswers: "Réponses acceptées",
@@ -279,7 +296,12 @@ function answerPreview(row: Attempt) {
     const record = answer as Record<string, unknown>;
     const quizAnswers = Array.isArray(record.answers) ? record.answers as Array<Record<string, unknown>> : [];
     if (quizAnswers.length > 0) {
-      return quizAnswers.map((item, index) => `Q${index + 1}: ${displayAnswerValue(item.selectedChoice)}`).join(" · ");
+      return quizAnswers.map((item, index) => {
+        const justification = item.selectedJustification === null || item.selectedJustification === undefined
+          ? ""
+          : ` · justification : ${displayAnswerValue(item.selectedJustification)}`;
+        return `Q${index + 1}: ${displayAnswerValue(item.selectedChoice)}${justification}`;
+      }).join(" · ");
     }
     const conversions = Array.isArray(record.conversions) ? record.conversions as Array<Record<string, unknown>> : [];
     if (conversions.length > 0) {
@@ -315,6 +337,67 @@ function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2) {
     return `${competency.label}: ${acquired === competency.ids.length ? "Acquis" : acquired > 0 ? "En cours" : "À travailler"} (${acquired}/${competency.ids.length})`;
   }).join(" · ");
   return { attempts: sessionAttempts.length, exercises: successfulIds.size, bestQuiz, competencies };
+}
+
+function readEvaluationPreviewAttempts() {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = window.localStorage.getItem(evaluationPreviewKey);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as unknown;
+    return Array.isArray(parsed) ? parsed as Attempt[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function evaluationPreviewDashboard(): DashboardData {
+  const attempts = readEvaluationPreviewAttempts().sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+  const gradedAttempts = attempts.filter((attempt) => attempt.isCorrect !== null);
+  const correctAttempts = gradedAttempts.filter((attempt) => Boolean(attempt.isCorrect)).length;
+  const scorePercentages = attempts
+    .map(attemptPercentage)
+    .filter((value): value is number => value !== null);
+  const averageScore = scorePercentages.length > 0
+    ? Math.round(scorePercentages.reduce((total, value) => total + value, 0) / scorePercentages.length)
+    : 0;
+  const bestScore = scorePercentages.length > 0 ? Math.max(...scorePercentages) : null;
+  const latestAttempt = attempts[0];
+  const learner: Learner = {
+    id: latestAttempt?.participantId ?? "00000000-0000-4000-8000-000000000002",
+    studentOne: latestAttempt?.studentOne ?? "Élève test · Séance 2",
+    studentTwo: latestAttempt?.studentTwo ?? null,
+    className: latestAttempt?.className ?? "2/1",
+    groupName: latestAttempt?.groupName ?? "1",
+    isPair: latestAttempt?.isPair ?? 0,
+    createdAt: latestAttempt?.createdAt ?? new Date().toISOString(),
+    totalAttempts: attempts.length,
+    gradedAttempts: gradedAttempts.length,
+    correctAttempts,
+    successRate: gradedAttempts.length > 0 ? Math.round((correctAttempts / gradedAttempts.length) * 100) : null,
+    gradeOutOf20: bestScore === null ? null : percentageToGrade(bestScore),
+    averageScore: scorePercentages.length > 0 ? averageScore : null,
+    bestScore,
+    completedSessions: 0,
+    lastAttemptAt: latestAttempt?.createdAt ?? null,
+  };
+
+  return {
+    sessionAccess: Array.from({ length: 15 }, (_, index) => ({
+      sessionId: index + 1,
+      isUnlocked: index === 1,
+      updatedAt: new Date().toISOString(),
+    })),
+    stats: {
+      totalParticipants: 1,
+      totalAttempts: attempts.length,
+      correctRate: gradedAttempts.length > 0 ? Math.round((correctAttempts / gradedAttempts.length) * 100) : 0,
+      averageScore,
+    },
+    attempts,
+    learners: [learner],
+    pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+  };
 }
 
 function attemptExportRows(row: Attempt) {
@@ -353,19 +436,36 @@ function attemptExportRows(row: Attempt) {
     : [];
 
   const details = quizAnswers.length > 0
-    ? quizAnswers.map((item, index) => ({
-      number: index + 1,
-      question: displayAnswerValue(item.question),
-      selected: displayAnswerValue(item.selectedChoice),
-      expected: displayAnswerValue(item.correctChoice),
-      result: item.correct ? "Correct" : "Incorrect",
-    }))
+    ? quizAnswers.map((item, index) => {
+      const answerCorrect = typeof item.answerCorrect === "boolean" ? item.answerCorrect : Boolean(item.correct);
+      const hasJustification = item.correctJustification !== null && item.correctJustification !== undefined;
+      const justificationCorrect = typeof item.justificationCorrect === "boolean" ? item.justificationCorrect : null;
+      return {
+        number: index + 1,
+        question: displayAnswerValue(item.question),
+        selected: displayAnswerValue(item.selectedChoice),
+        expected: displayAnswerValue(item.correctChoice),
+        answerResult: answerCorrect ? "Correcte" : "Incorrecte",
+        selectedJustification: hasJustification ? displayAnswerValue(item.selectedJustification) : "",
+        expectedJustification: hasJustification ? displayAnswerValue(item.correctJustification) : "",
+        justificationResult: !hasJustification ? "" : justificationCorrect ? "Correcte" : "Incorrecte",
+        questionPoints: typeof item.earnedPoints === "number" ? item.earnedPoints : item.correct ? 1 : 0,
+        questionMaxPoints: typeof item.maxPoints === "number" ? item.maxPoints : 1,
+        result: item.correct ? "Correct" : "Incorrect",
+      };
+    })
     : conversionAnswers.length > 0
       ? conversionAnswers.map((item, index) => ({
         number: index + 1,
         question: displayAnswerValue(item.conversion),
         selected: displayAnswerValue(item.answer),
         expected: displayAnswerValue(item.expected),
+        answerResult: item.correct ? "Correcte" : "Incorrecte",
+        selectedJustification: "",
+        expectedJustification: "",
+        justificationResult: "",
+        questionPoints: item.correct ? 1 : 0,
+        questionMaxPoints: 1,
         result: item.correct ? "Correct" : "Incorrect",
       }))
       : [{
@@ -382,6 +482,12 @@ function attemptExportRows(row: Attempt) {
           (answer as Record<string, unknown>).acceptedAnswers,
         )
         : "",
+      answerResult: row.isCorrect === null ? "Non évaluée" : row.isCorrect ? "Correcte" : "Incorrecte",
+      selectedJustification: "",
+      expectedJustification: "",
+      justificationResult: "",
+      questionPoints: "",
+      questionMaxPoints: "",
       result: row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
     }];
 
@@ -391,6 +497,12 @@ function attemptExportRows(row: Attempt) {
     detail.question,
     detail.selected,
     detail.expected,
+    detail.answerResult,
+    detail.selectedJustification,
+    detail.expectedJustification,
+    detail.justificationResult,
+    detail.questionPoints,
+    detail.questionMaxPoints,
     detail.result,
     row.score ?? "",
     row.maxScore ?? "",
@@ -418,23 +530,43 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
     const answers = (answer as { answers: Array<Record<string, unknown>> }).answers;
     return (
       <div className="prof-quiz-details">
-        {answers.map((item, index) => (
-          <article key={`${index}-${displayAnswerValue(item.question)}`}>
-            <div className="prof-question-line">
-              <strong>Question {index + 1}</strong>
-              <span className={item.correct ? "prof-result-good" : "prof-result-bad"}>
-                {item.correct ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                {item.correct ? "Correcte" : "Incorrecte"}
-              </span>
-            </div>
-            <p>{displayAnswerValue(item.question)}</p>
-            <dl>
-              <div><dt>Réponse choisie</dt><dd>{displayAnswerValue(item.selectedChoice)}</dd></div>
-              <div><dt>Lettre affichée</dt><dd>{displayAnswerValue(item.displayedChoice)}</dd></div>
-              <div><dt>Réponse attendue</dt><dd>{displayAnswerValue(item.correctChoice)}</dd></div>
-            </dl>
-          </article>
-        ))}
+        {answers.map((item, index) => {
+          const answerCorrect = typeof item.answerCorrect === "boolean" ? item.answerCorrect : Boolean(item.correct);
+          const hasJustification = item.correctJustification !== null && item.correctJustification !== undefined;
+          const justificationCorrect = typeof item.justificationCorrect === "boolean" ? item.justificationCorrect : null;
+          const earnedPoints = typeof item.earnedPoints === "number" ? item.earnedPoints : item.correct ? 1 : 0;
+          const maxPoints = typeof item.maxPoints === "number" ? item.maxPoints : 1;
+          return (
+            <article key={`${index}-${displayAnswerValue(item.question)}`}>
+              <div className="prof-question-line">
+                <strong>Question {index + 1}</strong>
+                <span className={item.correct ? "prof-result-good" : "prof-result-bad"}>
+                  {item.correct ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                  {earnedPoints}/{maxPoints} point{maxPoints > 1 ? "s" : ""}
+                </span>
+              </div>
+              <p>{displayAnswerValue(item.question)}</p>
+              <dl>
+                <div className={answerCorrect ? "prof-detail-correct" : "prof-detail-incorrect"}>
+                  <dt>Réponse choisie</dt>
+                  <dd>{displayAnswerValue(item.selectedChoice)} <small>{answerCorrect ? "Correcte" : "Incorrecte"}</small></dd>
+                </div>
+                <div><dt>Réponse attendue</dt><dd>{displayAnswerValue(item.correctChoice)}</dd></div>
+                <div><dt>Lettre affichée</dt><dd>{displayAnswerValue(item.displayedChoice)}</dd></div>
+                {hasJustification && (
+                  <>
+                    <div className={justificationCorrect ? "prof-detail-correct" : "prof-detail-incorrect"}>
+                      <dt>Justification choisie</dt>
+                      <dd>{displayAnswerValue(item.selectedJustification)} <small>{justificationCorrect ? "Correcte" : "Incorrecte"}</small></dd>
+                    </div>
+                    <div><dt>Justification attendue</dt><dd>{displayAnswerValue(item.correctJustification)}</dd></div>
+                    <div><dt>Numéro affiché</dt><dd>{displayAnswerValue(item.displayedJustification)}</dd></div>
+                  </>
+                )}
+              </dl>
+            </article>
+          );
+        })}
       </div>
     );
   }
@@ -522,7 +654,7 @@ function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; s
         </article>
         <article className="prof-session2-score-card">
           <span className="prof-session2-card-icon"><GraduationCap size={20} /></span>
-          <div><small>MEILLEURE ÉVALUATION</small><strong>{bestQuiz ? `${bestQuiz.score ?? 0}/${bestQuiz.maxScore ?? 10}` : "—/10"}</strong><span>{bestQuiz ? `${attemptPercentage(bestQuiz) ?? 0}% de réussite` : "Évaluation non réalisée"}</span></div>
+          <div><small>MEILLEURE ÉVALUATION</small><strong>{bestQuiz ? `${bestQuiz.score ?? 0}/${bestQuiz.maxScore ?? 0}` : "—"}</strong><span>{bestQuiz ? `${attemptPercentage(bestQuiz) ?? 0}% de réussite` : "Évaluation non réalisée"}</span></div>
         </article>
         <article className="prof-session2-score-card success">
           <span className="prof-session2-card-icon"><Target size={20} /></span>
@@ -573,6 +705,13 @@ export default function ProfessorDashboard() {
   const [reportView, setReportView] = useState<"answers" | "summary">("answers");
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
+    if (isSession2EvaluationPreview()) {
+      setData(evaluationPreviewDashboard());
+      setAuthState("ready");
+      setLoading(false);
+      setError("");
+      return;
+    }
     if (!teacherToken()) {
       setAuthState("login");
       setLoading(false);
@@ -641,7 +780,9 @@ export default function ProfessorDashboard() {
     setExporting(true);
     setError("");
     try {
-      const payload = await teacherExport<{ rows: Attempt[]; truncated: boolean }>(appliedFilters);
+      const payload = isSession2EvaluationPreview()
+        ? { rows: readEvaluationPreviewAttempts(), truncated: false }
+        : await teacherExport<{ rows: Attempt[]; truncated: boolean }>(appliedFilters);
       const header = [
         "Date",
         "Heure (Maroc)",
@@ -657,9 +798,15 @@ export default function ProfessorDashboard() {
         "Question",
         "Réponse de l’élève",
         "Réponse attendue",
+        "Résultat de la réponse",
+        "Justification de l’élève",
+        "Justification attendue",
+        "Résultat de la justification",
+        "Points de la question",
+        "Points possibles de la question",
         "Résultat de la question",
-        "Points obtenus",
-        "Points possibles",
+        "Points de la tentative",
+        "Points possibles de la tentative",
         "Pourcentage de la tentative (%)",
         "Note de la tentative (/20)",
         "Résultat de la tentative",
@@ -672,19 +819,20 @@ export default function ProfessorDashboard() {
       worksheet["!cols"] = [
         { wch: 12 }, { wch: 13 }, { wch: 10 }, { wch: 11 }, { wch: 24 }, { wch: 24 },
         { wch: 14 }, { wch: 9 }, { wch: 15 }, { wch: 24 }, { wch: 12 }, { wch: 48 },
-        { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 30 },
+        { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 55 }, { wch: 55 }, { wch: 26 },
+        { wch: 21 }, { wch: 29 }, { wch: 22 }, { wch: 22 }, { wch: 31 }, { wch: 30 },
         { wch: 27 }, { wch: 24 }, { wch: 18 }, { wch: 24 },
       ];
-      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:V${rows.length + 1}` };
+      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:AB${rows.length + 1}` };
 
       const summaryHeader = [
         "Classe", "Groupe", "Élève 1", "Élève 2", "Organisation", "Nombre de tentatives",
         "Tentatives corrigées", "Réponses correctes", "Taux de réussite (%)", "Note indicative (/20)",
         "Score moyen des QCM (%)", "Meilleur score QCM (%)", "Séances terminées", "Total des séances",
         "Dernière tentative (Maroc)", "S1 - Tentatives", "S1 - Exercices réussis (/14)",
-        "S1 - Meilleur QCM (/10)", "S1 - Meilleur QCM (%)", "S1 - Bilan des compétences",
+        "S1 - Meilleur QCM (points)", "S1 - Maximum du QCM", "S1 - Meilleur QCM (%)", "S1 - Bilan des compétences",
         "S2 - Tentatives", "S2 - Exercices réussis (/15)",
-        "S2 - Meilleur QCM (/10)", "S2 - Meilleur QCM (%)", "S2 - Bilan des compétences",
+        "S2 - Meilleur QCM (points)", "S2 - Maximum du QCM", "S2 - Meilleur QCM (%)", "S2 - Bilan des compétences",
       ];
       const summaryRows = (data?.learners ?? []).map((learner) => {
         const learnerRows = payload.rows.filter((attempt) => attempt.participantId === learner.id);
@@ -709,11 +857,13 @@ export default function ProfessorDashboard() {
           session1.attempts,
           session1.exercises,
           session1.bestQuiz?.score ?? "",
+          session1.bestQuiz?.maxScore ?? "",
           session1.bestQuiz ? attemptPercentage(session1.bestQuiz) ?? "" : "",
           session1.competencies,
           session2.attempts,
           session2.exercises,
           session2.bestQuiz?.score ?? "",
+          session2.bestQuiz?.maxScore ?? "",
           session2.bestQuiz ? attemptPercentage(session2.bestQuiz) ?? "" : "",
           session2.competencies,
         ];
@@ -723,10 +873,10 @@ export default function ProfessorDashboard() {
         { wch: 10 }, { wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 20 },
         { wch: 21 }, { wch: 20 }, { wch: 21 }, { wch: 21 }, { wch: 24 }, { wch: 24 },
         { wch: 19 }, { wch: 18 }, { wch: 25 }, { wch: 17 }, { wch: 28 },
-        { wch: 24 }, { wch: 24 }, { wch: 90 }, { wch: 17 }, { wch: 28 },
-        { wch: 24 }, { wch: 24 }, { wch: 90 },
+        { wch: 27 }, { wch: 24 }, { wch: 24 }, { wch: 90 }, { wch: 17 }, { wch: 28 },
+        { wch: 27 }, { wch: 24 }, { wch: 24 }, { wch: 90 },
       ];
-      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:Y${summaryRows.length + 1}` };
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:AA${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
@@ -814,11 +964,15 @@ export default function ProfessorDashboard() {
     setSelectedLearner(learner);
     setLearnerAttempts([]);
     setSelectedAttemptId(null);
-    setReportScope("session1");
+    setReportScope(isSession2EvaluationPreview() ? "session2" : "session1");
     setReportView("answers");
     setReportLoading(true);
     setError("");
     try {
+      if (isSession2EvaluationPreview()) {
+        setLearnerAttempts(readEvaluationPreviewAttempts());
+        return;
+      }
       const report = await teacherLearnerReport<{ attempts: Attempt[]; truncated: boolean }>(learner.id);
       setLearnerAttempts(report.attempts);
       if (report.truncated) setError("Le rapport est limité aux 25 000 tentatives les plus récentes.");
