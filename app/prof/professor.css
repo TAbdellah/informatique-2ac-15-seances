@@ -875,6 +875,27 @@
 .prof-session2-score-card small { color: var(--prof-muted); font-size: 8px; font-weight: 850; letter-spacing: .05em; }
 .prof-session2-score-card strong { margin-top: 7px; color: var(--prof-navy); font-size: 24px; }
 .prof-session2-score-card div span { margin-top: 4px; color: var(--prof-muted); font-size: 9px; line-height: 1.35; }
+.prof-evaluation-path { margin-top: 15px; overflow: hidden; border: 1px solid #cddde0; border-radius: 12px; background: #fff; }
+.prof-evaluation-path > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #e2e9ea; background: #f5f9f9; }
+.prof-evaluation-path > header > div { display: flex; flex-direction: column; gap: 3px; }
+.prof-evaluation-path > header small { color: #187786; font-size: 8px; font-weight: 900; letter-spacing: .1em; }
+.prof-evaluation-path > header strong { color: var(--prof-navy); font-size: 12px; }
+.prof-evaluation-path > header > span { padding: 7px 10px; border-radius: 999px; font-size: 10px; font-weight: 900; }
+.prof-evaluation-path > header > span.complete { background: #e3f5eb; color: #247b51; }
+.prof-evaluation-path > header > span.pending { background: #fff2cf; color: #856414; }
+.prof-evaluation-stage-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 12px; }
+.prof-evaluation-stage-grid article { display: flex; min-width: 0; align-items: flex-start; gap: 9px; padding: 11px; border: 1px solid #dde6e7; border-radius: 10px; background: #f9fbfb; }
+.prof-evaluation-stage-grid article.complete { border-color: #acd9bd; background: #f3fbf6; }
+.prof-evaluation-stage-grid article.pending { opacity: .7; }
+.prof-evaluation-stage-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #e5edef; color: #60737e; }
+.prof-evaluation-stage-grid article.complete .prof-evaluation-stage-icon { background: #dff3e7; color: #267b53; }
+.prof-evaluation-stage-grid article > div { display: flex; min-width: 0; flex-direction: column; }
+.prof-evaluation-stage-grid small { color: #7d8a92; font-size: 8px; font-weight: 900; }
+.prof-evaluation-stage-grid strong { margin-top: 3px; color: var(--prof-navy); font-size: 11px; }
+.prof-evaluation-stage-grid p { margin: 5px 0 0; color: var(--prof-muted); font-size: 9px; line-height: 1.4; }
+.prof-evaluation-path > footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-top: 1px solid #e5ebec; background: #fbfcfc; }
+.prof-evaluation-path > footer span { color: var(--prof-muted); font-size: 9px; }
+.prof-evaluation-path > footer strong { color: var(--prof-navy); font-size: 10px; }
 .prof-competency-title { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 17px; }
 .prof-competency-title strong { color: var(--prof-navy); font-size: 12px; }
 .prof-competency-title span { color: var(--prof-muted); font-size: 9px; }
@@ -925,6 +946,24 @@
 .prof-conversion-details article > span { color: var(--prof-muted); }
 .prof-conversion-details article > em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-weight: 800; }
 
+.prof-practical-details { display: grid; gap: 11px; margin-top: 13px; }
+.prof-practical-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid #b9dfe3; border-radius: 10px; background: #eef9fa; }
+.prof-practical-summary strong { color: var(--prof-navy); font-size: 12px; }
+.prof-practical-summary span { color: #287984; font-size: 10px; font-weight: 780; }
+.prof-practical-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.prof-practical-grid article { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid #dce5e6; border-radius: 9px; background: #fff; }
+.prof-practical-grid article strong { min-width: 0; color: var(--prof-navy); font-size: 10px; }
+.prof-practical-grid article span { min-width: 0; color: var(--prof-muted); font-size: 9px; text-align: end; overflow-wrap: anywhere; }
+.prof-repair-case-list { display: grid; gap: 8px; }
+.prof-repair-case-list > article { overflow: hidden; border: 1px solid #dce5e6; border-radius: 10px; background: #fff; }
+.prof-repair-case-list > article > header { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e0e8e9; background: #f5f8f8; }
+.prof-repair-case-list > article > header span { padding: 5px 7px; border-radius: 6px; background: var(--prof-navy); color: #fff; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.prof-repair-case-list > article > header strong { color: var(--prof-navy); font-size: 10px; line-height: 1.45; }
+.prof-repair-case-list dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0; margin: 0; }
+.prof-repair-case-list dl > div { padding: 9px 12px; border-bottom: 1px solid #eef2f2; }
+.prof-repair-case-list dt { color: var(--prof-muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }
+.prof-repair-case-list dd { margin: 4px 0 0; color: var(--prof-navy); font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
+
 @media (max-width: 700px) {
   .prof-learner-list { padding: 10px; }
   .prof-learner-card > header { align-items: stretch; flex-direction: column; }
@@ -938,9 +977,14 @@
   .prof-learner-metrics .prof-metric-date { grid-column: span 2; }
   .prof-report-summary { grid-template-columns: repeat(2, 1fr); }
   .prof-session2-overview { grid-template-columns: 1fr; }
+  .prof-evaluation-path > header, .prof-evaluation-path > footer { align-items: flex-start; flex-direction: column; }
+  .prof-evaluation-stage-grid { grid-template-columns: 1fr; }
   .prof-competency-grid { grid-template-columns: 1fr; }
   .prof-session2-head, .prof-competency-title, .prof-report-toolbar { align-items: stretch; flex-direction: column; }
   .prof-conversion-details article { grid-template-columns: 1fr; }
+  .prof-practical-summary { align-items: flex-start; flex-direction: column; }
+  .prof-practical-grid, .prof-repair-case-list dl { grid-template-columns: 1fr; }
+  .prof-repair-case-list > article > header { grid-template-columns: 1fr; }
   .prof-report-attempt > button { grid-template-columns: 1fr auto; }
   .prof-report-attempt > button > .prof-result { justify-self: end; }
   .prof-attempt-mark { align-items: flex-start; }

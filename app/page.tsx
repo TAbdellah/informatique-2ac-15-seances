@@ -60,7 +60,7 @@ type ViewTab = "mission" | "workshop" | "trace" | "quiz";
 
 type SubmissionInput = {
   sessionId: number;
-  activityType: "unit1_exercise" | "quiz" | "photo_challenge" | "workshop" | "session_completion";
+  activityType: "unit1_exercise" | "quiz" | "practical_evaluation" | "photo_challenge" | "workshop" | "session_completion";
   activityId: string;
   answer: unknown;
   isCorrect?: boolean;
@@ -82,6 +82,8 @@ type ExerciseDraft = {
   sequence: number[];
   textValue: string;
   conversionValues: Record<number, string>;
+  diagnosticComponent: number | null;
+  diagnosticRepair: number | null;
   gestureProgress: number;
   result: boolean | null;
 };
@@ -90,11 +92,19 @@ const activeParticipantKey = "lab2ac-active-participant";
 const submissionQueueKey = "lab2ac-submission-queue";
 const evaluationPreviewKey = "lab2ac-session2-evaluation-preview-attempts";
 
-function isSession2EvaluationPreview() {
+function session2PreviewTab(): ViewTab | null {
   const previewEnabled = process.env.NODE_ENV === "development"
     || process.env.NEXT_PUBLIC_SESSION2_EVALUATION_PREVIEW === "true";
-  if (!previewEnabled || typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("preview") === "session2-evaluation";
+  if (!previewEnabled || typeof window === "undefined") return null;
+  const preview = new URLSearchParams(window.location.search).get("preview");
+  if (preview === "session2-workshop") return "workshop";
+  if (preview === "session2-trace") return "trace";
+  if (preview === "session2-evaluation") return "quiz";
+  return null;
+}
+
+function isSession2EvaluationPreview() {
+  return session2PreviewTab() === "quiz";
 }
 
 const ui = {
@@ -961,9 +971,12 @@ function ExercisePlayer({
   const [choice, setChoice] = useState<number | null>(draft?.choice ?? null);
   const [multi, setMulti] = useState<Set<number>>(() => new Set(draft?.multi ?? []));
   const [matches, setMatches] = useState<Record<number, number>>(draft?.matches ?? {});
+  const [dragSelection, setDragSelection] = useState<number | null>(null);
   const [sequence, setSequence] = useState<number[]>(draft?.sequence ?? []);
   const [textValue, setTextValue] = useState(draft?.textValue ?? "");
   const [conversionValues, setConversionValues] = useState<Record<number, string>>(draft?.conversionValues ?? {});
+  const [diagnosticComponent, setDiagnosticComponent] = useState<number | null>(draft?.diagnosticComponent ?? null);
+  const [diagnosticRepair, setDiagnosticRepair] = useState<number | null>(draft?.diagnosticRepair ?? null);
   const [gestureProgress, setGestureProgress] = useState(
     draft?.gestureProgress ?? (exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0)
   );
@@ -971,8 +984,8 @@ function ExercisePlayer({
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, gestureProgress, result });
-  }, [choice, multi, matches, sequence, textValue, conversionValues, gestureProgress, result, onDraftChange]);
+    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, result });
+  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, result, onDraftChange]);
   const choiceOrder = useMemo(
     () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
     [exercise],
@@ -985,6 +998,14 @@ function ExercisePlayer({
     () => shuffledIndices(exercise.type === "sequence" ? exercise.steps.length : 0, `${exercise.id}-sequence`),
     [exercise],
   );
+  const diagnosticComponentOrder = useMemo(
+    () => shuffledIndices(exercise.type === "diagnostic" ? exercise.components.length : 0, `${exercise.id}-components`),
+    [exercise],
+  );
+  const diagnosticRepairOrder = useMemo(
+    () => shuffledIndices(exercise.type === "diagnostic" ? exercise.repairs.length : 0, `${exercise.id}-repairs`),
+    [exercise],
+  );
 
   const typeLabel: Record<Unit1Exercise["type"], LocalizedText> = {
     choice: { fr: "Choix unique", ar: "اختيار واحد" },
@@ -993,8 +1014,12 @@ function ExercisePlayer({
     sequence: { fr: "Mise en ordre", ar: "ترتيب" },
     text: { fr: "Réponse courte", ar: "جواب قصير" },
     conversions: { fr: "Conversions", ar: "تحويلات" },
+    diagnostic: { fr: "Diagnostic en 2 étapes", ar: "تشخيص في مرحلتين" },
     gesture: { fr: "Manipulation", ar: "تطبيق عملي" },
   };
+  const currentTypeLabel = exercise.type === "match" && exercise.interaction === "drag"
+    ? { fr: "Glisser-déposer", ar: "سحب وإفلات" }
+    : typeLabel[exercise.type];
 
   function recordResult(correct: boolean, answer: unknown) {
     setResult(correct);
@@ -1061,6 +1086,20 @@ function ExercisePlayer({
       });
       recordResult(details.every((item) => item.correct), { question: exercise.prompt, conversions: details });
     }
+    if (exercise.type === "diagnostic") {
+      const componentCorrect = diagnosticComponent === exercise.componentAnswer;
+      const repairCorrect = diagnosticRepair === exercise.repairAnswer;
+      recordResult(componentCorrect && repairCorrect, {
+        question: exercise.prompt,
+        scenario: exercise.scenario,
+        selectedComponent: diagnosticComponent === null ? null : exercise.components[diagnosticComponent].label,
+        correctComponent: exercise.components[exercise.componentAnswer].label,
+        selectedRepair: diagnosticRepair === null ? null : exercise.repairs[diagnosticRepair],
+        correctRepair: exercise.repairs[exercise.repairAnswer],
+        componentCorrect,
+        repairCorrect,
+      });
+    }
   }
 
   const canCheck =
@@ -1069,13 +1108,15 @@ function ExercisePlayer({
     (exercise.type === "match" && Object.keys(matches).length === exercise.rows.length) ||
     (exercise.type === "sequence" && sequence.length === exercise.steps.length) ||
     (exercise.type === "text" && textValue.trim().length > 0) ||
-    (exercise.type === "conversions" && exercise.rows.every((_, index) => conversionValues[index]?.trim()));
+    (exercise.type === "conversions" && exercise.rows.every((_, index) => conversionValues[index]?.trim())) ||
+    (exercise.type === "diagnostic" && diagnosticComponent !== null && diagnosticRepair !== null);
 
   return (
     <article className={`exercise-player level-${exercise.level}`}>
       <div className="exercise-copy">
         <div className="exercise-meta">
-          <strong>{txt(typeLabel[exercise.type], lang)}</strong>
+          <strong>{txt(currentTypeLabel, lang)}</strong>
+          {exercise.minutes && <small className="exercise-time"><Clock3 size={14} />{exercise.minutes} min</small>}
           {alreadyCompleted && <small><CheckCircle2 size={14} />{lang === "fr" ? "Déjà réussi" : "تم بنجاح"}</small>}
         </div>
         <h3><BilingualText value={exercise.title} /></h3>
@@ -1117,7 +1158,7 @@ function ExercisePlayer({
             const selected = multi.has(originalIndex);
             return (
               <button
-                className={selected ? "selected" : ""}
+                className={`${selected ? "selected" : ""} ${exercise.choiceImages?.[originalIndex] ? "option-with-image" : ""}`}
                 key={item.fr}
                 onClick={() => {
                   setMulti((current) => {
@@ -1129,6 +1170,7 @@ function ExercisePlayer({
                 }}
               >
                 <span className="option-marker">{selected ? <Check size={14} /> : <Circle size={14} />}</span>
+                {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={exercise.choiceImages[originalIndex] ?? ""} alt="" loading="lazy" />}
                 <BilingualText value={item} />
               </button>
             );
@@ -1136,7 +1178,108 @@ function ExercisePlayer({
         </div>
       )}
 
-      {exercise.type === "match" && (
+      {exercise.type === "match" && exercise.interaction === "drag" && (
+        <div className="drag-classification">
+          <section className="drag-bank" aria-label={lang === "fr" ? "Éléments à classer" : "عناصر التصنيف"}>
+            <header>
+              <strong>{lang === "fr" ? "Cartes à classer" : "بطاقات للتصنيف"}</strong>
+              <small>{lang === "fr" ? "Glisse ou touche une carte" : "اسحب أو المس بطاقة"}</small>
+            </header>
+            <div className="drag-card-list">
+              {exercise.rows.map((row, rowIndex) => matches[rowIndex] === undefined ? (
+                <button
+                  type="button"
+                  draggable
+                  className={`drag-card ${dragSelection === rowIndex ? "selected" : ""}`}
+                  key={row.label.fr}
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData("text/plain", String(rowIndex));
+                    event.dataTransfer.effectAllowed = "move";
+                    setDragSelection(rowIndex);
+                  }}
+                  onClick={() => setDragSelection((current) => current === rowIndex ? null : rowIndex)}
+                >
+                  {row.image && <img src={row.image} alt="" loading="lazy" />}
+                  <strong><BilingualText value={row.label} /></strong>
+                </button>
+              ) : null)}
+              {Object.keys(matches).length === exercise.rows.length && (
+                <p className="drag-bank-empty"><CheckCircle2 size={17} />{lang === "fr" ? "Toutes les cartes sont placées." : "تم وضع جميع البطاقات."}</p>
+              )}
+            </div>
+          </section>
+          <div className="drag-zones">
+            {categoryOrder.map((categoryIndex) => {
+              const category = exercise.categories[categoryIndex];
+              const placedRows = exercise.rows
+                .map((row, rowIndex) => ({ row, rowIndex }))
+                .filter(({ rowIndex }) => matches[rowIndex] === categoryIndex);
+              const placeRow = (rowIndex: number) => {
+                if (!Number.isInteger(rowIndex) || !exercise.rows[rowIndex]) return;
+                setMatches((current) => ({ ...current, [rowIndex]: categoryIndex }));
+                setDragSelection(null);
+                setResult(null);
+              };
+              return (
+                <section
+                  className={`drag-zone ${dragSelection !== null ? "ready" : ""}`}
+                  key={category.fr}
+                  onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    placeRow(Number(event.dataTransfer.getData("text/plain")));
+                  }}
+                  onClick={() => { if (dragSelection !== null) placeRow(dragSelection); }}
+                >
+                  <header>
+                    <strong><BilingualText value={category} /></strong>
+                    <small>{placedRows.length}</small>
+                  </header>
+                  <div className="drag-zone-items">
+                    {placedRows.map(({ row, rowIndex }) => (
+                      <button
+                        type="button"
+                        draggable
+                        className={`drag-card placed ${result === false ? (row.answer === categoryIndex ? "answer-correct" : "answer-wrong") : ""}`}
+                        key={row.label.fr}
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData("text/plain", String(rowIndex));
+                          event.dataTransfer.effectAllowed = "move";
+                          setDragSelection(rowIndex);
+                        }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setMatches((current) => {
+                            const next = { ...current };
+                            delete next[rowIndex];
+                            return next;
+                          });
+                          setDragSelection(rowIndex);
+                          setResult(null);
+                        }}
+                        title={lang === "fr" ? "Toucher pour déplacer" : "المس لنقل البطاقة"}
+                      >
+                        {row.image && <img src={row.image} alt="" loading="lazy" />}
+                        <strong><BilingualText value={row.label} /></strong>
+                      </button>
+                    ))}
+                    {placedRows.length === 0 && <p>{lang === "fr" ? "Dépose ici" : "ضع هنا"}</p>}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="reset-drag"
+            onClick={() => { setMatches({}); setDragSelection(null); setResult(null); }}
+          >
+            <RefreshCw size={15} />{lang === "fr" ? "Recommencer le classement" : "إعادة التصنيف"}
+          </button>
+        </div>
+      )}
+
+      {exercise.type === "match" && exercise.interaction !== "drag" && (
         <div className="match-board">
           {exercise.rows.map((row, rowIndex) => (
             <div
@@ -1256,6 +1399,52 @@ function ExercisePlayer({
               {result === false && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
             </label>
           ))}
+        </div>
+      )}
+
+      {exercise.type === "diagnostic" && (
+        <div className="diagnostic-board">
+          <div className="diagnostic-scenario">
+            <AlertTriangle size={24} />
+            <div>
+              <strong>{lang === "fr" ? "Panne observée" : "العطل الملاحظ"}</strong>
+              <BilingualText value={exercise.scenario} />
+            </div>
+          </div>
+          <section className="diagnostic-step">
+            <header><span>1</span><strong>{lang === "fr" ? "Quel composant est en cause ?" : "ما المكوّن المسؤول؟"}</strong></header>
+            <div className="diagnostic-options component-options">
+              {diagnosticComponentOrder.map((originalIndex) => {
+                const component = exercise.components[originalIndex];
+                return (
+                  <button
+                    type="button"
+                    className={diagnosticComponent === originalIndex ? "selected" : ""}
+                    key={component.label.fr}
+                    onClick={() => { setDiagnosticComponent(originalIndex); setResult(null); }}
+                  >
+                    {component.image && <img src={component.image} alt="" loading="lazy" />}
+                    <BilingualText value={component.label} />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <section className="diagnostic-step">
+            <header><span>2</span><strong>{lang === "fr" ? "Quelle réparation choisis-tu ?" : "ما الإصلاح الذي تختاره؟"}</strong></header>
+            <div className="diagnostic-options repair-options">
+              {diagnosticRepairOrder.map((originalIndex) => (
+                <button
+                  type="button"
+                  className={diagnosticRepair === originalIndex ? "selected" : ""}
+                  key={exercise.repairs[originalIndex].fr}
+                  onClick={() => { setDiagnosticRepair(originalIndex); setResult(null); }}
+                >
+                  <BilingualText value={exercise.repairs[originalIndex]} />
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
@@ -1640,16 +1829,16 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
         {hasSections ? (
           <div className="notebook-sections">
             {session.traceSections!.map((section) => (
-              <section className={`trace-section ${section.cards?.length ? "trace-section-with-cards" : ""}`} key={section.title.fr}>
+              <section className={`trace-section ${section.cards?.length || section.wide ? "trace-section-with-cards" : ""}`} key={section.title.fr}>
                 <h3>{txt(section.title, lang)}</h3>
-                {section.image && <img className="trace-section-image" src={section.image.src} alt={bilingualAria(section.image.alt)} loading="lazy" />}
+                {section.image && <img className={`trace-section-image trace-section-image-${section.image.size ?? "full"}`} src={section.image.src} alt={bilingualAria(section.image.alt)} loading="lazy" />}
                 {section.cards?.length ? (
                   <div className="trace-component-grid">
                     {section.cards.map((card) => (
                       <article className="trace-component-card" key={card.title.fr}>
                         {card.image
                           ? <img src={card.image} alt={bilingualAria(card.title)} loading="lazy" />
-                          : <span className="trace-component-symbol" aria-hidden="true">♫</span>}
+                          : <span className="trace-component-symbol" aria-hidden="true">{card.icon ?? "•"}</span>}
                         <strong>{txt(card.title, lang)}</strong>
                         <p>{txt(card.text, lang)}</p>
                       </article>
@@ -1684,6 +1873,505 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
   );
 }
 
+type Session2EvaluationStage = "assembly" | "repair" | "quiz";
+
+type EvaluationAssemblyItem = {
+  id: string;
+  label: LocalizedText;
+  image: string;
+  target: string;
+};
+
+type EvaluationAssemblyZone = {
+  id: string;
+  label: LocalizedText;
+  hint: LocalizedText;
+};
+
+type EvaluationAssemblyResult = {
+  completed: true;
+  errors: number;
+  total: number;
+  placements: Array<{
+    element: LocalizedText;
+    destination: LocalizedText;
+  }>;
+};
+
+type EvaluationRepairResult = {
+  completed: true;
+  errors: number;
+  score: number;
+  maxScore: number;
+  cases: Array<{
+    scenario: LocalizedText;
+    componentAttempts: LocalizedText[];
+    correctComponent: LocalizedText;
+    repairAttempts: LocalizedText[];
+    correctRepair: LocalizedText;
+  }>;
+};
+
+const evaluationInternalZones: EvaluationAssemblyZone[] = [
+  { id: "connect", label: { fr: "Connecter tous les composants", ar: "ربط جميع المكونات" }, hint: { fr: "Support principal du PC", ar: "الدعامة الرئيسية للحاسوب" } },
+  { id: "calculate", label: { fr: "Exécuter les instructions", ar: "تنفيذ التعليمات" }, hint: { fr: "Le cerveau de l’ordinateur", ar: "دماغ الحاسوب" } },
+  { id: "temporary", label: { fr: "Mémoriser temporairement", ar: "الحفظ المؤقت" }, hint: { fr: "Mémoire rapide de travail", ar: "ذاكرة عمل سريعة" } },
+  { id: "permanent", label: { fr: "Stocker durablement", ar: "التخزين الدائم" }, hint: { fr: "Conserve système et fichiers", ar: "يحفظ النظام والملفات" } },
+  { id: "graphics", label: { fr: "Traiter les images", ar: "معالجة الصور" }, hint: { fr: "Affichage et 3D", ar: "العرض والرسوم ثلاثية الأبعاد" } },
+  { id: "network", label: { fr: "Se connecter au réseau", ar: "الاتصال بالشبكة" }, hint: { fr: "Communication réseau", ar: "الاتصال بالشبكة" } },
+  { id: "power", label: { fr: "Fournir l’énergie", ar: "توفير الطاقة" }, hint: { fr: "Alimente tous les composants", ar: "يزود كل المكونات بالطاقة" } },
+  { id: "audio", label: { fr: "Gérer le son", ar: "معالجة الصوت" }, hint: { fr: "Entrées et sorties audio", ar: "مداخل ومخارج الصوت" } },
+];
+
+const evaluationInternalItems: EvaluationAssemblyItem[] = [
+  { id: "motherboard", label: { fr: "Carte mère", ar: "اللوحة الأم" }, image: "session2/items/ex12-card-02.jpg", target: "connect" },
+  { id: "cpu", label: { fr: "Processeur (CPU)", ar: "المعالج (CPU)" }, image: "session2/items/ex12-card-01.png", target: "calculate" },
+  { id: "ram", label: { fr: "Mémoire RAM", ar: "ذاكرة RAM" }, image: "session2/items/ex12-card-03.jpg", target: "temporary" },
+  { id: "ssd", label: { fr: "Disque SSD", ar: "قرص SSD" }, image: "session2/items/ex12-card-05.jpg", target: "permanent" },
+  { id: "gpu", label: { fr: "Carte graphique", ar: "بطاقة الرسوم" }, image: "session2/items/ex12-card-06.jpg", target: "graphics" },
+  { id: "network-card", label: { fr: "Carte réseau", ar: "بطاقة الشبكة" }, image: "session2/items/ex12-card-09.jpg", target: "network" },
+  { id: "power-supply", label: { fr: "Alimentation", ar: "مزود الطاقة" }, image: "session2/items/ex12-card-07.jpg", target: "power" },
+  { id: "sound-card", label: { fr: "Carte son", ar: "بطاقة الصوت" }, image: "session2/items/carte-son.png", target: "audio" },
+];
+
+const evaluationPeripheralZones: EvaluationAssemblyZone[] = [
+  { id: "input", label: { fr: "Périphériques d’entrée", ar: "ملحقات الإدخال" }, hint: { fr: "Envoient des informations vers l’unité centrale", ar: "ترسل المعلومات إلى الوحدة المركزية" } },
+  { id: "output", label: { fr: "Périphériques de sortie", ar: "ملحقات الإخراج" }, hint: { fr: "Restituent les informations", ar: "تعرض المعلومات" } },
+  { id: "input-output", label: { fr: "Périphériques d’entrée / sortie", ar: "ملحقات الإدخال والإخراج" }, hint: { fr: "Reçoivent et envoient des informations", ar: "تستقبل وترسل المعلومات" } },
+  { id: "storage", label: { fr: "Périphériques de stockage", ar: "ملحقات التخزين" }, hint: { fr: "Conservent les informations", ar: "تحفظ المعلومات" } },
+];
+
+const evaluationPeripheralItems: EvaluationAssemblyItem[] = [
+  { id: "keyboard", label: { fr: "Clavier", ar: "لوحة المفاتيح" }, image: "session2/items/ex02-card-05.jpg", target: "input" },
+  { id: "mouse", label: { fr: "Souris", ar: "الفأرة" }, image: "session2/items/ex02-card-04.jpg", target: "input" },
+  { id: "scanner", label: { fr: "Scanner", ar: "الماسح الضوئي" }, image: "session2/items/ex02-card-06.jpg", target: "input" },
+  { id: "gamepad", label: { fr: "Manette de jeu", ar: "ذراع اللعب" }, image: "session2/items/ex02-card-03.jpg", target: "input" },
+  { id: "monitor", label: { fr: "Écran", ar: "الشاشة" }, image: "session2/items/ex02-card-16.png", target: "output" },
+  { id: "speakers", label: { fr: "Haut-parleurs", ar: "مكبرات الصوت" }, image: "session2/items/ex02-card-01.jpg", target: "output" },
+  { id: "printer", label: { fr: "Imprimante", ar: "الطابعة" }, image: "session2/items/ex02-card-09.jpg", target: "output" },
+  { id: "projector", label: { fr: "Vidéoprojecteur", ar: "مسلاط" }, image: "session2/items/ex02-card-15.jpg", target: "output" },
+  { id: "touchscreen", label: { fr: "Écran tactile", ar: "شاشة لمسية" }, image: "session2/items/ex02-card-11.jpg", target: "input-output" },
+  { id: "router", label: { fr: "Routeur", ar: "موجه" }, image: "session2/items/ex02-card-08.jpg", target: "input-output" },
+  { id: "headset", label: { fr: "Casque-micro", ar: "سماعة بميكروفون" }, image: "session2/items/ex02-card-14.jpg", target: "input-output" },
+  { id: "hard-drive", label: { fr: "Disque dur", ar: "قرص صلب" }, image: "session2/items/ex02-card-12.jpg", target: "storage" },
+  { id: "sd-card", label: { fr: "Carte SD", ar: "بطاقة SD" }, image: "session2/items/ex02-card-17.jpg", target: "storage" },
+  { id: "usb-key", label: { fr: "Clé USB", ar: "مفتاح USB" }, image: "session2/items/ex02-card-07.jpg", target: "storage" },
+  { id: "dvd", label: { fr: "DVD", ar: "قرص DVD" }, image: "session2/items/ex02-card-10.png", target: "storage" },
+];
+
+const evaluationRepairComponents = evaluationInternalItems.map(({ id, label, image }) => ({ id, label, image }));
+
+const evaluationRepairCases = [
+  {
+    id: "ram-slow",
+    scenario: { fr: "Le PC possède 4 Go de RAM. Il devient très lent lorsque plusieurs logiciels sont ouverts.", ar: "يتوفر الحاسوب على 4 Go من RAM ويصبح بطيئا جدا عند فتح عدة برامج." },
+    component: "ram",
+    repairs: [
+      { id: "ram-16", label: { fr: "Remplacer la RAM par 16 Go", ar: "استبدال RAM بذاكرة 16 Go" } },
+      { id: "speaker-add", label: { fr: "Ajouter des haut-parleurs", ar: "إضافة مكبرات صوت" } },
+      { id: "keyboard-change", label: { fr: "Changer le clavier", ar: "تغيير لوحة المفاتيح" } },
+    ],
+    repair: "ram-16",
+  },
+  {
+    id: "gpu-game",
+    scenario: { fr: "Un jeu 3D saccade, alors que le stockage et la mémoire sont suffisants.", ar: "تتقطع لعبة ثلاثية الأبعاد رغم كفاية التخزين والذاكرة." },
+    component: "gpu",
+    repairs: [
+      { id: "gpu-dedicated", label: { fr: "Installer une carte graphique dédiée", ar: "تركيب بطاقة رسوم مستقلة" } },
+      { id: "printer-driver", label: { fr: "Réinstaller l’imprimante", ar: "إعادة تثبيت الطابعة" } },
+      { id: "dvd-add", label: { fr: "Ajouter un lecteur DVD", ar: "إضافة قارئ DVD" } },
+    ],
+    repair: "gpu-dedicated",
+  },
+  {
+    id: "network-offline",
+    scenario: { fr: "Le câble réseau est branché, mais le PC ne détecte aucune connexion.", ar: "سلك الشبكة موصول لكن الحاسوب لا يكتشف أي اتصال." },
+    component: "network-card",
+    repairs: [
+      { id: "network-install", label: { fr: "Installer ou remplacer la carte réseau", ar: "تركيب أو استبدال بطاقة الشبكة" } },
+      { id: "ram-clean", label: { fr: "Nettoyer la mémoire RAM", ar: "تنظيف ذاكرة RAM" } },
+      { id: "screen-change", label: { fr: "Changer l’écran", ar: "تغيير الشاشة" } },
+    ],
+    repair: "network-install",
+  },
+  {
+    id: "power-shutdown",
+    scenario: { fr: "Le PC s’éteint dès qu’un jeu sollicite fortement ses composants.", ar: "ينطفئ الحاسوب عندما تستهلك اللعبة مكوناته بشكل كبير." },
+    component: "power-supply",
+    repairs: [
+      { id: "psu-650", label: { fr: "Installer une alimentation de 650 W adaptée", ar: "تركيب مزود طاقة مناسب بقدرة 650 W" } },
+      { id: "mouse-change", label: { fr: "Changer la souris", ar: "تغيير الفأرة" } },
+      { id: "sound-driver", label: { fr: "Mettre à jour le pilote audio", ar: "تحديث برنامج تشغيل الصوت" } },
+    ],
+    repair: "psu-650",
+  },
+  {
+    id: "ssd-boot",
+    scenario: { fr: "Le démarrage dure plusieurs minutes et l’ancien disque est presque plein.", ar: "يستغرق الإقلاع عدة دقائق والقرص القديم شبه ممتلئ." },
+    component: "ssd",
+    repairs: [
+      { id: "ssd-512", label: { fr: "Installer un SSD de 512 Go et y transférer le système", ar: "تركيب SSD بسعة 512 Go ونقل النظام إليه" } },
+      { id: "webcam-add", label: { fr: "Ajouter une webcam", ar: "إضافة كاميرا ويب" } },
+      { id: "router-reset", label: { fr: "Redémarrer le routeur", ar: "إعادة تشغيل الموجه" } },
+    ],
+    repair: "ssd-512",
+  },
+  {
+    id: "cpu-calculation",
+    scenario: { fr: "Les calculs et les traitements complexes sont très lents, même avec assez de RAM.", ar: "الحسابات والمعالجات المعقدة بطيئة جدا رغم توفر RAM كافية." },
+    component: "cpu",
+    repairs: [
+      { id: "cpu-upgrade", label: { fr: "Installer un processeur plus puissant et compatible", ar: "تركيب معالج أقوى ومتوافق" } },
+      { id: "usb-format", label: { fr: "Formater une clé USB", ar: "تهيئة مفتاح USB" } },
+      { id: "speaker-add-2", label: { fr: "Ajouter des haut-parleurs", ar: "إضافة مكبرات صوت" } },
+    ],
+    repair: "cpu-upgrade",
+  },
+] satisfies Array<{
+  id: string;
+  scenario: LocalizedText;
+  component: string;
+  repairs: Array<{ id: string; label: LocalizedText }>;
+  repair: string;
+}>;
+
+function Session2AssemblyEvaluation({
+  lang,
+  onComplete,
+  onContinue,
+}: {
+  lang: Lang;
+  onComplete: (result: EvaluationAssemblyResult) => void;
+  onContinue: () => void;
+}) {
+  const [section, setSection] = useState<"internal" | "peripherals">("internal");
+  const [placements, setPlacements] = useState<Record<string, string>>({});
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [errors, setErrors] = useState(0);
+  const [feedback, setFeedback] = useState<{ kind: "good" | "bad"; text: LocalizedText } | null>(null);
+  const [shuffleAttempt, setShuffleAttempt] = useState("initial");
+  const reportedRef = useRef(false);
+  const allItems = useMemo(() => [...evaluationInternalItems, ...evaluationPeripheralItems], []);
+  const shuffledInternalItems = useMemo(
+    () => shuffledIndices(evaluationInternalItems.length, `evaluation-assembly-internal-${shuffleAttempt}`).map((index) => evaluationInternalItems[index]),
+    [shuffleAttempt],
+  );
+  const shuffledPeripheralItems = useMemo(
+    () => shuffledIndices(evaluationPeripheralItems.length, `evaluation-assembly-peripherals-${shuffleAttempt}`).map((index) => evaluationPeripheralItems[index]),
+    [shuffleAttempt],
+  );
+  const internalDone = evaluationInternalItems.every((item) => placements[item.id] === item.target);
+  const peripheralsDone = evaluationPeripheralItems.every((item) => placements[item.id] === item.target);
+  const allDone = internalDone && peripheralsDone;
+  const items = section === "internal" ? shuffledInternalItems : shuffledPeripheralItems;
+  const zones = section === "internal" ? evaluationInternalZones : evaluationPeripheralZones;
+  const placedInSection = items.filter((item) => placements[item.id] === item.target).length;
+
+  useEffect(() => {
+    const randomValues = new Uint32Array(2);
+    window.crypto.getRandomValues(randomValues);
+    setShuffleAttempt(`${randomValues[0]}-${randomValues[1]}`);
+  }, []);
+
+  useEffect(() => {
+    if (!allDone || reportedRef.current) return;
+    reportedRef.current = true;
+    onComplete({
+      completed: true,
+      errors,
+      total: allItems.length,
+      placements: allItems.map((item) => ({
+        element: item.label,
+        destination: [...evaluationInternalZones, ...evaluationPeripheralZones].find((zone) => zone.id === item.target)!.label,
+      })),
+    });
+  }, [allDone, allItems, errors, onComplete]);
+
+  const placeItem = useCallback((itemId: string, zoneId: string) => {
+    const item = allItems.find((candidate) => candidate.id === itemId);
+    if (!item || placements[item.id]) return;
+    if (item.target !== zoneId) {
+      setErrors((current) => current + 1);
+      setFeedback({
+        kind: "bad",
+        text: { fr: `${item.label.fr} ne correspond pas à cette zone. Observe sa fonction puis réessaie.`, ar: `${item.label.ar} لا يناسب هذه الخانة. لاحظ وظيفته ثم أعد المحاولة.` },
+      });
+      return;
+    }
+    setPlacements((current) => ({ ...current, [item.id]: zoneId }));
+    setSelectedItem(null);
+    setFeedback({
+      kind: "good",
+      text: { fr: `${item.label.fr} est bien placé.`, ar: `تم وضع ${item.label.ar} في المكان الصحيح.` },
+    });
+  }, [allItems, placements]);
+
+  function placeSelectedItem(zoneId: string) {
+    if (selectedItem) placeItem(selectedItem, zoneId);
+  }
+
+  return (
+    <section className="native-practical-evaluation">
+      <header className="native-practical-heading">
+        <div>
+          <span>ÉTAPE 1 / الخطوة 1</span>
+          <h2><BilingualText value={{ fr: "Assembler le PC", ar: "تركيب الحاسوب" }} /></h2>
+          <p><BilingualText value={{
+            fr: "Clique sur une image puis sur sa destination, ou glisse-la directement. Chaque élément doit rejoindre sa fonction ou sa famille.",
+            ar: "انقر على صورة ثم على مكانها، أو اسحبها مباشرة. ضع كل عنصر حسب وظيفته أو فئته.",
+          }} /></p>
+        </div>
+        <div className="native-score-chip"><strong>{Object.keys(placements).length}/{allItems.length}</strong><span>{lang === "fr" ? "éléments placés" : "عنصرا موضوعا"}</span></div>
+      </header>
+
+      <div className="assembly-section-tabs" role="tablist" aria-label="Parties de l’assemblage">
+        <button type="button" role="tab" aria-selected={section === "internal"} onClick={() => setSection("internal")}>
+          <span>1</span><BilingualText value={{ fr: "Dans l’unité centrale", ar: "داخل الوحدة المركزية" }} /><small>{evaluationInternalItems.filter((item) => placements[item.id]).length}/8</small>
+        </button>
+        <button type="button" role="tab" aria-selected={section === "peripherals"} disabled={!internalDone} onClick={() => setSection("peripherals")}>
+          <span>{internalDone ? <Check size={16} /> : <LockKeyhole size={14} />}</span><BilingualText value={{ fr: "Autour de l’unité centrale", ar: "حول الوحدة المركزية" }} /><small>{evaluationPeripheralItems.filter((item) => placements[item.id]).length}/15</small>
+        </button>
+      </div>
+
+      <div className="assembly-instruction">
+        <MousePointer2 size={20} />
+        <BilingualText value={section === "internal"
+          ? { fr: "Associe les 8 composants internes à leur fonction exacte.", ar: "اربط المكونات الداخلية الثمانية بوظيفتها الصحيحة." }
+          : { fr: "Classe les 15 périphériques dans les quatre familles.", ar: "صنّف الملحقات الخمسة عشر في الفئات الأربع." }} />
+      </div>
+
+      <div className={`assembly-workspace ${section === "peripherals" ? "peripheral-workspace" : ""}`}>
+        <div className="assembly-bank" aria-label="Éléments à placer">
+          <div className="assembly-bank-head"><strong>{lang === "fr" ? "Éléments à placer" : "العناصر المطلوب وضعها"}</strong><span>{placedInSection}/{items.length}</span></div>
+          <div className="assembly-bank-grid">
+            {items.filter((item) => !placements[item.id]).map((item) => (
+              <button
+                type="button"
+                draggable
+                className={selectedItem === item.id ? "selected" : ""}
+                key={item.id}
+                onClick={() => setSelectedItem((current) => current === item.id ? null : item.id)}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("text/plain", item.id);
+                  event.dataTransfer.effectAllowed = "move";
+                }}
+              >
+                <img src={`/${item.image}`} alt={bilingualAria(item.label)} />
+                <BilingualText value={item.label} />
+              </button>
+            ))}
+            {items.every((item) => placements[item.id]) && (
+              <div className="assembly-bank-complete"><CheckCircle2 size={25} /><BilingualText value={{ fr: "Tous les éléments sont placés", ar: "تم وضع جميع العناصر" }} /></div>
+            )}
+          </div>
+        </div>
+
+        <div className="assembly-zones">
+          {zones.map((zone) => {
+            const zoneItems = items.filter((item) => placements[item.id] === zone.id);
+            return (
+              <div
+                className={`assembly-zone ${selectedItem ? "ready" : ""} ${zoneItems.length ? "filled" : ""}`}
+                key={zone.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => placeSelectedItem(zone.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") placeSelectedItem(zone.id);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  placeItem(event.dataTransfer.getData("text/plain"), zone.id);
+                }}
+              >
+                <header><strong><BilingualText value={zone.label} /></strong><small><BilingualText value={zone.hint} /></small></header>
+                <div className="assembly-zone-content">
+                  {zoneItems.length === 0 ? <span className="assembly-drop-label">{lang === "fr" ? "Déposer ici" : "ضع هنا"}</span> : zoneItems.map((item) => (
+                    <span className="assembly-placed-item" key={item.id}><img src={`/${item.image}`} alt="" /><BilingualText value={item.label} /><CheckCircle2 size={15} /></span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {feedback && <div className={`native-practical-feedback ${feedback.kind}`} aria-live="polite">{feedback.kind === "good" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}<BilingualText value={feedback.text} /></div>}
+
+      <div className="native-practical-footer">
+        <div className="native-progress"><span style={{ width: `${(Object.keys(placements).length / allItems.length) * 100}%` }} /></div>
+        {!internalDone ? (
+          <p><LockKeyhole size={16} /><BilingualText value={{ fr: "Place correctement les 8 composants pour continuer.", ar: "ضع المكونات الثمانية بشكل صحيح للمتابعة." }} /></p>
+        ) : section === "internal" ? (
+          <button type="button" onClick={() => setSection("peripherals")}><BilingualText value={{ fr: "Continuer avec les périphériques", ar: "المتابعة مع الملحقات" }} /><ChevronRight size={18} /></button>
+        ) : allDone ? (
+          <button type="button" onClick={onContinue}><BilingualText value={{ fr: "Passer au dépannage", ar: "الانتقال إلى إصلاح الأعطال" }} /><ChevronRight size={18} /></button>
+        ) : (
+          <p><LockKeyhole size={16} /><BilingualText value={{ fr: "Classe correctement tous les périphériques.", ar: "صنّف جميع الملحقات بشكل صحيح." }} /></p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Session2RepairEvaluation({
+  lang,
+  onComplete,
+  onContinue,
+}: {
+  lang: Lang;
+  onComplete: (result: EvaluationRepairResult) => void;
+  onContinue: () => void;
+}) {
+  const [caseIndex, setCaseIndex] = useState(0);
+  const [componentSolved, setComponentSolved] = useState<Record<number, boolean>>({});
+  const [repairSolved, setRepairSolved] = useState<Record<number, boolean>>({});
+  const [wrongComponents, setWrongComponents] = useState<Record<number, string[]>>({});
+  const [wrongRepairs, setWrongRepairs] = useState<Record<number, string[]>>({});
+  const [reports, setReports] = useState<Array<{ componentAttempts: LocalizedText[]; repairAttempts: LocalizedText[] }>>(
+    () => evaluationRepairCases.map(() => ({ componentAttempts: [], repairAttempts: [] })),
+  );
+  const [errors, setErrors] = useState(0);
+  const [feedback, setFeedback] = useState<{ kind: "good" | "bad"; text: LocalizedText } | null>(null);
+  const reportedRef = useRef(false);
+  const currentCase = evaluationRepairCases[caseIndex];
+  const completedCases = evaluationRepairCases.filter((_, index) => repairSolved[index]).length;
+  const allDone = completedCases === evaluationRepairCases.length;
+  const correctComponent = evaluationRepairComponents.find((item) => item.id === currentCase.component)!;
+
+  useEffect(() => {
+    if (!allDone || reportedRef.current) return;
+    reportedRef.current = true;
+    onComplete({
+      completed: true,
+      errors,
+      score: evaluationRepairCases.length * 2,
+      maxScore: evaluationRepairCases.length * 2,
+      cases: evaluationRepairCases.map((item, index) => ({
+        scenario: item.scenario,
+        componentAttempts: reports[index].componentAttempts,
+        correctComponent: evaluationRepairComponents.find((component) => component.id === item.component)!.label,
+        repairAttempts: reports[index].repairAttempts,
+        correctRepair: item.repairs.find((repair) => repair.id === item.repair)!.label,
+      })),
+    });
+  }, [allDone, errors, onComplete, reports]);
+
+  function recordAttempt(kind: "component" | "repair", label: LocalizedText) {
+    setReports((current) => current.map((report, index) => index === caseIndex
+      ? { ...report, [kind === "component" ? "componentAttempts" : "repairAttempts"]: [...report[kind === "component" ? "componentAttempts" : "repairAttempts"], label] }
+      : report));
+  }
+
+  function chooseComponent(componentId: string) {
+    if (componentSolved[caseIndex]) return;
+    const component = evaluationRepairComponents.find((item) => item.id === componentId)!;
+    recordAttempt("component", component.label);
+    if (componentId === currentCase.component) {
+      setComponentSolved((current) => ({ ...current, [caseIndex]: true }));
+      setFeedback({ kind: "good", text: { fr: `${component.label.fr} explique bien les symptômes. Choisis maintenant la réparation.`, ar: `${component.label.ar} يفسر الأعراض. اختر الآن الإصلاح المناسب.` } });
+    } else {
+      setErrors((current) => current + 1);
+      setWrongComponents((current) => ({ ...current, [caseIndex]: [...(current[caseIndex] ?? []), componentId] }));
+      setFeedback({ kind: "bad", text: { fr: "Ce composant n’explique pas tous les symptômes. Relis la situation.", ar: "هذا المكون لا يفسر جميع الأعراض. أعد قراءة الوضعية." } });
+    }
+  }
+
+  function chooseRepair(repairId: string) {
+    if (!componentSolved[caseIndex] || repairSolved[caseIndex]) return;
+    const repair = currentCase.repairs.find((item) => item.id === repairId)!;
+    recordAttempt("repair", repair.label);
+    if (repairId === currentCase.repair) {
+      setRepairSolved((current) => ({ ...current, [caseIndex]: true }));
+      setFeedback({ kind: "good", text: { fr: "Diagnostic complet : le composant et la réparation sont corrects.", ar: "اكتمل التشخيص: المكون والإصلاح صحيحان." } });
+    } else {
+      setErrors((current) => current + 1);
+      setWrongRepairs((current) => ({ ...current, [caseIndex]: [...(current[caseIndex] ?? []), repairId] }));
+      setFeedback({ kind: "bad", text: { fr: "Cette action ne répare pas la panne décrite. Cherche une solution liée au composant.", ar: "هذا الإجراء لا يصلح العطل الموصوف. ابحث عن حل مرتبط بالمكون." } });
+    }
+  }
+
+  function goToNextCase() {
+    if (!repairSolved[caseIndex] || caseIndex >= evaluationRepairCases.length - 1) return;
+    setCaseIndex((current) => current + 1);
+    setFeedback(null);
+  }
+
+  return (
+    <section className="native-practical-evaluation repair-evaluation">
+      <header className="native-practical-heading">
+        <div>
+          <span>ÉTAPE 2 / الخطوة 2</span>
+          <h2><BilingualText value={{ fr: "Dépanner le PC", ar: "إصلاح أعطال الحاسوب" }} /></h2>
+          <p><BilingualText value={{ fr: "Pour chaque panne, identifie d’abord le composant responsable, puis choisis la réparation cohérente.", ar: "لكل عطل، حدد أولا المكون المسؤول ثم اختر الإصلاح المناسب." }} /></p>
+        </div>
+        <div className="native-score-chip"><strong>{completedCases}/{evaluationRepairCases.length}</strong><span>{lang === "fr" ? "pannes résolues" : "أعطال محلولة"}</span></div>
+      </header>
+
+      <div className="repair-case-progress" aria-label="Progression des pannes">
+        {evaluationRepairCases.map((item, index) => (
+          <button type="button" key={item.id} disabled={index > completedCases} className={`${index === caseIndex ? "active" : ""} ${repairSolved[index] ? "done" : ""}`} onClick={() => index <= completedCases && setCaseIndex(index)}>
+            {repairSolved[index] ? <Check size={15} /> : index + 1}
+          </button>
+        ))}
+      </div>
+
+      <article className="repair-scenario-card">
+        <div className="repair-scenario-number"><span>{lang === "fr" ? "PANNE" : "العطل"}</span><strong>{String(caseIndex + 1).padStart(2, "0")}</strong></div>
+        <div><small>Situation-problème / الوضعية المشكلة</small><h3><BilingualText value={currentCase.scenario} /></h3></div>
+      </article>
+
+      <section className={`repair-native-step ${componentSolved[caseIndex] ? "solved" : ""}`}>
+        <header><span>{componentSolved[caseIndex] ? <Check size={17} /> : "1"}</span><div><strong><BilingualText value={{ fr: "Quel composant est responsable ?", ar: "ما المكون المسؤول؟" }} /></strong><small>{lang === "fr" ? "Observe la fonction de chaque composant" : "لاحظ وظيفة كل مكون"}</small></div></header>
+        <div className="repair-component-grid">
+          {evaluationRepairComponents.map((component) => {
+            const isCorrect = componentSolved[caseIndex] && component.id === currentCase.component;
+            const isWrong = (wrongComponents[caseIndex] ?? []).includes(component.id);
+            return (
+              <button type="button" key={component.id} disabled={componentSolved[caseIndex]} className={`${isCorrect ? "correct" : ""} ${isWrong ? "wrong" : ""}`} onClick={() => chooseComponent(component.id)}>
+                <img src={`/${component.image}`} alt={bilingualAria(component.label)} />
+                <BilingualText value={component.label} />
+                {isCorrect && <CheckCircle2 size={18} />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={`repair-native-step ${!componentSolved[caseIndex] ? "locked" : ""} ${repairSolved[caseIndex] ? "solved" : ""}`}>
+        <header><span>{repairSolved[caseIndex] ? <Check size={17} /> : componentSolved[caseIndex] ? "2" : <LockKeyhole size={15} />}</span><div><strong><BilingualText value={{ fr: "Quelle réparation faut-il effectuer ?", ar: "ما الإصلاح الذي يجب القيام به؟" }} /></strong><small>{componentSolved[caseIndex] ? txt(correctComponent.label, lang) : (lang === "fr" ? "Trouve d’abord le composant" : "حدد المكون أولا")}</small></div></header>
+        {componentSolved[caseIndex] && (
+          <div className="repair-solution-grid">
+            {currentCase.repairs.map((repair) => {
+              const isCorrect = repairSolved[caseIndex] && repair.id === currentCase.repair;
+              const isWrong = (wrongRepairs[caseIndex] ?? []).includes(repair.id);
+              return <button type="button" key={repair.id} disabled={repairSolved[caseIndex]} className={`${isCorrect ? "correct" : ""} ${isWrong ? "wrong" : ""}`} onClick={() => chooseRepair(repair.id)}><BilingualText value={repair.label} />{isCorrect && <CheckCircle2 size={18} />}</button>;
+            })}
+          </div>
+        )}
+      </section>
+
+      {feedback && <div className={`native-practical-feedback ${feedback.kind}`} aria-live="polite">{feedback.kind === "good" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}<BilingualText value={feedback.text} /></div>}
+
+      <div className="native-practical-footer">
+        <div className="native-progress"><span style={{ width: `${(completedCases / evaluationRepairCases.length) * 100}%` }} /></div>
+        {allDone ? (
+          <button type="button" onClick={onContinue}><BilingualText value={{ fr: "Continuer avec le QCM + justification", ar: "المتابعة إلى الاختيار والتعليل" }} /><ChevronRight size={18} /></button>
+        ) : repairSolved[caseIndex] ? (
+          <button type="button" onClick={goToNextCase}><BilingualText value={{ fr: "Panne suivante", ar: "العطل التالي" }} /><ChevronRight size={18} /></button>
+        ) : (
+          <p><LockKeyhole size={16} /><BilingualText value={{ fr: "Résous les deux étapes pour continuer.", ar: "أنجز المرحلتين للمتابعة." }} /></p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function QuizView({
   session,
   lang,
@@ -1695,11 +2383,17 @@ function QuizView({
 }) {
   const labels = ui[lang];
   const isBilingual = true;
+  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>(session.id === 2 ? "assembly" : "quiz");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [justifications, setJustifications] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [shuffleRound, setShuffleRound] = useState(0);
+  const [practicalResults, setPracticalResults] = useState<{
+    assembly?: EvaluationAssemblyResult;
+    repair?: EvaluationRepairResult;
+  }>({});
+  const practicalSignaturesRef = useRef(new Set<string>());
   const quizChoiceOrders = useMemo(
     () => {
       void shuffleRound;
@@ -1739,8 +2433,39 @@ function QuizView({
   const questionAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (session.id === 2 && evaluationStage !== "quiz") return;
     questionAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [questionIndex]);
+  }, [evaluationStage, questionIndex, session.id]);
+
+  const recordAssemblyResult = useCallback((result: EvaluationAssemblyResult) => {
+    if (practicalSignaturesRef.current.has("assembly")) return;
+    practicalSignaturesRef.current.add("assembly");
+    setPracticalResults((current) => ({ ...current, assembly: result }));
+    onRecordSubmission({
+      sessionId: 2,
+      activityType: "practical_evaluation",
+      activityId: "s2-evaluation-assembler",
+      answer: result,
+      isCorrect: true,
+      score: result.total,
+      maxScore: result.total,
+    });
+  }, [onRecordSubmission]);
+
+  const recordRepairResult = useCallback((result: EvaluationRepairResult) => {
+    if (practicalSignaturesRef.current.has("repair")) return;
+    practicalSignaturesRef.current.add("repair");
+    setPracticalResults((current) => ({ ...current, repair: result }));
+    onRecordSubmission({
+      sessionId: 2,
+      activityType: "practical_evaluation",
+      activityId: "s2-evaluation-depanner",
+      answer: result,
+      isCorrect: true,
+      score: result.score,
+      maxScore: result.maxScore,
+    });
+  }, [onRecordSubmission]);
 
   function submitQuiz() {
     const detailedAnswers = session.quiz.map((question, questionIndex) => {
@@ -1787,6 +2512,41 @@ function QuizView({
 
   return (
     <div className="tab-content simple-quiz page-enter">
+      {session.id === 2 && (
+        <div className="evaluation-stage-tabs" role="tablist" aria-label="Étapes de l’évaluation / مراحل التقويم">
+          <button type="button" role="tab" aria-selected={evaluationStage === "assembly"} onClick={() => setEvaluationStage("assembly")}>
+            <MonitorCog size={18} /><span className="evaluation-stage-number">1</span><BilingualText value={{ fr: "Assembler", ar: "تركيب" }} />
+          </button>
+          <button type="button" role="tab" aria-selected={evaluationStage === "repair"} disabled={!practicalResults.assembly} onClick={() => setEvaluationStage("repair")}>
+            {practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">2</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
+          </button>
+          <button type="button" role="tab" aria-selected={evaluationStage === "quiz"} disabled={!practicalResults.repair} onClick={() => setEvaluationStage("quiz")}>
+            {practicalResults.repair ? <FileCheck2 size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "QCM + justification", ar: "اختيار وتعليل" }} />
+          </button>
+        </div>
+      )}
+
+      {session.id === 2 && (
+        <div hidden={evaluationStage !== "assembly"}>
+          <Session2AssemblyEvaluation
+            lang={lang}
+            onComplete={recordAssemblyResult}
+            onContinue={() => setEvaluationStage("repair")}
+          />
+        </div>
+      )}
+
+      {session.id === 2 && (
+        <div hidden={evaluationStage !== "repair"}>
+          <Session2RepairEvaluation
+            lang={lang}
+            onComplete={recordRepairResult}
+            onContinue={() => setEvaluationStage("quiz")}
+          />
+        </div>
+      )}
+
+      <div className="evaluation-quiz-content" hidden={session.id === 2 && evaluationStage !== "quiz"}>
       <div className="exercise-counter" ref={questionAnchorRef}>
         <span>{lang === "fr" ? "QUESTION" : "السؤال"} {padTime(questionIndex + 1)}</span>
       </div>
@@ -1915,6 +2675,7 @@ function QuizView({
           ? submitted ? { fr: "Recommencer", ar: "إعادة المحاولة" } : { fr: "Valider l’évaluation", ar: "تأكيد التقويم" }
           : undefined}
       />
+      </div>
     </div>
   );
 }
@@ -2032,7 +2793,8 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
-      if (isSession2EvaluationPreview()) {
+      const previewTab = session2PreviewTab();
+      if (previewTab) {
         const previewProfile: StudentProfile = {
           id: "00000000-0000-4000-8000-000000000002",
           studentOne: "Élève test · Séance 2",
@@ -2046,7 +2808,7 @@ export default function HomePage() {
         setSessionAccess([{ sessionId: 2, isUnlocked: true, updatedAt: new Date().toISOString() }]);
         setSessionAccessLoaded(true);
         setSelectedId(2);
-        setActiveTab("quiz");
+        setActiveTab(previewTab);
         autoOpenedSessionRef.current = true;
         setIdentityLoaded(true);
         return;

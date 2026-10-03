@@ -16,8 +16,9 @@ export type QuizQuestion = {
 export type TraceSection = {
   title: LocalizedText;
   items: LocalizedText[];
-  image?: { src: string; alt: LocalizedText };
-  cards?: { title: LocalizedText; text: LocalizedText; image?: string }[];
+  image?: { src: string; alt: LocalizedText; size?: "medium" | "full" };
+  cards?: { title: LocalizedText; text: LocalizedText; image?: string; icon?: string }[];
+  wide?: boolean;
 };
 
 export type CourseSession = {
@@ -158,22 +159,23 @@ export const sessions: CourseSession[] = [
       t("Distinguer unité centrale et périphériques.", "التمييز بين الوحدة المركزية والملحقات."),
       t("Classer les périphériques d’entrée, de sortie, d’entrée/sortie et de stockage.", "تصنيف ملحقات الإدخال والإخراج والإدخال/الإخراج والتخزين."),
       t("Identifier carte mère, processeur, RAM, SSD et alimentation.", "التعرف على اللوحة الأم والمعالج وRAM وSSD ومزود الطاقة."),
-      t("Comparer B, kB, MB, GB et TB puis choisir une configuration.", "مقارنة B وkB وMB وGB وTB ثم اختيار تجهيز مناسب."),
+      t("Ordonner et convertir bit, octet, Ko, Mo, Go et To.", "ترتيب وتحويل bit وoctet وKo وMo وGo وTo."),
     ],
     workshops: [
-      { label: "A", duration: 45, text: t("Identifier et classer périphériques et composants à partir de photographies réelles.", "التعرف على الملحقات والمكونات وتصنيفها انطلاقا من صور حقيقية.") },
-      { label: "B", duration: 40, text: t("Résoudre des diagnostics puis choisir la configuration du club multimédia.", "حل تشخيصات ثم اختيار تجهيز نادي الوسائط.") },
+      { label: "A", duration: 30, text: t("Observer, reconnaître et classer le matériel avec des images et du glisser-déposer.", "ملاحظة المعدات والتعرف عليها وتصنيفها بالصور والسحب والإفلات.") },
+      { label: "B", duration: 30, text: t("Associer les fonctions, diagnostiquer, ordonner puis convertir les capacités.", "ربط الوظائف والتشخيص وترتيب وحدات السعة ثم تحويلها.") },
     ],
-    deliverable: t("15 exercices réussis + fiche de configuration argumentée.", "إنجاز 15 تمرينا + بطاقة تجهيز مبررة."),
+    deliverable: t("12 activités réussies en 60 minutes : reconnaître, assembler, convertir et dépanner.", "إنجاز 12 نشاطا في 60 دقيقة: التعرف والتركيب والتحويل والإصلاح."),
     trace: [
       t("Un ordinateur comprend une unité centrale et des périphériques.", "يتكون الحاسوب من وحدة مركزية وملحقات."),
       t("Les périphériques servent à saisir, afficher, communiquer ou stocker l’information.", "تستخدم الملحقات لإدخال المعلومات أو عرضها أو التواصل بها أو تخزينها."),
       t("Le processeur traite, la RAM mémorise temporairement et le SSD stocke durablement.", "يعالج المعالج وتحفظ RAM مؤقتا ويخزن SSD بشكل دائم."),
-      t("Les capacités s’ordonnent : B, kB, MB, GB, TB.", "ترتب السعات هكذا: B ثم kB ثم MB ثم GB ثم TB."),
+      t("Les capacités s’ordonnent : bit, octet, Ko, Mo, Go, To.", "ترتب السعات هكذا: bit ثم octet ثم Ko ثم Mo ثم Go ثم To."),
     ],
     traceSections: [
       {
         title: t("1. Composition d’un ordinateur", "1. مكونات الحاسوب"),
+        wide: true,
         items: [
           t("Un ordinateur est une machine de traitement automatique des informations.", "الحاسوب آلة للمعالجة الآلية للمعلومات."),
           t("Il est composé d’une unité centrale et de périphériques.", "يتكون من وحدة مركزية وملحقات."),
@@ -181,12 +183,13 @@ export const sessions: CourseSession[] = [
       },
       {
         title: t("2. Périphériques", "2. الملحقات"),
-        items: [
-          t("Entrée : clavier, souris, microphone, scanner et webcam.", "إدخال: لوحة المفاتيح والفأرة والميكروفون والماسح وكاميرا الويب."),
-          t("Sortie : écran, imprimante, haut-parleurs et vidéo-projecteur.", "إخراج: الشاشة والطابعة ومكبرات الصوت والمسلاط."),
-          t("Entrée/sortie : écran tactile, casque avec micro et routeur.", "إدخال وإخراج: الشاشة اللمسية وسماعة بميكروفون والموجه."),
-          t("Stockage : clé USB, disque dur, SSD, CD/DVD et carte SD.", "تخزين: مفتاح USB والقرص وSSD وCD/DVD وبطاقة SD."),
-        ],
+        items: [],
+        wide: true,
+        image: {
+          src: "session2/schema-peripheriques.png",
+          alt: t("Schéma des périphériques d’entrée, de sortie, d’entrée/sortie et de stockage", "خطاطة ملحقات الإدخال والإخراج والإدخال والإخراج والتخزين"),
+          size: "medium",
+        },
       },
       {
         title: t("3. Composants internes", "3. المكونات الداخلية"),
@@ -204,10 +207,16 @@ export const sessions: CourseSession[] = [
       },
       {
         title: t("4. Unités de capacité", "4. وحدات السعة"),
-        items: [],
+        items: [
+          t("Vers une unité plus petite, je multiplie : 3 Go × 1000 = 3000 Mo.", "نحو وحدة أصغر أضرب: 3 Go × 1000 = 3000 Mo."),
+          t("Vers une unité plus grande, je divise : 5000 Mo ÷ 1000 = 5 Go.", "نحو وحدة أكبر أقسم: 5000 Mo ÷ 1000 = 5 Go."),
+          t("Entre bit et octet, j’utilise 8 : 8000 bits ÷ 8 = 1000 octets.", "بين bit وoctet أستعمل 8: 8000 bits ÷ 8 = 1000 octets."),
+        ],
+        wide: true,
         image: {
-          src: "session2/regle-conversion-capacites.png",
+          src: "session2/unites-de-capacite.png",
           alt: t("Échelle de conversion entre bit, octet, Ko, Mo, Go et To", "سلم التحويل بين bit وoctet وKo وMo وGo وTo"),
+          size: "medium",
         },
       },
     ],

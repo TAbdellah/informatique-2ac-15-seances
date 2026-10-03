@@ -9,6 +9,7 @@ const allowedOrigins = new Set([
 const activityTypes = new Set([
   "unit1_exercise",
   "quiz",
+  "practical_evaluation",
   "photo_challenge",
   "workshop",
   "session_completion",
@@ -61,6 +62,45 @@ type SessionAccessRow = {
 
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, maxLength) : "";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function validPracticalEvaluation(
+  activityType: string,
+  sessionId: number,
+  activityId: string,
+  answer: unknown,
+  isCorrect: boolean | null,
+  score: number | null,
+  maxScore: number | null,
+) {
+  if (activityType !== "practical_evaluation") return true;
+  if (sessionId !== 2 || isCorrect !== true || !isRecord(answer) || answer.completed !== true) return false;
+
+  const errors = Number(answer.errors);
+  if (!Number.isInteger(errors) || errors < 0 || errors > 1000) return false;
+
+  if (activityId === "s2-evaluation-assembler") {
+    return answer.total === 23
+      && Array.isArray(answer.placements)
+      && answer.placements.length === 23
+      && score === 23
+      && maxScore === 23;
+  }
+
+  if (activityId === "s2-evaluation-depanner") {
+    return Array.isArray(answer.cases)
+      && answer.cases.length === 6
+      && answer.score === 12
+      && answer.maxScore === 12
+      && score === 12
+      && maxScore === 12;
+  }
+
+  return false;
 }
 
 function same(left: string, right: string) {
@@ -239,6 +279,13 @@ function attemptView(row: SubmissionRow, participant: ParticipantRow, progress: 
     sessionId: row.session_id,
     activityType: row.activity_type,
     activityId: row.activity_id,
+    evaluationStage: row.activity_id === "s2-evaluation-assembler"
+      ? "assembly"
+      : row.activity_id === "s2-evaluation-depanner"
+        ? "repair"
+        : row.activity_id === "session-2-quiz"
+          ? "quiz"
+          : null,
     responseJson: JSON.stringify(row.response),
     isCorrect: row.is_correct,
     score: row.score,
@@ -520,6 +567,7 @@ Deno.serve(async (request) => {
       const responseText = JSON.stringify(body.answer ?? null);
       const score = Number.isInteger(body.score) ? Number(body.score) : null;
       const maxScore = Number.isInteger(body.maxScore) ? Number(body.maxScore) : null;
+      const isCorrect = typeof body.isCorrect === "boolean" ? body.isCorrect : null;
       if (
         id.length < 8 ||
         !/^[0-9a-f-]{36}$/i.test(participantId) ||
@@ -530,7 +578,8 @@ Deno.serve(async (request) => {
         sessionId > 15 ||
         encoder.encode(responseText).length > 12000 ||
         ((score === null) !== (maxScore === null)) ||
-        (score !== null && (score < 0 || score > 1000 || maxScore === null || maxScore < 1 || maxScore > 1000 || score > maxScore))
+        (score !== null && (score < 0 || score > 1000 || maxScore === null || maxScore < 1 || maxScore > 1000 || score > maxScore)) ||
+        !validPracticalEvaluation(activityType, sessionId, activityId, body.answer, isCorrect, score, maxScore)
       ) {
         return json({ error: "Tentative invalide." }, 400, headers);
       }
@@ -551,7 +600,7 @@ Deno.serve(async (request) => {
           activity_type: activityType,
           activity_id: activityId,
           response: body.answer ?? null,
-          is_correct: typeof body.isCorrect === "boolean" ? body.isCorrect : null,
+          is_correct: isCorrect,
           score,
           max_score: maxScore,
         }),

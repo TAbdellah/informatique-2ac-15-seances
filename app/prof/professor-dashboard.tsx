@@ -57,6 +57,7 @@ type Attempt = {
   sessionId: number;
   activityType: string;
   activityId: string;
+  evaluationStage?: "assembly" | "repair" | "quiz" | null;
   responseJson: string;
   isCorrect: boolean | number | null;
   score: number | null;
@@ -123,6 +124,7 @@ function isSession2EvaluationPreview() {
 const activityLabels: Record<string, string> = {
   unit1_exercise: "Exercice U1",
   quiz: "QCM",
+  practical_evaluation: "Évaluation pratique",
   photo_challenge: "Défi image",
   workshop: "Atelier pratique",
   session_completion: "Validation de séance",
@@ -148,7 +150,10 @@ const session1ActivityLabels: Record<string, string> = {
 };
 
 const session2ActivityLabels: Record<string, string> = {
+  "s2-composition-qcu": "Composition d’un ordinateur · QCU",
   "s2-poste-reperes": "Reconnaître le poste informatique",
+  "s2-classer-peripheriques": "Classer les périphériques · glisser-déposer",
+  "s2-qcm-visioconference": "Périphériques d’une visioconférence · QCM",
   "s2-poste-fonctions": "Fonctions des éléments du poste",
   "s2-peripherique-ou-composant": "Périphérique ou composant interne",
   "s2-sens-information": "Sens de circulation de l’information",
@@ -157,8 +162,16 @@ const session2ActivityLabels: Record<string, string> = {
   "s2-choisir-ordinateur-simple": "Choisir un ordinateur · besoin simple",
   "s2-branchements": "Branchements et ports",
   "s2-composants-roles": "Composants internes et rôles",
+  "s2-diagnostic-memoire": "Diagnostic de la mémoire RAM",
   "s2-unites-ordre": "Ordre des unités de capacité",
   "s2-conversions-capacites": "Conversions des unités de capacité",
+  "s2-defi-poste-complet": "Choisir un poste complet pour le club",
+  "s2-assembler-pc": "Assembler le PC · composants essentiels",
+  "s2-depanner-pc": "Dépanner le PC · diagnostic et réparation",
+  "s2-evaluation-assembler": "Évaluation pratique · assembler le PC",
+  "s2-evaluation-depanner": "Évaluation pratique · dépanner le PC",
+  "s2-choix-ordinateur-bureautique": "Choisir un ordinateur · travail scolaire",
+  "s2-choix-ordinateur-multimedia": "Choisir un ordinateur · multimédia",
   "s2-choisir-ordinateur-complexe": "Choisir un ordinateur · multimédia",
   "s2-diagnostic-lenteur": "Diagnostic de la mémoire RAM",
   "s2-securite": "Sécurité du matériel",
@@ -168,13 +181,12 @@ const session2ActivityLabels: Record<string, string> = {
 };
 
 const session2Competencies = [
-  { label: "Poste informatique", ids: ["s2-poste-reperes", "s2-poste-fonctions", "s2-peripherique-ou-composant"] },
-  { label: "Périphériques et fonctions", ids: ["s2-sens-information", "s2-peripheriques-roles", "s2-situation-expose"] },
-  { label: "Ports et branchements", ids: ["s2-branchements"] },
-  { label: "Composants internes", ids: ["s2-composants-roles", "s2-diagnostic-lenteur"] },
+  { label: "Composition du poste", ids: ["s2-composition-qcu", "s2-poste-reperes"] },
+  { label: "Périphériques et fonctions", ids: ["s2-classer-peripheriques", "s2-qcm-visioconference", "s2-peripheriques-roles"] },
+  { label: "Composants internes", ids: ["s2-composants-roles", "s2-diagnostic-memoire"] },
   { label: "Unités et conversions", ids: ["s2-unites-ordre", "s2-conversions-capacites"] },
-  { label: "Choix d’une configuration", ids: ["s2-choisir-ordinateur-simple", "s2-choisir-ordinateur-complexe"] },
-  { label: "Sécurité et stockage", ids: ["s2-securite", "s2-defi-final"] },
+  { label: "Choisir un poste", ids: ["s2-defi-poste-complet"] },
+  { label: "Assembler et dépanner", ids: ["s2-assembler-pc", "s2-depanner-pc"] },
 ] as const;
 
 const session1Competencies = [
@@ -193,7 +205,7 @@ const pedagogicalSessions = {
   },
   2: {
     title: "Environnement matériel d’un système informatique",
-    exerciseCount: 15,
+    exerciseCount: 12,
     competencies: session2Competencies,
   },
 } as const;
@@ -235,6 +247,19 @@ const answerLabels: Record<string, string> = {
   selectedChoices: "Réponses choisies",
   expectedSequence: "Ordre attendu",
   acceptedAnswers: "Réponses acceptées",
+  scenario: "Situation de panne",
+  selectedComponent: "Composant choisi",
+  correctComponent: "Composant attendu",
+  selectedRepair: "Réparation choisie",
+  correctRepair: "Réparation attendue",
+  componentCorrect: "Diagnostic du composant",
+  repairCorrect: "Diagnostic de la réparation",
+  errors: "Erreurs",
+  total: "Éléments à placer",
+  placements: "Classement réalisé",
+  cases: "Pannes diagnostiquées",
+  componentAttempts: "Composants essayés",
+  repairAttempts: "Réparations essayées",
 };
 
 function studentName(item: Pick<Attempt, "studentOne" | "studentTwo">) {
@@ -307,6 +332,17 @@ function answerPreview(row: Attempt) {
     if (conversions.length > 0) {
       return conversions.map((item) => `${displayAnswerValue(item.conversion)} : ${displayAnswerValue(item.answer)}`).join(" · ");
     }
+    const placements = Array.isArray(record.placements) ? record.placements as Array<Record<string, unknown>> : [];
+    if (placements.length > 0) {
+      return `${placements.length} éléments correctement placés · ${displayAnswerValue(record.errors)} erreur(s) avant réussite`;
+    }
+    const repairCases = Array.isArray(record.cases) ? record.cases as Array<Record<string, unknown>> : [];
+    if (repairCases.length > 0) {
+      return `${repairCases.length} pannes résolues · ${displayAnswerValue(record.errors)} erreur(s) avant réussite`;
+    }
+    if (record.selectedComponent || record.selectedRepair) {
+      return `${displayAnswerValue(record.selectedComponent)} → ${displayAnswerValue(record.selectedRepair)}`;
+    }
     return displayAnswerValue(
       record.selectedChoice ?? record.selectedChoices ?? record.text ?? record.sequence ?? record.matches ?? record.completed,
     );
@@ -326,17 +362,55 @@ function percentageToGrade(percentage: number | null) {
   return percentage === null ? null : Math.round((percentage / 5) * 10) / 10;
 }
 
+function attemptErrorCount(attempt: Attempt | null) {
+  if (!attempt) return null;
+  const answer = parseAttemptAnswer(attempt);
+  if (!answer || typeof answer !== "object" || Array.isArray(answer)) return null;
+  const errors = Number((answer as Record<string, unknown>).errors);
+  return Number.isInteger(errors) && errors >= 0 ? errors : null;
+}
+
+function bestAttempt(attempts: Attempt[], activityId: string) {
+  return attempts
+    .filter((attempt) => attempt.activityId === activityId)
+    .reduce<Attempt | null>((best, attempt) => {
+      if (!best) return attempt;
+      const percentageDifference = (attemptPercentage(attempt) ?? -1) - (attemptPercentage(best) ?? -1);
+      if (percentageDifference !== 0) return percentageDifference > 0 ? attempt : best;
+      const errorDifference = (attemptErrorCount(best) ?? Number.MAX_SAFE_INTEGER) - (attemptErrorCount(attempt) ?? Number.MAX_SAFE_INTEGER);
+      if (errorDifference !== 0) return errorDifference > 0 ? attempt : best;
+      return Date.parse(attempt.createdAt) > Date.parse(best.createdAt) ? attempt : best;
+    }, null);
+}
+
 function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2) {
   const config = pedagogicalSessions[sessionId];
   const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === sessionId);
   const successfulIds = new Set(sessionAttempts.filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect)).map((attempt) => attempt.activityId));
-  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === `session-${sessionId}-quiz`);
-  const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => !best || (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best, null);
+  const bestQuiz = bestAttempt(sessionAttempts, `session-${sessionId}-quiz`);
+  const bestAssembly = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-assembler") : null;
+  const bestRepair = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-depanner") : null;
+  const evaluationAttempts = [bestAssembly, bestRepair, bestQuiz].filter((attempt): attempt is Attempt => Boolean(attempt));
+  const evaluationScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.score ?? 0), 0);
+  const evaluationMaxScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.maxScore ?? 0), 0);
+  const evaluationPercentage = sessionId === 2 && evaluationAttempts.length === 3 && evaluationMaxScore > 0
+    ? Math.round((evaluationScore / evaluationMaxScore) * 100)
+    : null;
   const competencies = config.competencies.map((competency) => {
     const acquired = competency.ids.filter((id) => successfulIds.has(id)).length;
     return `${competency.label}: ${acquired === competency.ids.length ? "Acquis" : acquired > 0 ? "En cours" : "À travailler"} (${acquired}/${competency.ids.length})`;
   }).join(" · ");
-  return { attempts: sessionAttempts.length, exercises: successfulIds.size, bestQuiz, competencies };
+  return {
+    attempts: sessionAttempts.length,
+    exercises: successfulIds.size,
+    bestQuiz,
+    bestAssembly,
+    bestRepair,
+    evaluationPercentage,
+    evaluationGrade: percentageToGrade(evaluationPercentage),
+    completedEvaluationStages: evaluationAttempts.length,
+    competencies,
+  };
 }
 
 function readEvaluationPreviewAttempts() {
@@ -411,6 +485,24 @@ function attemptExportRows(row: Attempt) {
     timeZone: "Africa/Casablanca",
   }).format(date);
 
+  const answer = parseAttemptAnswer(row);
+  const answerRecord = answer && typeof answer === "object" && !Array.isArray(answer)
+    ? answer as Record<string, unknown>
+    : null;
+  const evaluationStage = row.evaluationStage
+    ?? (row.activityId === "s2-evaluation-assembler" ? "assembly"
+      : row.activityId === "s2-evaluation-depanner" ? "repair"
+        : row.activityId === "session-2-quiz" ? "quiz" : null);
+  const evaluationStageLabel = evaluationStage === "assembly"
+    ? "1 · Assembler"
+    : evaluationStage === "repair"
+      ? "2 · Dépanner"
+      : evaluationStage === "quiz"
+        ? "3 · QCM + justification"
+        : "";
+  const evaluationErrors = answerRecord && Number.isInteger(Number(answerRecord.errors))
+    ? Number(answerRecord.errors)
+    : "";
   const base = [
     dateText,
     timeText,
@@ -422,10 +514,11 @@ function attemptExportRows(row: Attempt) {
     row.sessionId,
     activityName(row),
     row.activityId,
+    evaluationStageLabel,
+    evaluationErrors,
   ];
   const scorePercent = attemptPercentage(row);
   const gradeOutOf20 = percentageToGrade(scorePercent);
-  const answer = parseAttemptAnswer(row);
   const quizAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
     Array.isArray((answer as Record<string, unknown>).answers)
     ? (answer as { answers: Array<Record<string, unknown>> }).answers
@@ -433,6 +526,12 @@ function attemptExportRows(row: Attempt) {
   const conversionAnswers = answer && typeof answer === "object" && !Array.isArray(answer) &&
     Array.isArray((answer as Record<string, unknown>).conversions)
     ? (answer as { conversions: Array<Record<string, unknown>> }).conversions
+    : [];
+  const placementAnswers = answerRecord && Array.isArray(answerRecord.placements)
+    ? answerRecord.placements as Array<Record<string, unknown>>
+    : [];
+  const repairCaseAnswers = answerRecord && Array.isArray(answerRecord.cases)
+    ? answerRecord.cases as Array<Record<string, unknown>>
     : [];
 
   const details = quizAnswers.length > 0
@@ -468,6 +567,34 @@ function attemptExportRows(row: Attempt) {
         questionMaxPoints: 1,
         result: item.correct ? "Correct" : "Incorrect",
       }))
+      : placementAnswers.length > 0
+        ? placementAnswers.map((item, index) => ({
+          number: index + 1,
+          question: `Placer : ${displayAnswerValue(item.element)}`,
+          selected: displayAnswerValue(item.destination),
+          expected: displayAnswerValue(item.destination),
+          answerResult: "Correcte après validation",
+          selectedJustification: "",
+          expectedJustification: "",
+          justificationResult: "",
+          questionPoints: 1,
+          questionMaxPoints: 1,
+          result: "Correct",
+        }))
+        : repairCaseAnswers.length > 0
+          ? repairCaseAnswers.map((item, index) => ({
+            number: index + 1,
+            question: displayAnswerValue(item.scenario),
+            selected: `Composant(s) essayé(s) : ${displayAnswerValue(item.componentAttempts)} · Réparation(s) essayée(s) : ${displayAnswerValue(item.repairAttempts)}`,
+            expected: `Composant : ${displayAnswerValue(item.correctComponent)} · Réparation : ${displayAnswerValue(item.correctRepair)}`,
+            answerResult: "Panne résolue",
+            selectedJustification: "",
+            expectedJustification: "",
+            justificationResult: "",
+            questionPoints: 2,
+            questionMaxPoints: 2,
+            result: "Correct",
+          }))
       : [{
       number: "",
       question: answer && typeof answer === "object" && !Array.isArray(answer)
@@ -590,6 +717,53 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
     );
   }
 
+  if (answer && typeof answer === "object" && !Array.isArray(answer) && Array.isArray((answer as Record<string, unknown>).placements)) {
+    const record = answer as Record<string, unknown>;
+    const placements = record.placements as Array<Record<string, unknown>>;
+    return (
+      <div className="prof-practical-details">
+        <div className="prof-practical-summary">
+          <strong>{placements.length}/{displayAnswerValue(record.total)} éléments placés</strong>
+          <span>{displayAnswerValue(record.errors)} erreur(s) avant la réussite</span>
+        </div>
+        <div className="prof-practical-grid">
+          {placements.map((item, index) => (
+            <article key={`${index}-${displayAnswerValue(item.element)}`}>
+              <strong>{displayAnswerValue(item.element)}</strong>
+              <span>→ {displayAnswerValue(item.destination)}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (answer && typeof answer === "object" && !Array.isArray(answer) && Array.isArray((answer as Record<string, unknown>).cases)) {
+    const record = answer as Record<string, unknown>;
+    const repairCases = record.cases as Array<Record<string, unknown>>;
+    return (
+      <div className="prof-practical-details">
+        <div className="prof-practical-summary">
+          <strong>{repairCases.length} pannes résolues</strong>
+          <span>{displayAnswerValue(record.errors)} erreur(s) avant la réussite</span>
+        </div>
+        <div className="prof-repair-case-list">
+          {repairCases.map((item, index) => (
+            <article key={`${index}-${displayAnswerValue(item.scenario)}`}>
+              <header><span>Panne {String(index + 1).padStart(2, "0")}</span><strong>{displayAnswerValue(item.scenario)}</strong></header>
+              <dl>
+                <div><dt>Composant attendu</dt><dd>{displayAnswerValue(item.correctComponent)}</dd></div>
+                <div><dt>Essais de l’élève</dt><dd>{displayAnswerValue(item.componentAttempts)}</dd></div>
+                <div><dt>Réparation attendue</dt><dd>{displayAnswerValue(item.correctRepair)}</dd></div>
+                <div><dt>Essais de l’élève</dt><dd>{displayAnswerValue(item.repairAttempts)}</dd></div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (answer && typeof answer === "object" && !Array.isArray(answer)) {
     const record = answer as Record<string, unknown>;
     if (record.question) {
@@ -629,11 +803,16 @@ function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; s
       .filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect))
       .map((attempt) => attempt.activityId),
   );
-  const quizAttempts = sessionAttempts.filter((attempt) => attempt.activityId === `session-${sessionId}-quiz`);
-  const bestQuiz = quizAttempts.reduce<Attempt | null>((best, attempt) => {
-    if (!best) return attempt;
-    return (attemptPercentage(attempt) ?? -1) > (attemptPercentage(best) ?? -1) ? attempt : best;
-  }, null);
+  const bestQuiz = bestAttempt(sessionAttempts, `session-${sessionId}-quiz`);
+  const bestAssembly = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-assembler") : null;
+  const bestRepair = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-depanner") : null;
+  const evaluationAttempts = [bestAssembly, bestRepair, bestQuiz].filter((attempt): attempt is Attempt => Boolean(attempt));
+  const evaluationScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.score ?? 0), 0);
+  const evaluationMaxScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.maxScore ?? 0), 0);
+  const evaluationPercentage = sessionId === 2 && evaluationAttempts.length === 3 && evaluationMaxScore > 0
+    ? Math.round((evaluationScore / evaluationMaxScore) * 100)
+    : null;
+  const evaluationGrade = percentageToGrade(evaluationPercentage);
   const progressPercent = Math.round((successfulIds.size / config.exerciseCount) * 100);
   const gradedAttempts = sessionAttempts.filter((attempt) => attempt.isCorrect !== null);
   const correctAttempts = gradedAttempts.filter((attempt) => Boolean(attempt.isCorrect)).length;
@@ -661,6 +840,36 @@ function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; s
           <div><small>RÉUSSITE DES TENTATIVES</small><strong>{successPercent}%</strong><span>{correctAttempts}/{gradedAttempts.length} réponses corrigées réussies</span></div>
         </article>
       </div>
+      {sessionId === 2 && (
+        <section className="prof-evaluation-path" aria-label="Bilan de l’évaluation de la séance 2">
+          <header>
+            <div><small>ÉVALUATION EN 3 ÉTAPES</small><strong>Assembler · Dépanner · QCM avec justification</strong></div>
+            <span className={evaluationAttempts.length === 3 ? "complete" : "pending"}>
+              {evaluationAttempts.length === 3
+                ? `${evaluationPercentage}% · ${evaluationGrade}/20`
+                : `${evaluationAttempts.length}/3 étapes terminées`}
+            </span>
+          </header>
+          <div className="prof-evaluation-stage-grid">
+            <article className={bestAssembly ? "complete" : "pending"}>
+              <span className="prof-evaluation-stage-icon"><Activity size={19} /></span>
+              <div><small>ÉTAPE 1</small><strong>Assembler le PC</strong><p>{bestAssembly ? `${bestAssembly.score}/${bestAssembly.maxScore} éléments · ${attemptErrorCount(bestAssembly) ?? 0} erreur(s) avant réussite` : "Non réalisée"}</p></div>
+            </article>
+            <article className={bestRepair ? "complete" : "pending"}>
+              <span className="prof-evaluation-stage-icon"><AlertTriangle size={19} /></span>
+              <div><small>ÉTAPE 2</small><strong>Dépanner le PC</strong><p>{bestRepair ? `6 pannes résolues · ${attemptErrorCount(bestRepair) ?? 0} erreur(s) avant réussite` : "Non réalisée"}</p></div>
+            </article>
+            <article className={bestQuiz ? "complete" : "pending"}>
+              <span className="prof-evaluation-stage-icon"><GraduationCap size={19} /></span>
+              <div><small>ÉTAPE 3</small><strong>QCM + justification</strong><p>{bestQuiz ? `${bestQuiz.score}/${bestQuiz.maxScore} points · ${attemptPercentage(bestQuiz) ?? 0}%` : "Non réalisée"}</p></div>
+            </article>
+          </div>
+          <footer>
+            <span>Calcul global : points obtenus aux trois étapes ÷ points possibles.</span>
+            <strong>{evaluationPercentage === null ? "Bilan disponible après les 3 étapes" : `${evaluationScore}/${evaluationMaxScore} points · note ${evaluationGrade}/20`}</strong>
+          </footer>
+        </section>
+      )}
       <div className="prof-competency-title"><strong>Maîtrise des compétences</strong><span>Une compétence est acquise lorsque tous ses exercices sont réussis.</span></div>
       <div className="prof-competency-grid">
         {config.competencies.map((competency) => {
@@ -794,6 +1003,8 @@ export default function ProfessorDashboard() {
         "Séance",
         "Type",
         "Activité",
+        "Étape de l’évaluation",
+        "Erreurs avant réussite",
         "N° question",
         "Question",
         "Réponse de l’élève",
@@ -818,12 +1029,12 @@ export default function ProfessorDashboard() {
       const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
       worksheet["!cols"] = [
         { wch: 12 }, { wch: 13 }, { wch: 10 }, { wch: 11 }, { wch: 24 }, { wch: 24 },
-        { wch: 14 }, { wch: 9 }, { wch: 15 }, { wch: 24 }, { wch: 12 }, { wch: 48 },
+        { wch: 14 }, { wch: 9 }, { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 22 }, { wch: 12 }, { wch: 48 },
         { wch: 48 }, { wch: 48 }, { wch: 22 }, { wch: 55 }, { wch: 55 }, { wch: 26 },
         { wch: 21 }, { wch: 29 }, { wch: 22 }, { wch: 22 }, { wch: 31 }, { wch: 30 },
         { wch: 27 }, { wch: 24 }, { wch: 18 }, { wch: 24 },
       ];
-      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:AB${rows.length + 1}` };
+      if (rows.length > 0) worksheet["!autofilter"] = { ref: `A1:AD${rows.length + 1}` };
 
       const summaryHeader = [
         "Classe", "Groupe", "Élève 1", "Élève 2", "Organisation", "Nombre de tentatives",
@@ -831,8 +1042,12 @@ export default function ProfessorDashboard() {
         "Score moyen des QCM (%)", "Meilleur score QCM (%)", "Séances terminées", "Total des séances",
         "Dernière tentative (Maroc)", "S1 - Tentatives", "S1 - Exercices réussis (/14)",
         "S1 - Meilleur QCM (points)", "S1 - Maximum du QCM", "S1 - Meilleur QCM (%)", "S1 - Bilan des compétences",
-        "S2 - Tentatives", "S2 - Exercices réussis (/15)",
-        "S2 - Meilleur QCM (points)", "S2 - Maximum du QCM", "S2 - Meilleur QCM (%)", "S2 - Bilan des compétences",
+        "S2 - Tentatives", "S2 - Exercices réussis (/12)",
+        "S2 - Assemblage (points)", "S2 - Assemblage (maximum)", "S2 - Assemblage (erreurs)",
+        "S2 - Dépannage (points)", "S2 - Dépannage (maximum)", "S2 - Dépannage (erreurs)",
+        "S2 - QCM (points)", "S2 - QCM (maximum)", "S2 - QCM (%)",
+        "S2 - Évaluation globale (%)", "S2 - Note globale (/20)", "S2 - Étapes réussies (/3)",
+        "S2 - Bilan des compétences",
       ];
       const summaryRows = (data?.learners ?? []).map((learner) => {
         const learnerRows = payload.rows.filter((attempt) => attempt.participantId === learner.id);
@@ -862,21 +1077,26 @@ export default function ProfessorDashboard() {
           session1.competencies,
           session2.attempts,
           session2.exercises,
+          session2.bestAssembly?.score ?? "",
+          session2.bestAssembly?.maxScore ?? "",
+          attemptErrorCount(session2.bestAssembly) ?? "",
+          session2.bestRepair?.score ?? "",
+          session2.bestRepair?.maxScore ?? "",
+          attemptErrorCount(session2.bestRepair) ?? "",
           session2.bestQuiz?.score ?? "",
           session2.bestQuiz?.maxScore ?? "",
           session2.bestQuiz ? attemptPercentage(session2.bestQuiz) ?? "" : "",
+          session2.evaluationPercentage ?? "",
+          session2.evaluationGrade ?? "",
+          session2.completedEvaluationStages,
           session2.competencies,
         ];
       });
       const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
-      summaryWorksheet["!cols"] = [
-        { wch: 10 }, { wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 14 }, { wch: 20 },
-        { wch: 21 }, { wch: 20 }, { wch: 21 }, { wch: 21 }, { wch: 24 }, { wch: 24 },
-        { wch: 19 }, { wch: 18 }, { wch: 25 }, { wch: 17 }, { wch: 28 },
-        { wch: 27 }, { wch: 24 }, { wch: 24 }, { wch: 90 }, { wch: 17 }, { wch: 28 },
-        { wch: 27 }, { wch: 24 }, { wch: 24 }, { wch: 90 },
-      ];
-      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:AA${summaryRows.length + 1}` };
+      summaryWorksheet["!cols"] = summaryHeader.map((label) => ({
+        wch: label.includes("Bilan des compétences") ? 90 : Math.min(36, Math.max(12, label.length + 3)),
+      }));
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:AJ${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
