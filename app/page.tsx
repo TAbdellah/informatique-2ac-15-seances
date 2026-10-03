@@ -2157,7 +2157,7 @@ function Session2AssemblyEvaluation({
                   event.dataTransfer.effectAllowed = "move";
                 }}
               >
-                <img src={`/${item.image}`} alt={bilingualAria(item.label)} />
+                <img src={item.image} alt={bilingualAria(item.label)} />
                 <BilingualText value={item.label} />
               </button>
             ))}
@@ -2192,7 +2192,7 @@ function Session2AssemblyEvaluation({
                 <header><strong><BilingualText value={zone.label} /></strong><small><BilingualText value={zone.hint} /></small></header>
                 <div className="assembly-zone-content">
                   {zoneItems.length === 0 ? <span className="assembly-drop-label">{lang === "fr" ? "Déposer ici" : "ضع هنا"}</span> : zoneItems.map((item) => (
-                    <span className="assembly-placed-item" key={item.id}><img src={`/${item.image}`} alt="" /><BilingualText value={item.label} /><CheckCircle2 size={15} /></span>
+                    <span className="assembly-placed-item" key={item.id}><img src={item.image} alt="" /><BilingualText value={item.label} /><CheckCircle2 size={15} /></span>
                   ))}
                 </div>
               </div>
@@ -2334,7 +2334,7 @@ function Session2RepairEvaluation({
             const isWrong = (wrongComponents[caseIndex] ?? []).includes(component.id);
             return (
               <button type="button" key={component.id} disabled={componentSolved[caseIndex]} className={`${isCorrect ? "correct" : ""} ${isWrong ? "wrong" : ""}`} onClick={() => chooseComponent(component.id)}>
-                <img src={`/${component.image}`} alt={bilingualAria(component.label)} />
+                <img src={component.image} alt={bilingualAria(component.label)} />
                 <BilingualText value={component.label} />
                 {isCorrect && <CheckCircle2 size={18} />}
               </button>
