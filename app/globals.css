@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Marhey:wght@400;500;600;700&family=Patrick+Hand&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -1446,6 +1446,73 @@ a:focus-visible {
 .situation-parts section.instruction > span { background: var(--yellow); }
 .mission-support-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 15px; }
 .mission-start-button { align-self: flex-start; min-height: 48px; padding-inline: 20px; font-family: "Patrick Hand", Tahoma, cursive; font-size: 20px; }
+
+.s2-mission-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, .7fr);
+  gap: 18px;
+  overflow: hidden;
+  padding: 27px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0c2844 0%, #123b61 70%, #0f5162 100%);
+  color: #fff;
+  box-shadow: 0 16px 36px rgba(11,37,62,.14);
+}
+
+.s2-mission-intro-copy { min-width: 0; }
+.simple-mission .s2-mission-intro .card-kicker { display: flex; align-items: center; gap: 8px; color: #71dae2; font-size: 16px; }
+.s2-mission-intro h2 { max-width: 850px; margin: 13px 0 10px; font-size: clamp(27px,3vw,39px); line-height: 1.12; }
+.s2-mission-intro h2 .bilingual-copy { gap: 7px; }
+.s2-mission-intro h2 .bilingual-copy-ar { color: #ffd75c; opacity: 1; }
+.s2-mission-intro-copy > p { max-width: 800px; margin: 0; color: #dce9f1; font-size: 19px; line-height: 1.48; }
+.s2-mission-intro-copy > p .bilingual-copy { gap: 4px; }
+
+.s2-mission-challenge {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 13px;
+  background: rgba(255,255,255,.1);
+}
+
+.s2-mission-challenge > svg { color: var(--yellow); }
+.s2-mission-challenge > span { color: #8fdce2; font-family: "Segoe UI", Tahoma, sans-serif; font-size: 12px; font-weight: 900; letter-spacing: .1em; }
+.s2-mission-challenge > strong { font-size: 21px; line-height: 1.35; }
+.s2-mission-challenge .bilingual-copy-ar { color: #fff; opacity: .88; }
+
+.s2-mission-orientation { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 15px; }
+.s2-mission-orientation > article { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.s2-mission-orientation header { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid #e6ecee; }
+.s2-mission-orientation header > span { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 11px; }
+.s2-learning-card header > span { background: #e5f7f8; color: #147b86; }
+.s2-route-card header > span { background: #fff4c9; color: #846716; }
+.s2-mission-orientation header small { color: #697985; font-family: "Segoe UI", Tahoma, sans-serif; font-size: 12px; font-weight: 850; letter-spacing: .06em; }
+.s2-mission-orientation h2 { margin: 3px 0 0; color: var(--navy); font-size: 24px; }
+.s2-mission-orientation h2 .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 5px 10px; }
+.s2-mission-orientation h2 .bilingual-copy-ar { color: #327162; }
+.s2-mission-orientation ol { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.s2-mission-orientation li { display: grid; grid-template-columns: 31px minmax(0,1fr); gap: 10px; align-items: center; min-height: 51px; padding: 8px 10px; border-radius: 10px; background: #f7fafb; color: #24394d; font-size: 18px; line-height: 1.3; }
+.s2-mission-orientation li > .s2-step-number { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 8px; background: var(--navy); color: #fff; font-family: "Segoe UI", Tahoma, sans-serif; font-size: 12px; font-weight: 900; }
+.s2-route-card li > .s2-step-number { background: #dfad21; color: #10263f; }
+.s2-mission-orientation li .bilingual-copy { gap: 1px; }
+.s2-mission-orientation li > .bilingual-copy { width: 100%; }
+.s2-mission-orientation li .bilingual-copy-ar { color: #327162; opacity: 1; }
+
+.s2-mission-rules { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.s2-mission-rules > div { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: start; padding: 15px; border: 1px solid #d8e7df; border-radius: 11px; background: #f3faf6; color: #234939; font-size: 17px; line-height: 1.35; }
+.s2-mission-rules svg { margin-top: 2px; color: #2b9861; }
+.s2-mission-rules .bilingual-copy { gap: 2px; }
+.s2-mission-rules .bilingual-copy-ar { color: #25634b; opacity: 1; }
+.s2-mission-support { grid-template-columns: 1fr; }
+.s2-mission-support .pair-card { display: grid; grid-template-columns: minmax(190px,.65fr) repeat(2,minmax(0,1fr)); gap: 14px; align-items: center; }
+.s2-mission-support .pair-card .card-kicker { margin: 0; }
+.s2-mission-support .role-row { margin: 0; }
+.mission-start-button .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 5px 12px; }
+.mission-start-button .bilingual-copy-ar { color: var(--yellow); opacity: 1; }
 
 .mission-card {
   position: relative;
@@ -3243,6 +3310,26 @@ a:focus-visible {
 .evaluation-stage-number { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 10px; font-weight: 900; }
 .evaluation-quiz-content[hidden] { display: none; }
 
+.session2-simulator-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 26px;
+  border: 1px solid #b8dde1;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f2fbfc 0%, #fffaf0 100%);
+  box-shadow: 0 14px 34px rgba(16,38,63,.07);
+}
+
+.session2-simulator-card[hidden] { display: none; }
+.session2-simulator-icon { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 18px; background: var(--navy); color: #fff; box-shadow: 0 8px 18px rgba(13,35,57,.18); }
+.session2-simulator-card > div:nth-child(2) > span { color: #168390; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.session2-simulator-card h2 { margin: 5px 0 7px; color: var(--navy); font-size: clamp(23px,3vw,32px); }
+.session2-simulator-card p { max-width: 760px; margin: 0; color: var(--ink-soft); font-size: 14px; font-weight: 620; line-height: 1.55; }
+.session2-simulator-card > a { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 9px; padding: 10px 18px; border-radius: 11px; background: var(--navy); color: #fff; font-size: 13px; font-weight: 850; text-decoration: none; box-shadow: 0 7px 18px rgba(13,35,57,.17); }
+.session2-simulator-card > a:hover { background: #17466e; transform: translateY(-1px); }
+
 .native-practical-evaluation {
   padding: 20px;
   border: 1px solid #d4dfe0;
@@ -3569,6 +3656,10 @@ a:focus-visible {
   .hero-room { grid-column: span 3; }
   .two-column-content, .quiz-layout { grid-template-columns: 1fr; }
   .mission-support-grid { grid-template-columns: 1fr; }
+  .s2-mission-intro { grid-template-columns: 1fr; }
+  .s2-mission-orientation { grid-template-columns: 1fr; }
+  .s2-mission-rules { grid-template-columns: 1fr; }
+  .s2-mission-support .pair-card { grid-template-columns: 1fr; }
   .content-side { display: grid; grid-template-columns: 1fr 1fr; }
   .beginner-card ol { grid-template-columns: 1fr; }
   .photo-challenge { grid-template-columns: 1fr; }
@@ -3634,6 +3725,15 @@ a:focus-visible {
   .content-side { grid-template-columns: 1fr; }
   .lead-text { font-size: 16px; }
   .situation-parts { grid-template-columns: 1fr; }
+  .s2-mission-intro { padding: 20px; }
+  .s2-mission-intro h2 { font-size: 28px; }
+  .s2-mission-intro-copy > p { font-size: 17px; }
+  .s2-mission-challenge { padding: 16px; }
+  .s2-mission-orientation > article { padding: 17px; }
+  .s2-mission-orientation header { align-items: flex-start; }
+  .s2-mission-orientation header small { font-size: 11px; }
+  .s2-mission-orientation li { font-size: 17px; }
+  .mission-start-button { width: 100%; justify-content: center; }
   .mission-card h2 { font-size: 23px; }
   .beginner-card { padding: 18px; }
   .beginner-card-head { align-items: flex-start; }
@@ -3741,6 +3841,92 @@ a:focus-visible {
 .session-focus .sequence-bank button { font-size: 15px; }
 .session-focus .exercise-image img { max-height: 330px; }
 .session-focus .exercise-image figcaption { font-size: 11px; }
+
+/* Keep the controls sober while giving the learning content a notebook voice. */
+.session-focus .exercise-player .bilingual-copy-fr {
+  font-family: "Patrick Hand", "Segoe UI", cursive;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: .01em;
+  line-height: 1.35;
+}
+
+.session-focus .exercise-player .bilingual-copy-ar {
+  font-family: "Marhey", Tahoma, "Segoe UI", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.session-focus .exercise-copy h3 .bilingual-copy-fr {
+  font-size: 25px;
+  line-height: 1.2;
+}
+
+.session-focus .exercise-copy h3 .bilingual-copy-ar {
+  font-size: 20px;
+  line-height: 1.65;
+}
+
+.session-focus .exercise-player .exercise-prompt .bilingual-copy-fr {
+  color: #142f4c;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.session-focus .exercise-player .exercise-prompt .bilingual-copy-ar {
+  color: #176c55;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.session-focus .exercise-player :is(
+  .drag-bank header,
+  .drag-zone header,
+  .diagnostic-scenario,
+  .diagnostic-step > header,
+  .conversion-board,
+  .sequence-answer
+) {
+  font-family: "Patrick Hand", "Marhey", Tahoma, cursive;
+  font-size: 18px;
+}
+
+.session-focus .exercise-player :is(.exercise-hint, .exercise-result) .bilingual-copy-fr {
+  font-size: 18px;
+}
+
+.session-focus .exercise-player :is(.exercise-hint, .exercise-result) .bilingual-copy-ar {
+  font-size: 17px;
+}
+
+.session-focus .drag-bank .drag-card {
+  min-height: 148px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.session-focus .drag-bank .drag-card img {
+  width: 82px;
+  height: 58px;
+}
+
+.session-focus .drag-bank .drag-card strong,
+.session-focus .drag-bank .drag-card .bilingual-copy {
+  width: 100%;
+}
+
+.session-focus .drag-bank .drag-card .bilingual-copy {
+  align-items: center;
+  gap: 1px;
+}
+
+.session-focus .drag-bank .drag-card :is(.bilingual-copy-fr, .bilingual-copy-ar) {
+  max-width: 100%;
+  white-space: nowrap;
+}
 
 .session-focus .exercise-copy h3 .bilingual-copy,
 .session-focus .question-title h3 .bilingual-copy,
@@ -3873,6 +4059,9 @@ a:focus-visible {
   .repair-options { grid-template-columns: 1fr; }
   .evaluation-stage-tabs { grid-template-columns: 1fr; }
   .evaluation-stage-tabs button { min-height: 44px; justify-content: flex-start; }
+  .session2-simulator-card { grid-template-columns: 1fr; padding: 18px; text-align: center; }
+  .session2-simulator-icon { margin: 0 auto; }
+  .session2-simulator-card > a { width: 100%; }
   .native-practical-evaluation { padding: 12px; }
   .native-practical-heading { flex-direction: column; }
   .native-score-chip { width: 100%; min-width: 0; flex-direction: row; justify-content: center; gap: 8px; }

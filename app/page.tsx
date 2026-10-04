@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Circle,
   Clock3,
+  ExternalLink,
   FileCheck2,
   FlaskConical,
   FolderKanban,
@@ -97,6 +98,7 @@ function session2PreviewTab(): ViewTab | null {
     || process.env.NEXT_PUBLIC_SESSION2_EVALUATION_PREVIEW === "true";
   if (!previewEnabled || typeof window === "undefined") return null;
   const preview = new URLSearchParams(window.location.search).get("preview");
+  if (preview === "session2-mission") return "mission";
   if (preview === "session2-workshop") return "workshop";
   if (preview === "session2-trace") return "trace";
   if (preview === "session2-evaluation") return "quiz";
@@ -244,6 +246,16 @@ function bilingualAria(value: LocalizedText) {
 }
 
 function BilingualText({ value, className = "" }: { value: LocalizedText; className?: string }) {
+  const isSharedText = value.fr.trim().toLocaleLowerCase() === value.ar.trim().toLocaleLowerCase();
+
+  if (isSharedText) {
+    return (
+      <span className={`bilingual-copy bilingual-copy-single ${className}`.trim()}>
+        <span className="bilingual-copy-fr" dir="auto">{value.fr}</span>
+      </span>
+    );
+  }
+
   return (
     <span className={`bilingual-copy ${className}`.trim()}>
       <span className="bilingual-copy-fr" lang="fr" dir="ltr">{value.fr}</span>
@@ -819,23 +831,102 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
         </button>
         <div className="session-hero-pattern" aria-hidden="true"><span /><span /><span /><span /></div>
       </section>
-      <article className="content-card situation-card simple-situation">
-        <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
-        <div className="situation-parts">
-          {situationParts.map((part, index) => (
-            <section key={part.label} className={index === 2 ? "instruction" : ""}>
-              <span>{index + 1}</span>
-              <div><strong>{part.label}</strong><p>{part.value}</p></div>
-            </section>
-          ))}
-        </div>
-      </article>
+      {session.id === 2 ? (
+        <>
+          <section className="s2-mission-intro" aria-labelledby="s2-mission-intro-title">
+            <div className="s2-mission-intro-copy">
+              <span className="card-kicker"><BookOpen size={18} /> Avant de commencer · قبل أن تبدأ</span>
+              <h2 id="s2-mission-intro-title"><BilingualText value={{
+                fr: "Aujourd’hui, tu vas comprendre comment fonctionne le matériel d’un ordinateur.",
+                ar: "اليوم ستفهم كيف تعمل معدات الحاسوب.",
+              }} /></h2>
+              <p><BilingualText value={{
+                fr: "Prends deux minutes pour lire cette mission. Elle t’explique ce que tu vas apprendre et comment avancer dans l’atelier.",
+                ar: "خذ دقيقتين لقراءة هذه المهمة. ستتعرف على ما ستتعلمه وكيف ستتقدم في الورشة.",
+              }} /></p>
+            </div>
+            <aside className="s2-mission-challenge">
+              <Target size={30} />
+              <span>TON DÉFI · تحديك</span>
+              <strong><BilingualText value={{
+                fr: "Aider le collège à choisir, assembler et dépanner un poste informatique.",
+                ar: "مساعدة المؤسسة على اختيار حاسوب وتركيبه وإصلاحه.",
+              }} /></strong>
+            </aside>
+          </section>
+
+          <section className="s2-mission-orientation">
+            <article className="s2-learning-card">
+              <header>
+                <span><Target size={19} /></span>
+                <div>
+                  <small>CE QUE JE VAIS APPRENDRE · ماذا سأتعلم؟</small>
+                  <h2><BilingualText value={{ fr: "Mes objectifs", ar: "أهدافي" }} /></h2>
+                </div>
+              </header>
+              <ol>
+                {[
+                  { fr: "Distinguer l’unité centrale des périphériques.", ar: "أميز الوحدة المركزية عن الملحقات." },
+                  { fr: "Classer les périphériques selon le sens de l’information.", ar: "أصنف الملحقات حسب اتجاه انتقال المعلومة." },
+                  { fr: "Reconnaître les composants internes et leurs rôles.", ar: "أتعرف على المكونات الداخلية ووظائفها." },
+                  { fr: "Convertir les capacités et choisir un ordinateur adapté.", ar: "أحوّل وحدات السعة وأختار حاسوبا مناسبا." },
+                ].map((objective, index) => (
+                  <li key={objective.fr}><span className="s2-step-number">{index + 1}</span><BilingualText value={objective} /></li>
+                ))}
+              </ol>
+            </article>
+
+            <article className="s2-route-card">
+              <header>
+                <span><MousePointer2 size={19} /></span>
+                <div>
+                  <small>CE QUE JE VAIS FAIRE · ماذا سأنجز؟</small>
+                  <h2><BilingualText value={{ fr: "Mon parcours", ar: "مساري" }} /></h2>
+                </div>
+              </header>
+              <ol>
+                {[
+                  { fr: "Observer et reconnaître le matériel", ar: "ألاحظ المعدات وأتعرف عليها" },
+                  { fr: "Classer les périphériques et associer les fonctions", ar: "أصنف الملحقات وأربطها بوظائفها" },
+                  { fr: "Calculer les conversions de capacité", ar: "أحسب تحويلات وحدات السعة" },
+                  { fr: "Choisir une configuration adaptée", ar: "أختار تجهيزا مناسبا" },
+                  { fr: "Assembler puis dépanner le PC", ar: "أركب الحاسوب ثم أشخص أعطاله" },
+                ].map((step, index) => (
+                  <li key={step.fr}><span className="s2-step-number">{index + 1}</span><BilingualText value={step} /></li>
+                ))}
+              </ol>
+            </article>
+          </section>
+
+          <section className="s2-mission-rules" aria-label="Règles de réussite / قواعد النجاح">
+            {[
+              { fr: "Lis toute la consigne en français et en arabe.", ar: "اقرأ التعليمة كاملة بالفرنسية والعربية." },
+              { fr: "Observe l’image et vérifie le nombre de réponses demandé.", ar: "لاحظ الصورة وتحقق من عدد الأجوبة المطلوبة." },
+              { fr: "Vérifie, corrige puis réessaie : la suite se débloque après la réussite.", ar: "تحقق وصحح ثم أعد المحاولة: يفتح التالي بعد النجاح." },
+            ].map((rule) => (
+              <div key={rule.fr}><CheckCircle2 size={20} /><BilingualText value={rule} /></div>
+            ))}
+          </section>
+        </>
+      ) : (
+        <article className="content-card situation-card simple-situation">
+          <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
+          <div className="situation-parts">
+            {situationParts.map((part, index) => (
+              <section key={part.label} className={index === 2 ? "instruction" : ""}>
+                <span>{index + 1}</span>
+                <div><strong>{part.label}</strong><p>{part.value}</p></div>
+              </section>
+            ))}
+          </div>
+        </article>
+      )}
       {session.id === 2 && (
         <section className="mission-visual-library" aria-labelledby="mission-visual-title">
           <div className="mission-visual-heading">
             <span className="card-kicker"><ImageIcon size={16} />{lang === "fr" ? "J’observe avant de pratiquer" : "ألاحظ قبل التطبيق"}</span>
-            <h2 id="mission-visual-title">{lang === "fr" ? "Trois repères pour comprendre le matériel" : "ثلاث دعامات لفهم معدات الحاسوب"}</h2>
-            <p>{lang === "fr" ? "Observe les images avec ton binôme. Ne cherche pas à tout mémoriser : repère le sens de circulation de l’information et le rôle de chaque matériel." : "لاحظ الصور مع زميلك. لا تحاول حفظ كل شيء، بل ابحث عن اتجاه انتقال المعلومة ووظيفة كل جهاز."}</p>
+            <h2 id="mission-visual-title"><BilingualText value={{ fr: "Trois repères pour comprendre le matériel", ar: "ثلاث دعامات لفهم معدات الحاسوب" }} /></h2>
+            <p><BilingualText value={{ fr: "Observe les images avec ton binôme. Ne cherche pas à tout mémoriser : repère le sens de circulation de l’information et le rôle de chaque matériel.", ar: "لاحظ الصور مع زميلك. لا تحاول حفظ كل شيء، بل ابحث عن اتجاه انتقال المعلومة ووظيفة كل جهاز." }} /></p>
           </div>
           <div className="mission-visual-grid">
             {[
@@ -846,7 +937,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
           <figure key={visual.src}>
             <img src={visual.src} alt={lang === "fr" ? visual.fr : visual.ar} loading="lazy" />
             <figcaption>
-              <span>{lang === "fr" ? visual.fr : visual.ar}</span>
+              <BilingualText value={{ fr: visual.fr, ar: visual.ar }} />
               <a href={visual.src} target="_blank" rel="noreferrer">
                 <ImageIcon size={15} />
                 {lang === "fr" ? "Agrandir l’image" : "تكبير الصورة"}
@@ -857,15 +948,17 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
           </div>
         </section>
       )}
-      <div className="mission-support-grid">
-        <article className="content-card objective-card">
-          <span className="card-kicker">{labels.objectives}</span>
-          <ol className="objective-list">
-            {session.objectives.map((objective, index) => (
-              <li key={objective.fr}><span>{index + 1}</span><p>{txt(objective, lang)}</p></li>
-            ))}
-          </ol>
-        </article>
+      <div className={`mission-support-grid ${session.id === 2 ? "s2-mission-support" : ""}`}>
+        {session.id !== 2 && (
+          <article className="content-card objective-card">
+            <span className="card-kicker">{labels.objectives}</span>
+            <ol className="objective-list">
+              {session.objectives.map((objective, index) => (
+                <li key={objective.fr}><span>{index + 1}</span><p>{txt(objective, lang)}</p></li>
+              ))}
+            </ol>
+          </article>
+        )}
         <article className="content-card pair-card">
           <span className="card-kicker"><Users size={16} /> {labels.organization}</span>
           <div className="role-row"><span>P</span><div><strong>{labels.pilot}</strong><small>{labels.pilotText}</small></div></div>
@@ -874,7 +967,9 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
       </div>
       <button className="practice-button mission-start-button" onClick={onStartPractice}>
         <MousePointer2 size={18} />
-        {labels.startPractice}
+        {session.id === 2
+          ? <BilingualText value={{ fr: "J’ai compris — commencer l’atelier", ar: "فهمت — أبدأ الورشة" }} />
+          : labels.startPractice}
       </button>
       <button className="back-link mission-back-link" onClick={onBack}><ArrowLeft size={17} />{labels.back}</button>
     </div>
@@ -1873,7 +1968,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
   );
 }
 
-type Session2EvaluationStage = "assembly" | "repair" | "quiz";
+type Session2EvaluationStage = "assembly" | "repair" | "simulator";
 
 type EvaluationAssemblyItem = {
   id: string;
@@ -2361,7 +2456,7 @@ function Session2RepairEvaluation({
       <div className="native-practical-footer">
         <div className="native-progress"><span style={{ width: `${(completedCases / evaluationRepairCases.length) * 100}%` }} /></div>
         {allDone ? (
-          <button type="button" onClick={onContinue}><BilingualText value={{ fr: "Continuer avec le QCM + justification", ar: "المتابعة إلى الاختيار والتعليل" }} /><ChevronRight size={18} /></button>
+          <button type="button" onClick={onContinue}><BilingualText value={{ fr: "Passer au simulateur", ar: "الانتقال إلى المحاكي" }} /><ChevronRight size={18} /></button>
         ) : repairSolved[caseIndex] ? (
           <button type="button" onClick={goToNextCase}><BilingualText value={{ fr: "Panne suivante", ar: "العطل التالي" }} /><ChevronRight size={18} /></button>
         ) : (
@@ -2383,7 +2478,7 @@ function QuizView({
 }) {
   const labels = ui[lang];
   const isBilingual = true;
-  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>(session.id === 2 ? "assembly" : "quiz");
+  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>("assembly");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [justifications, setJustifications] = useState<Record<number, number>>({});
@@ -2433,7 +2528,7 @@ function QuizView({
   const questionAnchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (session.id === 2 && evaluationStage !== "quiz") return;
+    if (session.id === 2) return;
     questionAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [evaluationStage, questionIndex, session.id]);
 
@@ -2520,8 +2615,8 @@ function QuizView({
           <button type="button" role="tab" aria-selected={evaluationStage === "repair"} disabled={!practicalResults.assembly} onClick={() => setEvaluationStage("repair")}>
             {practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">2</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
           </button>
-          <button type="button" role="tab" aria-selected={evaluationStage === "quiz"} disabled={!practicalResults.repair} onClick={() => setEvaluationStage("quiz")}>
-            {practicalResults.repair ? <FileCheck2 size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "QCM + justification", ar: "اختيار وتعليل" }} />
+          <button type="button" role="tab" aria-selected={evaluationStage === "simulator"} disabled={!practicalResults.repair} onClick={() => setEvaluationStage("simulator")}>
+            {practicalResults.repair ? <ExternalLink size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "Simulateur", ar: "المحاكي" }} />
           </button>
         </div>
       )}
@@ -2541,12 +2636,30 @@ function QuizView({
           <Session2RepairEvaluation
             lang={lang}
             onComplete={recordRepairResult}
-            onContinue={() => setEvaluationStage("quiz")}
+            onContinue={() => setEvaluationStage("simulator")}
           />
         </div>
       )}
 
-      <div className="evaluation-quiz-content" hidden={session.id === 2 && evaluationStage !== "quiz"}>
+      {session.id === 2 && (
+        <section className="session2-simulator-card" hidden={evaluationStage !== "simulator"}>
+          <div className="session2-simulator-icon"><MonitorCog size={34} /></div>
+          <div>
+            <span>ACTIVITÉ FINALE · النشاط الختامي</span>
+            <h2><BilingualText value={{ fr: "Simulateur du matériel informatique", ar: "محاكي معدات الحاسوب" }} /></h2>
+            <p><BilingualText value={{
+              fr: "Ouvre le simulateur dans un nouvel onglet et réalise les activités proposées. La plateforme restera ouverte pour que tu puisses revenir facilement à la séance.",
+              ar: "افتح المحاكي في علامة تبويب جديدة وأنجز الأنشطة المقترحة. ستبقى المنصة مفتوحة لتتمكن من الرجوع بسهولة إلى الحصة.",
+            }} /></p>
+          </div>
+          <a href="https://tabdellah.github.io/sim/" target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={19} />
+            <BilingualText value={{ fr: "Ouvrir le simulateur", ar: "فتح المحاكي" }} />
+          </a>
+        </section>
+      )}
+
+      <div className="evaluation-quiz-content" hidden={session.id === 2}>
       <div className="exercise-counter" ref={questionAnchorRef}>
         <span>{lang === "fr" ? "QUESTION" : "السؤال"} {padTime(questionIndex + 1)}</span>
       </div>

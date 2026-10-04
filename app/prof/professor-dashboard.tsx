@@ -165,7 +165,7 @@ const session2ActivityLabels: Record<string, string> = {
   "s2-diagnostic-memoire": "Diagnostic de la mémoire RAM",
   "s2-unites-ordre": "Ordre des unités de capacité",
   "s2-conversions-capacites": "Conversions des unités de capacité",
-  "s2-defi-poste-complet": "Choisir un poste complet pour le club",
+  "s2-defi-poste-complet": "Composer le poste du club · sélection multiple",
   "s2-assembler-pc": "Assembler le PC · composants essentiels",
   "s2-depanner-pc": "Dépanner le PC · diagnostic et réparation",
   "s2-evaluation-assembler": "Évaluation pratique · assembler le PC",
