@@ -922,7 +922,30 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
         </article>
       )}
       {session.id === 2 && (
-        <section className="mission-visual-library" aria-labelledby="mission-visual-title">
+        <>
+          <section className="s2-restaurant-launcher" aria-labelledby="s2-restaurant-title">
+            <div>
+              <span className="card-kicker"><Sparkles size={16} /> Activité de découverte · نشاط استكشافي</span>
+              <h2 id="s2-restaurant-title"><BilingualText value={{
+                fr: "Découvre le restaurant de l’ordinateur",
+                ar: "اكتشف مطعم الحاسوب",
+              }} /></h2>
+              <p><BilingualText value={{
+                fr: "Explore cette activité dans un nouvel onglet, puis reviens ici pour observer le matériel et commencer les exercices.",
+                ar: "استكشف هذا النشاط في علامة تبويب جديدة، ثم عد إلى هنا لملاحظة المعدات وبدء التمارين.",
+              }} /></p>
+            </div>
+            <a
+              href="https://tabdellah.github.io/c0/Le_restaurant_ordinateur.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{lang === "fr" ? "Ouvrir l’activité" : "فتح النشاط"}</span>
+              <ExternalLink size={18} aria-hidden="true" />
+            </a>
+          </section>
+
+          <section className="mission-visual-library" aria-labelledby="mission-visual-title">
           <div className="mission-visual-heading">
             <span className="card-kicker"><ImageIcon size={16} />{lang === "fr" ? "J’observe avant de pratiquer" : "ألاحظ قبل التطبيق"}</span>
             <h2 id="mission-visual-title"><BilingualText value={{ fr: "Trois repères pour comprendre le matériel", ar: "ثلاث دعامات لفهم معدات الحاسوب" }} /></h2>
@@ -946,7 +969,8 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
           </figure>
             ))}
           </div>
-        </section>
+          </section>
+        </>
       )}
       <div className={`mission-support-grid ${session.id === 2 ? "s2-mission-support" : ""}`}>
         {session.id !== 2 && (

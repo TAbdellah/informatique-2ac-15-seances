@@ -2796,6 +2796,60 @@ a:focus-visible {
   font-weight: 800;
 }
 
+.s2-restaurant-launcher {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  margin: 18px 0;
+  padding: 20px 22px;
+  border: 1px solid #ead17e;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #fff9df 0%, #fffdf4 58%, #eef9fa 100%);
+  box-shadow: 0 14px 36px rgba(16, 38, 63, .07);
+}
+
+.s2-restaurant-launcher h2 {
+  margin: 9px 0 5px;
+  color: var(--navy);
+  font-size: 22px;
+}
+
+.s2-restaurant-launcher p {
+  max-width: 800px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.s2-restaurant-launcher > a {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 17px;
+  border-radius: 11px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.s2-restaurant-launcher > a:hover {
+  transform: translateY(-2px);
+  background: #173757;
+  box-shadow: 0 9px 20px rgba(16, 38, 63, .18);
+}
+
+.s2-restaurant-launcher > a:focus-visible {
+  outline: 3px solid rgba(25, 157, 172, .34);
+  outline-offset: 3px;
+}
+
 .mission-visual-library {
   margin: 18px 0;
   padding: 22px;
@@ -3758,6 +3812,8 @@ a:focus-visible {
   .drag-card-list, .drag-zones { grid-template-columns: 1fr; }
   .drag-zone-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .drag-card { min-height: 84px; }
+  .s2-restaurant-launcher { grid-template-columns: 1fr; padding: 17px; }
+  .s2-restaurant-launcher > a { width: 100%; }
   .mission-visual-library { padding: 17px; }
   .mission-visual-grid { grid-template-columns: 1fr; }
   .mission-visual-grid img { height: auto; max-height: 520px; }
