@@ -2234,7 +2234,7 @@ function Session2AssemblyEvaluation({
     <section className="native-practical-evaluation">
       <header className="native-practical-heading">
         <div>
-          <span>ÉTAPE 1 / الخطوة 1</span>
+          <span>ÉTAPE 2 / الخطوة 2</span>
           <h2><BilingualText value={{ fr: "Assembler le PC", ar: "تركيب الحاسوب" }} /></h2>
           <p><BilingualText value={{
             fr: "Clique sur une image puis sur sa destination, ou glisse-la directement. Chaque élément doit rejoindre sa fonction ou sa famille.",
@@ -2341,11 +2341,9 @@ function Session2AssemblyEvaluation({
 function Session2RepairEvaluation({
   lang,
   onComplete,
-  onContinue,
 }: {
   lang: Lang;
   onComplete: (result: EvaluationRepairResult) => void;
-  onContinue: () => void;
 }) {
   const [caseIndex, setCaseIndex] = useState(0);
   const [componentSolved, setComponentSolved] = useState<Record<number, boolean>>({});
@@ -2425,7 +2423,7 @@ function Session2RepairEvaluation({
     <section className="native-practical-evaluation repair-evaluation">
       <header className="native-practical-heading">
         <div>
-          <span>ÉTAPE 2 / الخطوة 2</span>
+          <span>ÉTAPE 3 / الخطوة 3</span>
           <h2><BilingualText value={{ fr: "Dépanner le PC", ar: "إصلاح أعطال الحاسوب" }} /></h2>
           <p><BilingualText value={{ fr: "Pour chaque panne, identifie d’abord le composant responsable, puis choisis la réparation cohérente.", ar: "لكل عطل، حدد أولا المكون المسؤول ثم اختر الإصلاح المناسب." }} /></p>
         </div>
@@ -2480,7 +2478,7 @@ function Session2RepairEvaluation({
       <div className="native-practical-footer">
         <div className="native-progress"><span style={{ width: `${(completedCases / evaluationRepairCases.length) * 100}%` }} /></div>
         {allDone ? (
-          <button type="button" onClick={onContinue}><BilingualText value={{ fr: "Passer au simulateur", ar: "الانتقال إلى المحاكي" }} /><ChevronRight size={18} /></button>
+          <p className="evaluation-complete"><CheckCircle2 size={18} /><BilingualText value={{ fr: "Évaluation terminée avec succès", ar: "تم إنهاء التقويم بنجاح" }} /></p>
         ) : repairSolved[caseIndex] ? (
           <button type="button" onClick={goToNextCase}><BilingualText value={{ fr: "Panne suivante", ar: "العطل التالي" }} /><ChevronRight size={18} /></button>
         ) : (
@@ -2502,7 +2500,7 @@ function QuizView({
 }) {
   const labels = ui[lang];
   const isBilingual = true;
-  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>("assembly");
+  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>("simulator");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [justifications, setJustifications] = useState<Record<number, number>>({});
@@ -2633,16 +2631,34 @@ function QuizView({
     <div className="tab-content simple-quiz page-enter">
       {session.id === 2 && (
         <div className="evaluation-stage-tabs" role="tablist" aria-label="Étapes de l’évaluation / مراحل التقويم">
+          <button type="button" role="tab" aria-selected={evaluationStage === "simulator"} onClick={() => setEvaluationStage("simulator")}>
+            <ExternalLink size={18} /><span className="evaluation-stage-number">1</span><BilingualText value={{ fr: "Simulateur", ar: "المحاكي" }} />
+          </button>
           <button type="button" role="tab" aria-selected={evaluationStage === "assembly"} onClick={() => setEvaluationStage("assembly")}>
-            <MonitorCog size={18} /><span className="evaluation-stage-number">1</span><BilingualText value={{ fr: "Assembler", ar: "تركيب" }} />
+            <MonitorCog size={18} /><span className="evaluation-stage-number">2</span><BilingualText value={{ fr: "Assembler", ar: "تركيب" }} />
           </button>
           <button type="button" role="tab" aria-selected={evaluationStage === "repair"} disabled={!practicalResults.assembly} onClick={() => setEvaluationStage("repair")}>
-            {practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">2</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
-          </button>
-          <button type="button" role="tab" aria-selected={evaluationStage === "simulator"} disabled={!practicalResults.repair} onClick={() => setEvaluationStage("simulator")}>
-            {practicalResults.repair ? <ExternalLink size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "Simulateur", ar: "المحاكي" }} />
+            {practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
           </button>
         </div>
+      )}
+
+      {session.id === 2 && (
+        <section className="session2-simulator-card" hidden={evaluationStage !== "simulator"}>
+          <div className="session2-simulator-icon"><MonitorCog size={34} /></div>
+          <div>
+            <span>ÉTAPE 1 · ACTIVITÉ D’EXPLORATION / الخطوة 1 · نشاط استكشافي</span>
+            <h2><BilingualText value={{ fr: "Simulateur du matériel informatique", ar: "محاكي معدات الحاسوب" }} /></h2>
+            <p><BilingualText value={{
+              fr: "Commence par ouvrir le simulateur dans un nouvel onglet et réalise les activités proposées. Reviens ensuite ici pour passer à l’assemblage du PC.",
+              ar: "ابدأ بفتح المحاكي في علامة تبويب جديدة وأنجز الأنشطة المقترحة، ثم عد إلى هنا للانتقال إلى تركيب الحاسوب.",
+            }} /></p>
+          </div>
+          <a href="https://tabdellah.github.io/sim/" target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={19} />
+            <BilingualText value={{ fr: "Ouvrir le simulateur", ar: "فتح المحاكي" }} />
+          </a>
+        </section>
       )}
 
       {session.id === 2 && (
@@ -2660,27 +2676,8 @@ function QuizView({
           <Session2RepairEvaluation
             lang={lang}
             onComplete={recordRepairResult}
-            onContinue={() => setEvaluationStage("simulator")}
           />
         </div>
-      )}
-
-      {session.id === 2 && (
-        <section className="session2-simulator-card" hidden={evaluationStage !== "simulator"}>
-          <div className="session2-simulator-icon"><MonitorCog size={34} /></div>
-          <div>
-            <span>ACTIVITÉ FINALE · النشاط الختامي</span>
-            <h2><BilingualText value={{ fr: "Simulateur du matériel informatique", ar: "محاكي معدات الحاسوب" }} /></h2>
-            <p><BilingualText value={{
-              fr: "Ouvre le simulateur dans un nouvel onglet et réalise les activités proposées. La plateforme restera ouverte pour que tu puisses revenir facilement à la séance.",
-              ar: "افتح المحاكي في علامة تبويب جديدة وأنجز الأنشطة المقترحة. ستبقى المنصة مفتوحة لتتمكن من الرجوع بسهولة إلى الحصة.",
-            }} /></p>
-          </div>
-          <a href="https://tabdellah.github.io/sim/" target="_blank" rel="noopener noreferrer">
-            <ExternalLink size={19} />
-            <BilingualText value={{ fr: "Ouvrir le simulateur", ar: "فتح المحاكي" }} />
-          </a>
-        </section>
       )}
 
       <div className="evaluation-quiz-content" hidden={session.id === 2}>
