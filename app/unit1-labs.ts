@@ -79,7 +79,7 @@ export type GestureExercise = ExerciseBase & {
 
 export type SystemLabExercise = ExerciseBase & {
   type: "system-lab";
-  mode: "windows" | "files";
+  mode: "windows" | "files" | "guided-files";
 };
 
 export type HotspotExercise = ExerciseBase & {

@@ -50,6 +50,7 @@ import {
   type Unit1Exercise,
 } from "./unit1-labs";
 import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
+import { Session3GuidedFiles } from "./session3-guided-files";
 import {
   getSessionAccess,
   registerParticipant,
@@ -1127,7 +1128,12 @@ function ExercisePlayer({
     [exercise],
   );
   const sequenceOrder = useMemo(
-    () => shuffledIndices(exercise.type === "sequence" ? exercise.steps.length : 0, `${exercise.id}-sequence`),
+    () => {
+      const order = shuffledIndices(exercise.type === "sequence" ? exercise.steps.length : 0, `${exercise.id}-sequence`);
+      return exercise.type === "sequence" && exercise.id.startsWith("s3-") && order.every((value, index) => value === index)
+        ? exercise.shuffled
+        : order;
+    },
     [exercise],
   );
   const diagnosticComponentOrder = useMemo(
@@ -1242,6 +1248,19 @@ function ExercisePlayer({
     }
   }
 
+  function checkSystemLab(state: SystemLabState, checks: boolean[]) {
+    if (exercise.type !== "system-lab") return;
+    recordResult(checks.every(Boolean), {
+      question: exercise.prompt,
+      mode: exercise.mode,
+      environment: "simulation",
+      checks,
+      completedMissions: checks.filter(Boolean).length,
+      totalMissions: checks.length,
+      state,
+    });
+  }
+
   const canCheck =
     (exercise.type === "hotspot" && choice !== null) ||
     (exercise.type === "choice" && choice !== null) ||
@@ -1253,7 +1272,7 @@ function ExercisePlayer({
     (exercise.type === "diagnostic" && diagnosticComponent !== null && diagnosticRepair !== null);
 
   return (
-    <article className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-v3-") ? "s3-visual-exercise" : ""}`}>
+    <article className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-") ? "s3-visual-exercise" : ""}`}>
       <div className="exercise-copy">
         <div className="exercise-meta">
           <strong>{txt(currentTypeLabel, lang)}</strong>
@@ -1484,7 +1503,7 @@ function ExercisePlayer({
                   );
                 })}
               </div>
-              {result === false && matches[rowIndex] !== row.answer && !exercise.id.startsWith("s3-v3-") && (
+              {result === false && matches[rowIndex] !== row.answer && !exercise.id.startsWith("s3-") && (
                 <small className="match-correction">
                   {lang === "fr" ? "Réponse attendue : " : "الجواب الصحيح: "}
                   <b>{txt(exercise.categories[row.answer], lang)}</b>
@@ -1561,7 +1580,7 @@ function ExercisePlayer({
                 aria-label={`${row.before} ${row.after}`}
               />
               <strong>{row.after}</strong>
-              {result === false && !exercise.id.startsWith("s3-v3-") && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
+              {result === false && !exercise.id.startsWith("s3-") && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
             </label>
           ))}
         </div>
@@ -1674,15 +1693,9 @@ function ExercisePlayer({
       )}
 
       {exercise.type === "system-lab" && (
-        <Session3SystemLab mode={exercise.mode} initialState={systemLab} onStateChange={setSystemLab} onValidate={(state, checks) => recordResult(checks.every(Boolean), {
-          question: exercise.prompt,
-          mode: exercise.mode,
-          environment: "simulation",
-          checks,
-          completedMissions: checks.filter(Boolean).length,
-          totalMissions: checks.length,
-          state,
-        })} />
+        exercise.mode === "guided-files"
+          ? <Session3GuidedFiles initialState={systemLab} onStateChange={setSystemLab} onValidate={checkSystemLab} />
+          : <Session3SystemLab mode={exercise.mode} initialState={systemLab} onStateChange={setSystemLab} onValidate={checkSystemLab} />
       )}
 
       {exercise.type !== "gesture" && exercise.type !== "system-lab" && (
@@ -1710,7 +1723,7 @@ function ExercisePlayer({
             <strong>{result ? (lang === "fr" ? "Exercice réussi" : "تمرين ناجح") : (lang === "fr" ? "Pas encore" : "ليس بعد")}</strong>
             <p>
               <BilingualText
-                value={result ? exercise.feedback : exercise.id.startsWith("s3-v3-") ? {
+                value={result ? exercise.feedback : exercise.id.startsWith("s3-") ? {
                   fr: "Observe encore le document. Utilise l’indice, puis réessaie.",
                   ar: "لاحظ الوثيقة من جديد. استعن بالتلميح ثم حاول مرة أخرى.",
                 } : {
@@ -1790,7 +1803,7 @@ function Unit1Workshop({
         ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
         : exercise.stage === "discover"
           ? { fr: "Étape 2 · Je découvre le système d’exploitation — 20 min", ar: "المرحلة 2 · أكتشف نظام التشغيل — 20 دقيقة" }
-          : { fr: "Étape 3 · Je manipule Windows et j’organise mes fichiers — 50 min", ar: "المرحلة 3 · أستعمل Windows وأنظم ملفاتي — 50 دقيقة" }} /></div>}
+          : { fr: "Étape 3 · Je manipule Windows et j’organise mes fichiers — 55 min", ar: "المرحلة 3 · أستعمل Windows وأنظم ملفاتي — 55 دقيقة" }} /></div>}
       <div className="exercise-counter" ref={exerciseAnchorRef}>
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
@@ -1996,7 +2009,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
   const hasSections = Boolean(session.traceSections?.length);
   return (
     <div className="tab-content page-enter">
-      <article className={`notebook ${hasSections ? "notebook-expanded" : ""}`}>
+      <article className={`notebook ${hasSections ? "notebook-expanded" : ""} ${session.id === 3 ? "s3-essential-notebook" : ""}`}>
         <div className="notebook-margin" aria-hidden="true" />
         <div className="notebook-heading">
           <div>
@@ -2005,7 +2018,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
               ? txt({ fr: "Rappel sur le système informatique", ar: "تذكير بالنظام المعلوماتي" }, lang)
               : session.id === 2
                 ? txt({ fr: "Environnement matériel d’un système informatique", ar: "البيئة المادية لنظام معلوماتي" }, lang)
-              : txt(session.title, lang)}</h2>
+              : session.id === 3 ? <BilingualText value={{ fr: "L’essentiel à retenir", ar: "الخلاصة الأساسية" }} /> : txt(session.title, lang)}</h2>
             {session.id === 2 && (
               <h3 className="notebook-subtitle">
                 {txt({ fr: "I- La configuration monoposte", ar: "I- التجهيز أحادي الحاسوب" }, lang)}
@@ -2044,18 +2057,18 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
         ) : (
           <div className="notebook-lines">
             {session.trace.map((line, index) => (
-              <p key={line.fr}><strong>{index + 1}.</strong> {txt(line, lang)}</p>
+              <p key={line.fr}><strong>{index + 1}.</strong> {session.id === 3 ? <BilingualText value={line} /> : txt(line, lang)}</p>
             ))}
           </div>
         )}
-        <div className="vocabulary-box">
+        {session.vocabulary.length > 0 && <div className="vocabulary-box">
           <span>{labels.vocabulary}</span>
           <div>
             {session.vocabulary.map((word) => (
               <div key={word.fr}><strong>{word.fr}</strong><small dir="rtl">{word.ar}</small></div>
             ))}
           </div>
-        </div>
+        </div>}
       </article>
     </div>
   );

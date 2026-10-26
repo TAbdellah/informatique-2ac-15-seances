@@ -9,8 +9,8 @@ export const session3Schedule = [
   { time: "30–40", minutes: 10, title: t("Pourquoi un système d’exploitation ?", "لماذا نحتاج إلى نظام تشغيل؟") },
   { time: "40–50", minutes: 10, title: t("Je passe d’Android à Windows", "أنتقل من Android إلى Windows") },
   { time: "50–65", minutes: 15, title: t("Je manipule le Bureau et les fenêtres", "أستعمل سطح المكتب والنوافذ") },
-  { time: "65–100", minutes: 35, title: t("Je relève le défi des fichiers", "أنجز تحدي الملفات") },
-  { time: "100–110", minutes: 10, title: t("Je retiens l’essentiel", "أدوّن الخلاصة") },
+  { time: "65–105", minutes: 40, title: t("Je relève le défi des fichiers", "أنجز تحدي الملفات") },
+  { time: "105–110", minutes: 5, title: t("Je retiens l’essentiel", "أدوّن الخلاصة") },
   { time: "110–120", minutes: 10, title: t("Je vérifie mes acquis", "أتحقق من مكتسباتي") },
 ];
 
@@ -34,38 +34,17 @@ export const session3: CourseSession = {
     { label: "1", duration: 25, text: t("Rappel actif : 6 exercices sur les séances 1 et 2.", "تذكير نشيط: 6 تمارين حول الحصتين 1 و2.") },
     { label: "2", duration: 20, text: t("Résoudre la situation de Sara, puis comparer Android et Windows.", "أحل وضعية سارة ثم أقارن Android وWindows.") },
     { label: "3", duration: 15, text: t("Manipuler le Bureau et les fenêtres dans une simulation, puis sur le poste Windows.", "أستعمل سطح المكتب والنوافذ في المحاكاة ثم على حاسوب Windows.") },
-    { label: "4", duration: 35, text: t("Distinguer fichiers et dossiers, choisir les opérations puis organiser l’espace de Sara.", "أميز الملفات والمجلدات وأختار العمليات ثم أنظم فضاء سارة.") },
+    { label: "4", duration: 40, text: t("Distinguer fichiers et dossiers, choisir les opérations puis organiser l’espace de Sara.", "أميز الملفات والمجلدات وأختار العمليات ثم أنظم فضاء سارة.") },
   ],
-  deliverable: t("19 activités visuelles + un espace 2AC_G01/Informatique/Travaux organisé. Chacun manipule à son tour.", "19 نشاطا بصريا + فضاء منظم 2AC_G01/Informatique/Travaux. يستعمل كل تلميذ الحاسوب بالتناوب."),
+  deliverable: t("25 activités visuelles. Défi guidé : ranger photo.jpg dans Photos. Chacun manipule à son tour.", "25 نشاطا بصريا. تحد موجه: وضع photo.jpg داخل Photos. يستعمل كل تلميذ الحاسوب بالتناوب."),
   trace: [
-    t("L’information peut être un texte, une image, un son ou une vidéo. Le matériel permet de saisir, traiter, restituer et stocker.", "قد تكون المعلومة نصا أو صورة أو صوتا أو فيديو. تسمح المعدات بالإدخال والمعالجة والإخراج والتخزين."),
-    t("Le système d’exploitation gère le matériel, les applications et les fichiers. Windows et Android en sont des exemples.", "يدير نظام التشغيل المعدات والتطبيقات والملفات. Windows وAndroid مثالان عليه."),
-    t("Un fichier contient des informations ; un dossier organise des fichiers et des sous-dossiers.", "يحتوي الملف على معلومات وينظم المجلد الملفات والمجلدات الفرعية."),
-    t("Copier crée un double ; déplacer change l’emplacement ; renommer change le nom.", "ينشئ النسخ نسخة إضافية ويغير النقل المكان وتغير إعادة التسمية الاسم."),
+    t("Le système d’exploitation gère le matériel, les applications et les fichiers (Windows, Android).", "يدير نظام التشغيل المعدات والتطبيقات والملفات، مثل Windows وAndroid."),
+    t("Démarrer ouvre les applications ; la barre des tâches permet de les retrouver.", "يفتح ابدأ التطبيقات ويسمح شريط المهام بالعودة إليها."),
+    t("Un fichier contient des informations ; un dossier organise les fichiers.", "يحتوي الملف على معلومات وينظم المجلد الملفات."),
+    t("Copier crée un double ; déplacer change l’emplacement.", "ينشئ النسخ نسخة إضافية ويغير النقل مكان الملف."),
+    t("L’extension indique le format : .jpg (image), .txt (texte).", "يدل الامتداد على الصيغة: .jpg للصورة و.txt للنص."),
   ],
-  traceSections: [
-    { title: t("1. Je réactive mes acquis", "1. أستحضر مكتسباتي"), items: [
-      t("Information : texte, image, son, vidéo. Traitement : état initial → opérations → état final.", "المعلومة: نص وصورة وصوت وفيديو. المعالجة: حالة ابتدائية ← عمليات ← حالة نهائية."),
-      t("Le processeur exécute les instructions ; la RAM conserve temporairement les données ; le SSD les stocke durablement.", "ينفذ المعالج التعليمات وتحفظ RAM المعطيات مؤقتا ويخزنها SSD بشكل دائم."),
-      t("Dans les conversions du cours : 1 Go = 1 000 Mo ; vers une unité plus petite, je multiplie ; vers une plus grande, je divise.", "في تحويلات الدرس: 1 Go = 1000 Mo؛ نحو وحدة أصغر أضرب ونحو وحدة أكبر أقسم."),
-    ] },
-    { title: t("2. Le système d’exploitation", "2. نظام التشغيل"), items: [
-      t("C’est un logiciel de base qui gère les ressources matérielles, permet l’exécution des applications et organise les fichiers.", "هو برنامج أساسي يدير موارد المعدات ويتيح تشغيل التطبيقات وتنظيم الملفات."),
-      t("Android et Windows sont des systèmes d’exploitation. La Calculatrice et le navigateur sont des applications.", "Android وWindows نظاما تشغيل. الحاسبة والمتصفح تطبيقان."),
-    ] },
-    { title: t("3. Le Bureau et les fenêtres", "3. سطح المكتب والنوافذ"), items: [
-      t("Démarrer donne accès aux applications ; la barre des tâches permet de retrouver les applications ouvertes.", "يتيح ابدأ الوصول إلى التطبيقات ويسمح شريط المهام بالعودة إلى التطبيقات المفتوحة."),
-      t("Je déplace une fenêtre par sa barre de titre. Réduire masque la fenêtre sans fermer l’application.", "أحرك النافذة من شريط عنوانها. يخفي التصغير النافذة دون إغلاق التطبيق."),
-      t("Une icône peut représenter une application, un fichier, un dossier ou un raccourci.", "قد تمثل الأيقونة تطبيقا أو ملفا أو مجلدا أو اختصارا."),
-    ] },
-    { title: t("4. Les fichiers et leur organisation", "4. الملفات وتنظيمها"), items: [
-      t("Un fichier contient des informations. Un dossier peut contenir des fichiers et d’autres dossiers.", "يحتوي الملف على معلومات ويمكن أن يحتوي المجلد على ملفات ومجلدات أخرى."),
-      t("Dans Photo_club.jpg, Photo_club est le nom et .jpg est l’extension, qui renseigne sur le format. Renommer ne convertit pas le fichier.", "في Photo_club.jpg، يمثل Photo_club الاسم و.jpg الامتداد الذي يدل على الصيغة. لا تغير إعادة التسمية صيغة الملف."),
-      t("Copier puis coller crée un double ; couper puis coller déplace ; rechercher retrouve un fichier.", "ينشئ النسخ ثم اللصق نسخة إضافية وينقل القص ثم اللصق الملف ويعثر البحث عليه."),
-      t("Dans notre dossier d’exercice, supprimer envoie le fichier à la Corbeille ; restaurer le remet à son emplacement d’origine.", "داخل مجلد التمرين يرسل الحذف الملف إلى سلة المحذوفات وتعيده الاستعادة إلى مكانه الأصلي."),
-    ] },
-  ],
-  vocabulary: [t("Système d’exploitation", "نظام التشغيل"), t("Bureau", "سطح المكتب"), t("Fenêtre", "نافذة"), t("Fichier", "ملف"), t("Dossier", "مجلد"), t("Copier", "نسخ"), t("Déplacer", "نقل"), t("Restaurer", "استعادة")],
+  vocabulary: [],
   quiz: [
     { question: t("Quel logiciel permet d’obtenir un Bureau sur ce poste ?", "أي برنامج يوفر سطح مكتب لهذا الحاسوب؟"), image: {src:"session3/visuels/ecran-sans-systeme.svg",alt:t("Poste sans système d’exploitation détecté", "حاسوب لم يعثر على نظام تشغيل")}, choices: [t("Windows", "Windows"),t("Calculatrice", "الحاسبة"),t("Navigateur", "المتصفح")], answer:0 },
     { question: t("Android est…", "Android هو…"), image: {src:"session3/visuels/logo-android.svg",alt:t("Android", "Android")}, choices:[t("un système d’exploitation", "نظام تشغيل"),t("une application de calcul", "تطبيق للحساب"),t("un dossier", "مجلد")],answer:0 },

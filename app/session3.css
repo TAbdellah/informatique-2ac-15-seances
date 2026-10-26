@@ -171,3 +171,49 @@
 .s3-visual-exercise .match-item > video { display: block; width: 100%; height: 210px; object-fit: contain; background: #143f73; border-radius: 10px; }
 .s3-text-document { display: flex; align-items: center; min-height: 210px; padding: 23px; border: 1px solid #d1dfe9; border-radius: 10px; background: #fff; color: #19354b; font: 21px/1.75 "Segoe UI",Tahoma,sans-serif; }
 .s3-text-document .bilingual-copy { gap: 17px; }
+
+.s3-guided-goal { padding: 17px 20px; border: 1px solid #bcd6e2; border-radius: 12px; background: #eff7fb; font-size: 20px; }
+.s3-guided-goal-picture { display: flex; justify-content: center; align-items: center; gap: 27px; margin-top: 14px; }
+.s3-guided-goal-picture > div { display: grid; justify-items: center; align-content: center; gap: 7px; min-width: 110px; font-size: 17px; color: #285972; }
+.s3-guided-goal-picture img { height: 65px; width: 65px; object-fit: contain; background: #fff; border-radius: 6px; }
+.s3-guided-goal-picture .lucide-folder { color: #cc9a20; fill: #f6d774; }
+.s3-guided-workspace { border: 1px solid #bcd0de; border-radius: 12px; overflow: hidden; background: #fff; }
+.s3-guided-files .s3-file-toolbar { justify-content: center; gap: 15px; padding: 15px; }
+.s3-guided-files .s3-file-toolbar button { font-size: 19px; padding: 13px 18px; }
+.s3-guided-files .s3-file-toolbar .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 8px 12px; }
+.s3-guided-files .next-action { border: 3px solid #b78a15 !important; background: #fff5cf !important; box-shadow: 0 0 0 3px #f3e3ae80; }
+.s3-guided-location { display: flex; flex-flow: row wrap; gap: 10px 15px; padding: 12px 18px; border-bottom: 1px solid #d2e0e9; background: #f7fafc; font-size: 18px; }
+.s3-guided-location .bilingual-copy { display: flex; flex-flow: row wrap; gap: 10px; }
+.s3-guided-name { padding: 19px; }
+.s3-guided-name > button { font-size: 19px; padding: 12px 24px; background: #174f70; color: white; }
+.s3-guided-name p { width: 100%; margin: 5px 0; color: #933d27; }
+.s3-guided-items { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 28px; min-height: 200px; padding: 25px; }
+.s3-guided-photo, .s3-guided-folder { display: grid; justify-items: center; align-content: start; gap: 10px; width: 195px; padding: 15px; background: #f8fbfd; border: 2px solid #d0dfe9; border-radius: 10px; font-size: 20px; }
+.s3-guided-photo img { display: block; width: 115px; height: 100px; object-fit: contain; background: #fff; border-radius: 7px; }
+.s3-guided-photo:disabled { opacity: 1 !important; cursor: default; }
+.s3-guided-photo.selected { background: #e5f3fc; border-color: #2d87b7; }
+.s3-guided-photo.cut { opacity: .5 !important; }
+.s3-guided-photo small { font-size: 14px; }
+.s3-guided-folder > svg { fill: #f6d774; color: #c79620; }
+.s3-guided-folder > button { padding: 10px 20px; border: 1px solid #91b8ce; border-radius: 7px; background: #eaf4fa; font-size: 18px; }
+.s3-guided-empty { margin: 17px 0; color: #587186; font-size: 19px; }
+.s3-essential-notebook { padding: 27px 30px 27px 65px; }
+.s3-essential-notebook .notebook-heading h2 { font-size: 27px; }
+.s3-essential-notebook .notebook-heading .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 8px 16px; }
+.s3-essential-notebook .notebook-lines { margin-top: 20px; }
+.s3-essential-notebook .notebook-lines p { display: flex; align-items: baseline; gap: 10px; min-height: 0; margin: 0 0 13px; font-size: 19px; line-height: 1.6; }
+.s3-essential-notebook .notebook-lines p:last-child { margin-bottom: 0; }
+.s3-essential-notebook .notebook-lines .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 3px 14px; }
+.s3-essential-notebook .notebook-lines .bilingual-copy-ar { color: #2058a8; opacity: 1; font-size: 18px; }
+@media (max-width: 650px) {
+ .s3-guided-files .s3-file-toolbar { gap: 8px; padding: 10px; }
+ .s3-guided-files .s3-file-toolbar button { padding: 9px 12px; font-size: 16px; }
+ .s3-guided-goal-picture { gap: 13px; }
+ .s3-guided-items { padding: 15px; gap: 13px; }
+ .s3-guided-photo, .s3-guided-folder { width: 145px; padding: 11px; }
+ .s3-essential-notebook { padding: 23px 20px 23px 52px; }
+}
+.s3-visual-exercise .sequence-bank:has(button:nth-child(4)) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+@media (max-width: 750px) { .s3-visual-exercise .sequence-bank:has(button:nth-child(4)) { grid-template-columns: 1fr; } }
+.s3-essential-notebook { min-height: 0; }
+.s3-essential-notebook .notebook-heading h2 span { font-size: inherit; color: inherit; letter-spacing: 0; text-transform: none; }
