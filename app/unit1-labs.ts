@@ -20,11 +20,13 @@ type ExerciseBase = {
   hint?: LocalizedText;
   feedback: LocalizedText;
   image?: ExerciseImage;
+  stage?: "recall" | "discover" | "practice";
 };
 
 export type ChoiceExercise = ExerciseBase & {
   type: "choice";
   choices: LocalizedText[];
+  choiceImages?: (string | null)[];
   answer: number;
 };
 
@@ -49,12 +51,13 @@ export type MatchExercise = ExerciseBase & {
   interaction?: "select" | "drag";
   categories: LocalizedText[];
   categoryImages?: (string | null)[];
-  rows: { label: LocalizedText; answer: number; image?: string }[];
+  rows: { label: LocalizedText; answer: number; image?: string; content?: LocalizedText; audio?: string; video?: string }[];
 };
 
 export type SequenceExercise = ExerciseBase & {
   type: "sequence";
   steps: LocalizedText[];
+  stepImages?: string[];
   shuffled: number[];
 };
 
@@ -79,6 +82,13 @@ export type SystemLabExercise = ExerciseBase & {
   mode: "windows" | "files";
 };
 
+export type HotspotExercise = ExerciseBase & {
+  type: "hotspot";
+  image: ExerciseImage;
+  regions: { x: number; y: number; width: number; height: number }[];
+  answer: number;
+};
+
 export type Unit1Exercise =
   | ChoiceExercise
   | MultiExercise
@@ -88,6 +98,7 @@ export type Unit1Exercise =
   | ConversionExercise
   | DiagnosticExercise
   | SystemLabExercise
+  | HotspotExercise
   | GestureExercise;
 
 export type Unit1Lab = {

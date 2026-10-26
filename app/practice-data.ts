@@ -81,7 +81,7 @@ export const beginnerGuides: Record<number, LocalizedText[]> = {
     t("Utilise la molette pour descendre sans tirer la barre de défilement.", "استعمل عجلة الفأرة للنزول دون سحب شريط التمرير."),
   ],
   3: [
-    t("Commence par les 7 exercices de rappel des séances 1 et 2.", "ابدأ بالتمارين السبعة للتذكير بالحصتين 1 و2."),
+    t("Commence par les 6 exercices de rappel des séances 1 et 2.", "ابدأ بالتمارين الستة للتذكير بالحصتين 1 و2."),
     t("Pars des gestes que tu connais sur Android pour comprendre Windows.", "انطلق من الحركات التي تعرفها في Android لفهم Windows."),
     t("Entraîne-toi dans les simulations, puis refais les gestes sur Windows avec ton binôme.", "تدرب في المحاكاة ثم أعد الحركات في Windows مع زميلك."),
   ],

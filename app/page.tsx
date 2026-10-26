@@ -1149,6 +1149,7 @@ function ExercisePlayer({
     diagnostic: { fr: "Diagnostic en 2 étapes", ar: "تشخيص في مرحلتين" },
     gesture: { fr: "Manipulation", ar: "تطبيق عملي" },
     "system-lab": { fr: "Manipulation guidée", ar: "تطبيق موجه" },
+    hotspot: { fr: "Je repère sur l’image", ar: "أحدد على الصورة" },
   };
   const currentTypeLabel = exercise.type === "match" && exercise.interaction === "drag"
     ? { fr: "Glisser-déposer", ar: "سحب وإفلات" }
@@ -1164,6 +1165,12 @@ function ExercisePlayer({
   }
 
   function checkCurrent() {
+    if (exercise.type === "hotspot") recordResult(choice === exercise.answer, {
+      question: exercise.prompt,
+      image: exercise.image.src,
+      selectedZone: choice,
+      expectedZone: exercise.answer,
+    });
     if (exercise.type === "choice") recordResult(choice === exercise.answer, {
       question: exercise.prompt,
       selectedIndex: choice,
@@ -1236,6 +1243,7 @@ function ExercisePlayer({
   }
 
   const canCheck =
+    (exercise.type === "hotspot" && choice !== null) ||
     (exercise.type === "choice" && choice !== null) ||
     (exercise.type === "multi" && multi.size > 0) ||
     (exercise.type === "match" && Object.keys(matches).length === exercise.rows.length) ||
@@ -1245,7 +1253,7 @@ function ExercisePlayer({
     (exercise.type === "diagnostic" && diagnosticComponent !== null && diagnosticRepair !== null);
 
   return (
-    <article className={`exercise-player level-${exercise.level}`}>
+    <article className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-v3-") ? "s3-visual-exercise" : ""}`}>
       <div className="exercise-copy">
         <div className="exercise-meta">
           <strong>{txt(currentTypeLabel, lang)}</strong>
@@ -1259,10 +1267,28 @@ function ExercisePlayer({
         </div>
       </div>
 
-      {exercise.image && (
+      {exercise.image && exercise.type !== "hotspot" && (
         <figure className="exercise-image">
           <img src={exercise.image.src} alt={bilingualAria(exercise.image.alt)} loading="lazy" referrerPolicy="no-referrer" />
           <figcaption><ImageIcon size={14} />{txt(exercise.image.caption, lang)}</figcaption>
+        </figure>
+      )}
+
+      {exercise.type === "hotspot" && (
+        <figure className="s3-hotspot-figure">
+          <div className="s3-hotspot-canvas">
+            <img src={exercise.image.src} alt={bilingualAria(exercise.image.alt)} />
+            {exercise.regions.map((region, index) => <button
+              type="button"
+              key={index}
+              className={`s3-hotspot-area ${choice === index ? "selected" : ""} ${result === true && choice === index ? "correct" : ""}`}
+              style={{ left: `${region.x}%`, top: `${region.y}%`, width: `${region.width}%`, height: `${region.height}%` }}
+              aria-label={`Zone ${index + 1} / المنطقة ${index + 1}`}
+              aria-pressed={choice === index}
+              onClick={() => { setChoice(index); setResult(null); }}
+            ><span>{index + 1}</span></button>)}
+          </div>
+          <figcaption><BilingualText value={exercise.image.caption} /></figcaption>
         </figure>
       )}
 
@@ -1272,11 +1298,12 @@ function ExercisePlayer({
             const item = exercise.choices[originalIndex];
             return (
             <button
-              className={choice === originalIndex ? "selected" : ""}
+              className={`${choice === originalIndex ? "selected" : ""} ${exercise.choiceImages?.[originalIndex] ? "option-with-image" : ""}`}
               key={item.fr}
               onClick={() => { setChoice(originalIndex); setResult(null); }}
             >
               <span className="option-marker">{String.fromCharCode(65 + displayIndex)}</span>
+              {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={exercise.choiceImages[originalIndex] ?? ""} alt="" loading="lazy" />}
               <BilingualText value={item} />
             </button>
             );
@@ -1420,7 +1447,10 @@ function ExercisePlayer({
               key={row.label.fr}
             >
               <div className="match-item">
-                {row.image && <img src={row.image} alt="" loading="lazy" />}
+                {row.content && <div className="s3-text-document"><BilingualText value={row.content} /></div>}
+                {row.image && !row.video && <img src={row.image} alt="" loading="lazy" />}
+                {row.audio && <audio src={row.audio} controls preload="metadata" aria-label={bilingualAria(row.label)} />}
+                {row.video && <video src={row.video} poster={row.image} controls playsInline preload="metadata" aria-label={bilingualAria(row.label)} />}
                 <strong><BilingualText value={row.label} /></strong>
               </div>
               <div className="match-answers">
@@ -1454,7 +1484,7 @@ function ExercisePlayer({
                   );
                 })}
               </div>
-              {result === false && matches[rowIndex] !== row.answer && (
+              {result === false && matches[rowIndex] !== row.answer && !exercise.id.startsWith("s3-v3-") && (
                 <small className="match-correction">
                   {lang === "fr" ? "Réponse attendue : " : "الجواب الصحيح: "}
                   <b>{txt(exercise.categories[row.answer], lang)}</b>
@@ -1474,6 +1504,7 @@ function ExercisePlayer({
                 <div className={selectedIndex === undefined ? "empty" : "filled"} key={index}>
                   <span>{index + 1}</span>
                   <p>
+                    {selectedIndex !== undefined && exercise.stepImages?.[selectedIndex] && <img src={exercise.stepImages[selectedIndex]} alt="" />}
                     <BilingualText
                       value={selectedIndex === undefined
                         ? { fr: "Choisir une étape", ar: "اختر مرحلة" }
@@ -1491,6 +1522,7 @@ function ExercisePlayer({
                 disabled={sequence.includes(stepIndex)}
                 onClick={() => { setSequence((current) => [...current, stepIndex]); setResult(null); }}
               >
+                {exercise.stepImages?.[stepIndex] && <img src={exercise.stepImages[stepIndex]} alt="" />}
                 <BilingualText value={exercise.steps[stepIndex]} />
               </button>
             ))}
@@ -1529,7 +1561,7 @@ function ExercisePlayer({
                 aria-label={`${row.before} ${row.after}`}
               />
               <strong>{row.after}</strong>
-              {result === false && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
+              {result === false && !exercise.id.startsWith("s3-v3-") && <small>{lang === "fr" ? "Réponse :" : "الجواب:"} {row.accepted[0]}</small>}
             </label>
           ))}
         </div>
@@ -1678,7 +1710,10 @@ function ExercisePlayer({
             <strong>{result ? (lang === "fr" ? "Exercice réussi" : "تمرين ناجح") : (lang === "fr" ? "Pas encore" : "ليس بعد")}</strong>
             <p>
               <BilingualText
-                value={result ? exercise.feedback : {
+                value={result ? exercise.feedback : exercise.id.startsWith("s3-v3-") ? {
+                  fr: "Observe encore le document. Utilise l’indice, puis réessaie.",
+                  ar: "لاحظ الوثيقة من جديد. استعن بالتلميح ثم حاول مرة أخرى.",
+                } : {
                   fr: `Observe la correction, comprends ton erreur puis essaie de nouveau. ${exercise.feedback.fr}`,
                   ar: `لاحظ التصحيح وافهم خطأك ثم حاول من جديد. ${exercise.feedback.ar}`,
                 }}
@@ -1751,9 +1786,9 @@ function Unit1Workshop({
 
   return (
     <div className="tab-content unit1-lab page-enter">
-      {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exerciseIndex < 7
+      {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exercise.stage === "recall"
         ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
-        : exerciseIndex < 9
+        : exercise.stage === "discover"
           ? { fr: "Étape 2 · Je découvre le système d’exploitation — 20 min", ar: "المرحلة 2 · أكتشف نظام التشغيل — 20 دقيقة" }
           : { fr: "Étape 3 · Je manipule Windows et j’organise mes fichiers — 50 min", ar: "المرحلة 3 · أستعمل Windows وأنظم ملفاتي — 50 دقيقة" }} /></div>}
       <div className="exercise-counter" ref={exerciseAnchorRef}>
@@ -2664,8 +2699,8 @@ function QuizView({
   return (
     <div className="tab-content simple-quiz page-enter">
       {session.id === 3 && <aside className="s3-native-note"><MonitorCog size={22} /><BilingualText value={{
-        fr: "Bilan individuel · 10 min. Réponds aux 6 questions, puis crée un dossier Bilan sur ton poste et copies-y un fichier d’exercice. Explique la différence entre copier et déplacer. Le professeur vérifie la manipulation sur Windows.",
-        ar: "تقويم فردي · 10 دقائق. أجب عن الأسئلة الستة ثم أنشئ مجلدا باسم Bilan على حاسوبك وانسخ إليه ملفا من التمرين. اشرح الفرق بين النسخ والنقل. يتحقق الأستاذ من التطبيق في Windows.",
+        fr: "Bilan individuel · 10 min. Réponds aux six questions.",
+        ar: "تقويم فردي · 10 دقائق. أجب عن الأسئلة الستة.",
       }} /></aside>}
       {session.id === 2 && (
         <div className="evaluation-stage-tabs" role="tablist" aria-label="Étapes de l’évaluation / مراحل التقويم">
@@ -2739,6 +2774,7 @@ function QuizView({
                 <span>{padTime(questionIndex + 1)}</span>
                 <div><small>Question / السؤال</small><h3><BilingualText value={question.question} /></h3></div>
               </div>
+              {question.image && <figure className="s3-quiz-visual"><img src={question.image.src} alt={bilingualAria(question.image.alt)} loading="lazy" /></figure>}
               <div className="choices">
                 {quizChoiceOrders[questionIndex].map((originalIndex, displayIndex) => {
                   const choice = question.choices[originalIndex];
@@ -2822,6 +2858,10 @@ function QuizView({
               <p>{score === maxScore ? (lang === "fr" ? "Excellent : les réponses et leurs justifications sont maîtrisées." : "ممتاز: تم إتقان الأجوبة وتعليلاتها.") : (lang === "fr" ? "Consulte les questions à revoir, puis recommence l’évaluation." : "راجع الأسئلة التي تحتاج إلى تصحيح ثم أعد التقويم.")}</p>
             </div>
           )}
+          {submitted && session.id === 3 && <aside className="s3-native-note"><MonitorCog size={22} /><BilingualText value={{
+            fr: "Sur Windows : crée un dossier Bilan et copies-y un fichier. Montre le résultat au professeur.",
+            ar: "في Windows: أنشئ مجلدا باسم Bilan وانسخ إليه ملفا. اعرض النتيجة على الأستاذ.",
+          }} /></aside>}
         </div>
       </div>
       <ExerciseNavigation

@@ -9,6 +9,7 @@ export type LocalizedText = {
 
 export type QuizQuestion = {
   question: LocalizedText;
+  image?: { src: string; alt: LocalizedText };
   choices: LocalizedText[];
   answer: number;
   justifications?: LocalizedText[];

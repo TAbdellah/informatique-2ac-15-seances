@@ -89,18 +89,18 @@ export function systemLabChecks(mode: "windows" | "files", state: SystemLabState
 }
 
 const windowTasks = [
-  t("Depuis Démarrer, ouvre la Calculatrice.", "افتح الحاسبة انطلاقا من ابدأ."),
-  t("Déplace sa fenêtre par la barre de titre (ou ses flèches).", "حرك نافذتها من شريط العنوان أو باستعمال الأسهم."),
-  t("Réduis la Calculatrice avec le bouton −.", "صغر الحاسبة بالزر −."),
+  t("Ouvre la Calculatrice depuis Démarrer.", "افتح الحاسبة انطلاقا من ابدأ."),
+  t("Déplace la fenêtre par son titre (ou ↔).", "حرك النافذة من عنوانها أو باستعمال ↔."),
+  t("Réduis la fenêtre avec −.", "صغر النافذة بالزر −."),
   t("Retrouve-la dans la barre des tâches.", "أظهرها مجددا من شريط المهام."),
   t("Depuis Démarrer, ouvre l’Explorateur de fichiers.", "افتح مستكشف الملفات انطلاقا من ابدأ."),
   t("Passe de l’Explorateur à la Calculatrice par la barre des tâches.", "انتقل من مستكشف الملفات إلى الحاسبة عبر شريط المهام."),
 ];
 const fileTasks = [
-  t("Crée 2AC_G01 / Informatique / Travaux, puis Images et Documents dans Travaux.", "أنشئ 2AC_G01 / Informatique / Travaux ثم Images وDocuments داخل Travaux."),
-  t("Déplace image001.jpg dans Images et renomme-le Photo_club.jpg.", "انقل image001.jpg إلى Images وسمه Photo_club.jpg."),
-  t("Déplace texte001.txt dans Documents et renomme-le Compte_rendu.txt.", "انقل texte001.txt إلى Documents وسمه Compte_rendu.txt."),
-  t("Copie Compte_rendu.txt dans Travaux en gardant l’original dans Documents.", "انسخ Compte_rendu.txt إلى Travaux مع إبقاء الأصل في Documents."),
+  t("Crée les dossiers du modèle.", "أنشئ المجلدات كما في النموذج."),
+  t("Range la photo dans Images. Nomme-la Photo_club.jpg.", "ضع الصورة في Images وسمها Photo_club.jpg."),
+  t("Range le texte dans Documents. Nomme-le Compte_rendu.txt.", "ضع النص في Documents وسمه Compte_rendu.txt."),
+  t("Crée une copie du texte dans Travaux.", "أنشئ نسخة من النص في Travaux."),
   t("Depuis le dossier d’exercice, recherche Photo_club.jpg.", "ابحث عن Photo_club.jpg انطلاقا من مجلد التمرين."),
   t("Supprime brouillon.txt, puis restaure-le depuis la Corbeille.", "احذف brouillon.txt ثم استعده من سلة المحذوفات."),
 ];
@@ -120,6 +120,7 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
   useEffect(() => onStateChange(state), [state, onStateChange]);
   const checks = systemLabChecks(mode, state);
   const tasks = mode === "windows" ? windowTasks : fileTasks;
+  const nextMission = checks.findIndex((done) => !done);
   const current = state.files.find((f) => f.id === state.selection);
   const inTrash = state.folder === "trash";
   const withFlag = (flags: string[], flag: string) => [...new Set([...flags, flag])];
@@ -195,7 +196,7 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
       } else setMessage(t(`${visible.length} résultat(s). Pour la mission, recherche Photo_club.jpg depuis Exercice.`, `${visible.length} نتيجة. لإنجاز المهمة ابحث عن Photo_club.jpg انطلاقا من Exercice.`));
     }}><Search size={17} /><input aria-label="Rechercher un fichier / البحث عن ملف" placeholder="Rechercher ici… / ابحث هنا…" value={state.search} onChange={(event) => setState((s) => ({ ...s, search: event.target.value, selection: null }))} /><button type="submit">Rechercher / بحث</button></form>}
     {dialog && <form className="s3-name-form" onSubmit={(event) => { event.preventDefault(); saveName(); }}>
-      <label><CopyText value={dialog === "folder" ? t("Nom du nouveau dossier", "اسم المجلد الجديد") : t("Nouveau nom (garde l’extension)", "الاسم الجديد مع الحفاظ على الامتداد")} /><input autoFocus value={name} onChange={(event) => setName(event.target.value)} /></label>
+      <label><CopyText value={dialog === "folder" ? t("Nom du nouveau dossier", "اسم المجلد الجديد") : t("Nouveau nom (garde l’extension)", "الاسم الجديد مع الحفاظ على الامتداد")} /><input autoFocus value={name} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setName(event.target.value)} /></label>
       <button type="submit">Valider / تأكيد</button><button type="button" onClick={() => setDialog(null)}>Annuler / إلغاء</button>
     </form>}
     <div className="s3-file-list" aria-label="Contenu du dossier / محتويات المجلد">
@@ -212,7 +213,12 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
 
   return <section className="s3-system-lab">
     <div className="s3-simulation-label"><Monitor size={17} /><CopyText value={t("Simulation d’entraînement · puis application sur ton poste Windows", "محاكاة للتدريب · ثم تطبيق على حاسوب Windows")} /></div>
-    <ol className="s3-task-list">{tasks.map((task, i) => <li className={checks[i] ? "done" : ""} key={task.fr}><span>{checks[i] ? <Check size={16} /> : i + 1}</span><CopyText value={task} /></li>)}</ol>
+    <div className={`s3-current-mission ${nextMission === -1 ? "done" : ""}`} role="status">
+      <strong>{nextMission === -1 ? <Check size={20} /> : `${nextMission + 1} / ${tasks.length}`}</strong>
+      <CopyText value={nextMission === -1 ? t("Toutes les missions sont réalisées. Vérifie ton travail.", "أنجزت جميع المهام. تحقق من عملك.") : tasks[nextMission]} />
+    </div>
+    {mode === "files" && nextMission === 0 && <figure className="s3-folder-model"><img src="session3/visuels/arborescence.svg" alt="2AC_G01 / Informatique / Travaux, avec les sous-dossiers Images et Documents" /></figure>}
+    <details className="s3-missions-details"><summary>Voir les 6 missions / عرض المهام الست</summary><ol className="s3-task-list">{tasks.map((task, i) => <li className={checks[i] ? "done" : ""} key={task.fr}><span>{checks[i] ? <Check size={16} /> : i + 1}</span><CopyText value={task} /></li>)}</ol></details>
     {mode === "files" ? explorer : <div className="s3-desktop">
       <div className="s3-desktop-label"><Monitor size={24} /><span>Bureau · سطح المكتب</span></div>
       {state.active && (state.active !== "calculator" || !state.minimized) && <div className={`s3-app-window ${state.active === "explorer" ? "explorer" : "calculator"}`} style={{ left: `min(${state.position.x}px, max(0px, calc(100% - 330px)))`, top: state.position.y }}>
@@ -230,6 +236,6 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
     </div>}
     {message && <p className="s3-lab-message" role="status"><CopyText value={message} /></p>}
     <div className="s3-lab-validation"><strong>{checks.filter(Boolean).length} / {checks.length} missions</strong><button type="button" onClick={() => onValidate(state, checks)}><Check size={18} />Vérifier mes missions / أتحقق من مهامي</button></div>
-    {mode === "files" && <aside className="s3-native-note"><Monitor size={20} /><div><CopyText value={t("Sur le vrai poste : télécharge le dossier d’exercice, extrais le ZIP et reproduis le rangement dans Documents. Utilise le nom de ton groupe. Fais vérifier le résultat par le professeur.", "على الحاسوب الحقيقي: حمل مجلد التمرين واستخرج ZIP ثم أعد التنظيم داخل Documents باسم مجموعتك. اطلب من الأستاذ التحقق من النتيجة.")} /><a href="session3/fichiers-exercice-seance3.zip" download>Télécharger les fichiers d’exercice / تحميل ملفات التمرين</a></div></aside>}
+    {mode === "files" && <aside className="s3-native-note"><Monitor size={20} /><div><CopyText value={t("Sur Windows : extrais le ZIP dans Documents. Refais les missions avec le nom de ton groupe.", "في Windows: استخرج ZIP داخل Documents. أعد المهام باسم مجموعتك.")} /><a href="session3/fichiers-exercice-seance3.zip" download>Télécharger les fichiers d’exercice / تحميل ملفات التمرين</a></div></aside>}
   </section>;
 }

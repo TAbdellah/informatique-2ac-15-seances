@@ -17,7 +17,7 @@ export const session3Schedule = [
 export const session3: CourseSession = {
   id: 3,
   unit: 1,
-  title: t("Rappel 1 & 2 · Je prends en main Windows", "تذكير بالحـصتين 1 و2 · أستعمل Windows"),
+  title: t("Rappel 1 & 2 · Je prends en main Windows", "تذكير بالحصتين 1 و2 · أستعمل Windows"),
   subtitle: t("2 h : rappel actif, d’Android à Windows, Bureau et organisation des fichiers", "ساعتان: تذكير نشيط، من Android إلى Windows، سطح المكتب وتنظيم الملفات"),
   mission: t("Réactiver tes acquis, comprendre le rôle du système d’exploitation puis organiser ton espace de travail.", "أستحضر مكتسباتي وأفهم دور نظام التشغيل ثم أنظم فضاء عملي."),
   situation: t(
@@ -31,12 +31,12 @@ export const session3: CourseSession = {
     t("Créer des dossiers ; déplacer, renommer, copier et rechercher un fichier ; utiliser la Corbeille.", "أنشئ مجلدات وأنقل ملفا وأسميه وأنسخه وأبحث عنه وأستعمل سلة المحذوفات."),
   ],
   workshops: [
-    { label: "1", duration: 25, text: t("Rappel actif : 7 exercices sur les séances 1 et 2.", "تذكير نشيط: 7 تمارين حول الحصتين 1 و2.") },
+    { label: "1", duration: 25, text: t("Rappel actif : 6 exercices sur les séances 1 et 2.", "تذكير نشيط: 6 تمارين حول الحصتين 1 و2.") },
     { label: "2", duration: 20, text: t("Résoudre la situation de Sara, puis comparer Android et Windows.", "أحل وضعية سارة ثم أقارن Android وWindows.") },
     { label: "3", duration: 15, text: t("Manipuler le Bureau et les fenêtres dans une simulation, puis sur le poste Windows.", "أستعمل سطح المكتب والنوافذ في المحاكاة ثم على حاسوب Windows.") },
     { label: "4", duration: 35, text: t("Distinguer fichiers et dossiers, choisir les opérations puis organiser l’espace de Sara.", "أميز الملفات والمجلدات وأختار العمليات ثم أنظم فضاء سارة.") },
   ],
-  deliverable: t("13 activités progressives + un espace 2AC_G01/Informatique/Travaux organisé. Chacun manipule à son tour.", "13 نشاطا متدرجا + فضاء منظم 2AC_G01/Informatique/Travaux. يستعمل كل تلميذ الحاسوب بالتناوب."),
+  deliverable: t("19 activités visuelles + un espace 2AC_G01/Informatique/Travaux organisé. Chacun manipule à son tour.", "19 نشاطا بصريا + فضاء منظم 2AC_G01/Informatique/Travaux. يستعمل كل تلميذ الحاسوب بالتناوب."),
   trace: [
     t("L’information peut être un texte, une image, un son ou une vidéo. Le matériel permet de saisir, traiter, restituer et stocker.", "قد تكون المعلومة نصا أو صورة أو صوتا أو فيديو. تسمح المعدات بالإدخال والمعالجة والإخراج والتخزين."),
     t("Le système d’exploitation gère le matériel, les applications et les fichiers. Windows et Android en sont des exemples.", "يدير نظام التشغيل المعدات والتطبيقات والملفات. Windows وAndroid مثالان عليه."),
@@ -67,11 +67,11 @@ export const session3: CourseSession = {
   ],
   vocabulary: [t("Système d’exploitation", "نظام التشغيل"), t("Bureau", "سطح المكتب"), t("Fenêtre", "نافذة"), t("Fichier", "ملف"), t("Dossier", "مجلد"), t("Copier", "نسخ"), t("Déplacer", "نقل"), t("Restaurer", "استعادة")],
   quiz: [
-    { question: t("Quel logiciel de base gère le matériel et permet d’exécuter les applications ?", "ما البرنامج الأساسي الذي يدير المعدات ويتيح تشغيل التطبيقات؟"), choices: [t("Le système d’exploitation", "نظام التشغيل"), t("La Calculatrice", "الحاسبة"), t("Le navigateur", "المتصفح")], answer: 0 },
-    { question: t("Quelle proposition distingue correctement système et application ?", "أي عبارة تميز نظام التشغيل عن التطبيق بشكل صحيح؟"), choices: [t("Android : système ; navigateur : application", "Android نظام والمتصفح تطبيق"), t("Android : application ; navigateur : système", "Android تطبيق والمتصفح نظام"), t("Les deux sont des périphériques", "كلاهما من الملحقات")], answer: 0 },
-    { question: t("Sara réduit une fenêtre. Comment la retrouve-t-elle ?", "صغرت سارة نافذة. كيف تظهرها مجددا؟"), choices: [t("En cliquant sur son application dans la barre des tâches", "بالنقر على تطبيقها في شريط المهام"), t("En débranchant l’écran", "بفصل الشاشة"), t("En changeant le nom du fichier", "بتغيير اسم الملف")], answer: 0 },
-    { question: t("Quel élément peut contenir Photo_club.jpg et Compte_rendu.txt ?", "أي عنصر يمكن أن يحتوي Photo_club.jpg وCompte_rendu.txt؟"), choices: [t("Un dossier", "مجلد"), t("Une extension", "امتداد"), t("Un processeur", "معالج")], answer: 0 },
-    { question: t("Tu veux garder le texte dans Documents et en avoir un double dans Travaux. Que fais-tu ?", "تريد الاحتفاظ بالنص في Documents وإنشاء نسخة في Travaux. ماذا تفعل؟"), choices: [t("Copier puis coller dans Travaux", "أنسخ ثم ألصق في Travaux"), t("Couper puis coller dans Travaux", "أقص ثم ألصق في Travaux"), t("Renommer seulement", "أعيد التسمية فقط")], answer: 0 },
-    { question: t("Tu as supprimé le brouillon d’exercice par erreur. Quelle action le remet à sa place ?", "حذفت مسودة التمرين بالخطأ. ما العملية التي تعيدها إلى مكانها؟"), choices: [t("Restaurer depuis la Corbeille", "الاستعادة من سلة المحذوفات"), t("Vider la Corbeille", "إفراغ سلة المحذوفات"), t("Réduire la fenêtre", "تصغير النافذة")], answer: 0 },
+    { question: t("Quel logiciel permet d’obtenir un Bureau sur ce poste ?", "أي برنامج يوفر سطح مكتب لهذا الحاسوب؟"), image: {src:"session3/visuels/ecran-sans-systeme.svg",alt:t("Poste sans système d’exploitation détecté", "حاسوب لم يعثر على نظام تشغيل")}, choices: [t("Windows", "Windows"),t("Calculatrice", "الحاسبة"),t("Navigateur", "المتصفح")], answer:0 },
+    { question: t("Android est…", "Android هو…"), image: {src:"session3/visuels/logo-android.svg",alt:t("Android", "Android")}, choices:[t("un système d’exploitation", "نظام تشغيل"),t("une application de calcul", "تطبيق للحساب"),t("un dossier", "مجلد")],answer:0 },
+    { question: t("Où retrouves-tu une application réduite ?", "أين تجد تطبيقا مصغرا؟"),image:{src:"session3/visuels/ecran-windows.svg",alt:t("Bureau Windows avec barre des tâches", "سطح مكتب Windows بشريط المهام")},choices:[t("Dans la barre des tâches", "في شريط المهام"),t("Dans la Corbeille", "في سلة المحذوفات"),t("Dans le nom du fichier", "في اسم الملف")],answer:0 },
+    { question: t("Cet élément est…", "هذا العنصر هو…"),image:{src:"session3/visuels/element-image.svg",alt:t("Photo_club.jpg", "Photo_club.jpg")},choices:[t("un fichier", "ملف"),t("un dossier", "مجلد"),t("un système d’exploitation", "نظام تشغيل")],answer:0 },
+    { question: t("Observe avant et après. Quelle opération a été faite ?", "لاحظ قبل وبعد. ما العملية المنجزة؟"),image:{src:"session3/visuels/deplacement-avant-apres.svg",alt:t("Le fichier a quitté Documents et se trouve dans Travaux", "غادر الملف Documents وأصبح في Travaux")},choices:[t("Copier puis coller", "نسخ ثم لصق"),t("Couper puis coller", "قص ثم لصق"),t("Renommer", "إعادة تسمية")],answer:1 },
+    { question: t("Comment récupérer brouillon.txt ?", "كيف تسترجع brouillon.txt؟"),image:{src:"session3/visuels/corbeille.svg",alt:t("Brouillon dans la Corbeille", "المسودة في سلة المحذوفات")},choices:[t("Restaurer", "استعادة"),t("Renommer", "إعادة تسمية"),t("Supprimer", "حذف")],answer:0 },
   ],
 };
