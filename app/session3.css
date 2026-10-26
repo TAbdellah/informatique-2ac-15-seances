@@ -197,23 +197,42 @@
 .s3-guided-folder > svg { fill: #f6d774; color: #c79620; }
 .s3-guided-folder > button { padding: 10px 20px; border: 1px solid #91b8ce; border-radius: 7px; background: #eaf4fa; font-size: 18px; }
 .s3-guided-empty { margin: 17px 0; color: #587186; font-size: 19px; }
-.s3-essential-notebook { padding: 27px 30px 27px 65px; }
-.s3-essential-notebook .notebook-heading h2 { font-size: 27px; }
-.s3-essential-notebook .notebook-heading .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 8px 16px; }
-.s3-essential-notebook .notebook-lines { margin-top: 20px; }
-.s3-essential-notebook .notebook-lines p { display: flex; align-items: baseline; gap: 10px; min-height: 0; margin: 0 0 13px; font-size: 19px; line-height: 1.6; }
-.s3-essential-notebook .notebook-lines p:last-child { margin-bottom: 0; }
-.s3-essential-notebook .notebook-lines .bilingual-copy { flex-flow: row wrap; align-items: baseline; gap: 3px 14px; }
-.s3-essential-notebook .notebook-lines .bilingual-copy-ar { color: #2058a8; opacity: 1; font-size: 18px; }
+.notebook.s3-os-notebook { max-width: 880px; min-height: 0; margin: 0 auto; padding: 22px 24px 24px 70px; background-image: none; }
+.s3-os-heading { margin-bottom: 14px; text-align: center; }
+.s3-os-heading small { color: #6a777d; font-size: 12px; }
+.s3-os-heading h2 { margin: 7px 0 0; color: #17384d; font-size: clamp(21px, 2.3vw, 28px); line-height: 1.4; }
+.s3-trace-pair { display: flex; flex-flow: row wrap; align-items: baseline; gap: 2px 16px; }
+.s3-trace-pair > span { min-width: 0; unicode-bidi: isolate; overflow-wrap: anywhere; }
+.s3-trace-pair > [lang="ar"] { font-family: Tahoma, "Segoe UI", Arial, sans-serif; color: #246452; }
+.s3-os-heading .s3-trace-pair { justify-content: center; }
+.s3-os-section { padding: 12px 15px; margin-top: 9px; border: 1px solid #899ba5; border-radius: 5px; background: #fff; }
+.s3-os-section h3 { margin: 0 0 7px; color: #17384d; font-size: 17px; line-height: 1.5; }
+.s3-os-section p, .s3-os-section ul, .s3-os-section ol { margin: 0; font-size: 17px; line-height: 1.55; }
+.s3-os-definition .s3-trace-pair { flex-direction: column; align-items: stretch; gap: 4px; }
+.s3-os-section > ul { padding-inline-start: 20px; }
+.s3-os-section > ul > li + li { margin-top: 4px; }
+.s3-os-section > ul > li::marker { color: #17384d; }
+.s3-os-section .s3-os-examples { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; list-style: none; }
+.s3-os-section .s3-os-examples > li { flex: 1 0 auto; margin: 0; padding: 4px 10px; border: 1px solid #adb9bf; background: #f8fafb; text-align: center; font-size: 16px; font-weight: 650; }
+.s3-os-architecture h3 .s3-trace-pair { justify-content: center; }
+.s3-os-chain { display: flex; flex-direction: column; align-items: center; padding: 0; list-style: none; }
+.s3-os-chain > li { display: flex; flex-direction: column; align-items: center; width: min(100%, 390px); }
+.s3-os-chain > li > div { width: 100%; padding: 5px 12px; border: 1px solid #899ba5; text-align: center; background: #fbfcfd; font-weight: 650; }
+.s3-os-chain > li > div .s3-trace-pair { justify-content: center; gap: 2px 12px; }
+.s3-os-chain > li:nth-child(3) > div { border-color: #287b69; background: #f0f8f4; }
+.s3-os-chain svg { flex: 0 0 auto; margin: 2px 0; color: #17384d; }
 @media (max-width: 650px) {
  .s3-guided-files .s3-file-toolbar { gap: 8px; padding: 10px; }
  .s3-guided-files .s3-file-toolbar button { padding: 9px 12px; font-size: 16px; }
  .s3-guided-goal-picture { gap: 13px; }
  .s3-guided-items { padding: 15px; gap: 13px; }
  .s3-guided-photo, .s3-guided-folder { width: 145px; padding: 11px; }
- .s3-essential-notebook { padding: 23px 20px 23px 52px; }
+ .notebook.s3-os-notebook { padding: 18px 12px; }
+ .s3-os-notebook .notebook-margin { display: none; }
+ .s3-os-section { padding: 11px 12px; }
+ .s3-os-section h3 { font-size: 16px; }
+ .s3-os-section p, .s3-os-section ul, .s3-os-section ol { font-size: 16px; }
+ .s3-os-section > ul:not(.s3-os-examples) .s3-trace-pair { flex-direction: column; align-items: stretch; }
 }
 .s3-visual-exercise .sequence-bank:has(button:nth-child(4)) { grid-template-columns: repeat(2,minmax(0,1fr)); }
 @media (max-width: 750px) { .s3-visual-exercise .sequence-bank:has(button:nth-child(4)) { grid-template-columns: 1fr; } }
-.s3-essential-notebook { min-height: 0; }
-.s3-essential-notebook .notebook-heading h2 span { font-size: inherit; color: inherit; letter-spacing: 0; text-transform: none; }

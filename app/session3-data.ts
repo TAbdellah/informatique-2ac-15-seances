@@ -2,6 +2,27 @@ import type { CourseSession, LocalizedText } from "./course-data";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 
+export const session3Trace = {
+  title: t("Système d’exploitation", "نظام التشغيل"),
+  definition: t(
+    "Le système d’exploitation (OS) est le logiciel de base qui permet d’utiliser l’appareil. Il fait le lien entre l’utilisateur et le matériel.",
+    "نظام التشغيل هو البرنامج الأساسي الذي يتيح استعمال الجهاز، ويربط بين المستخدم والمعدات."
+  ),
+  functions: [
+    t("Cliquer et interagir avec l’écran.", "النقر والتفاعل مع الشاشة."),
+    t("Ouvrir et utiliser des applications.", "فتح التطبيقات واستعمالها."),
+    t("Créer et enregistrer des fichiers.", "إنشاء الملفات وحفظها."),
+    t("Utiliser les périphériques.", "استعمال الملحقات."),
+  ],
+  examples: ["Windows", "Linux", "macOS", "Android", "iOS", "HarmonyOS"],
+  architecture: [
+    t("Utilisateur", "المستخدم"),
+    t("Applications", "التطبيقات"),
+    t("Système d’exploitation", "نظام التشغيل"),
+    t("Matériel informatique", "المعدات المعلوماتية"),
+  ],
+};
+
 export const session3Schedule = [
   { time: "0–5", minutes: 5, title: t("Je m’installe et je découvre le défi", "أستعد وأتعرف على التحدي") },
   { time: "5–15", minutes: 10, title: t("Rappel 1 · Information et traitement", "تذكير 1 · المعلومة والمعالجة") },
@@ -38,11 +59,10 @@ export const session3: CourseSession = {
   ],
   deliverable: t("25 activités visuelles. Défi guidé : ranger photo.jpg dans Photos. Chacun manipule à son tour.", "25 نشاطا بصريا. تحد موجه: وضع photo.jpg داخل Photos. يستعمل كل تلميذ الحاسوب بالتناوب."),
   trace: [
-    t("Le système d’exploitation gère le matériel, les applications et les fichiers (Windows, Android).", "يدير نظام التشغيل المعدات والتطبيقات والملفات، مثل Windows وAndroid."),
-    t("Démarrer ouvre les applications ; la barre des tâches permet de les retrouver.", "يفتح ابدأ التطبيقات ويسمح شريط المهام بالعودة إليها."),
-    t("Un fichier contient des informations ; un dossier organise les fichiers.", "يحتوي الملف على معلومات وينظم المجلد الملفات."),
-    t("Copier crée un double ; déplacer change l’emplacement.", "ينشئ النسخ نسخة إضافية ويغير النقل مكان الملف."),
-    t("L’extension indique le format : .jpg (image), .txt (texte).", "يدل الامتداد على الصيغة: .jpg للصورة و.txt للنص."),
+    session3Trace.definition,
+    ...session3Trace.functions,
+    t(`Exemples : ${session3Trace.examples.join(", ")}.`, `أمثلة: ${session3Trace.examples.join("، ")}.`),
+    t(session3Trace.architecture.map((item) => item.fr).join(" → "), session3Trace.architecture.map((item) => item.ar).join(" ← ")),
   ],
   vocabulary: [],
   quiz: [

@@ -51,6 +51,7 @@ import {
 } from "./unit1-labs";
 import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
 import { Session3GuidedFiles } from "./session3-guided-files";
+import { Session3Trace } from "./session3-trace";
 import {
   getSessionAccess,
   registerParticipant,
@@ -2005,11 +2006,12 @@ function WorkshopView({
 }
 
 function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
+  if (session.id === 3) return <Session3Trace />;
   const labels = ui[lang];
   const hasSections = Boolean(session.traceSections?.length);
   return (
     <div className="tab-content page-enter">
-      <article className={`notebook ${hasSections ? "notebook-expanded" : ""} ${session.id === 3 ? "s3-essential-notebook" : ""}`}>
+      <article className={`notebook ${hasSections ? "notebook-expanded" : ""}`}>
         <div className="notebook-margin" aria-hidden="true" />
         <div className="notebook-heading">
           <div>
@@ -2018,7 +2020,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
               ? txt({ fr: "Rappel sur le système informatique", ar: "تذكير بالنظام المعلوماتي" }, lang)
               : session.id === 2
                 ? txt({ fr: "Environnement matériel d’un système informatique", ar: "البيئة المادية لنظام معلوماتي" }, lang)
-              : session.id === 3 ? <BilingualText value={{ fr: "L’essentiel à retenir", ar: "الخلاصة الأساسية" }} /> : txt(session.title, lang)}</h2>
+              : txt(session.title, lang)}</h2>
             {session.id === 2 && (
               <h3 className="notebook-subtitle">
                 {txt({ fr: "I- La configuration monoposte", ar: "I- التجهيز أحادي الحاسوب" }, lang)}
@@ -2048,7 +2050,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
                 ) : null}
                 {section.items.length > 0 && (
                   <ul>
-                    {section.items.map((item) => <li key={item.fr}>{session.id === 3 ? <BilingualText value={item} /> : txt(item, lang)}</li>)}
+                    {section.items.map((item) => <li key={item.fr}>{txt(item, lang)}</li>)}
                   </ul>
                 )}
               </section>
@@ -2057,7 +2059,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
         ) : (
           <div className="notebook-lines">
             {session.trace.map((line, index) => (
-              <p key={line.fr}><strong>{index + 1}.</strong> {session.id === 3 ? <BilingualText value={line} /> : txt(line, lang)}</p>
+              <p key={line.fr}><strong>{index + 1}.</strong> {txt(line, lang)}</p>
             ))}
           </div>
         )}
