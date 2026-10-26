@@ -49,6 +49,7 @@ import {
   unit1Labs,
   type Unit1Exercise,
 } from "./unit1-labs";
+import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
 import {
   getSessionAccess,
   registerParticipant,
@@ -86,6 +87,7 @@ type ExerciseDraft = {
   diagnosticComponent: number | null;
   diagnosticRepair: number | null;
   gestureProgress: number;
+  systemLab?: SystemLabState;
   result: boolean | null;
 };
 
@@ -107,6 +109,16 @@ function session2PreviewTab(): ViewTab | null {
 
 function isSession2EvaluationPreview() {
   return session2PreviewTab() === "quiz";
+}
+
+function session3PreviewTab(): ViewTab | null {
+  if (process.env.NODE_ENV !== "development" || typeof window === "undefined") return null;
+  const preview = new URLSearchParams(window.location.search).get("preview");
+  if (preview === "session3-mission") return "mission";
+  if (preview === "session3-workshop") return "workshop";
+  if (preview === "session3-trace") return "trace";
+  if (preview === "session3-evaluation") return "quiz";
+  return null;
 }
 
 const ui = {
@@ -695,7 +707,7 @@ function Dashboard({
         </div>
         <div className="hero-data">
           <div className="hero-stat hero-stat-main">
-            <span>41</span>
+            <span>{Object.values(unit1Labs).reduce((total, lab) => total + lab.exercises.length, 0)}</span>
             <small>{lang === "fr" ? "exercices interactifs dans l’unité 1" : "تمرينًا تفاعليًا في الوحدة 1"}</small>
           </div>
           <div className="hero-stat"><span>15</span><small>{labels.sessions}</small></div>
@@ -908,7 +920,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
             ))}
           </section>
         </>
-      ) : (
+      ) : session.id === 3 ? <Session3Overview /> : (
         <article className="content-card situation-card simple-situation">
           <span className="card-kicker"><FolderKanban size={16} /> {labels.situation}</span>
           <div className="situation-parts">
@@ -978,7 +990,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
             <span className="card-kicker">{labels.objectives}</span>
             <ol className="objective-list">
               {session.objectives.map((objective, index) => (
-                <li key={objective.fr}><span>{index + 1}</span><p>{txt(objective, lang)}</p></li>
+                <li key={objective.fr}><span>{index + 1}</span><p>{session.id === 3 ? <BilingualText value={objective} /> : txt(objective, lang)}</p></li>
               ))}
             </ol>
           </article>
@@ -1099,12 +1111,13 @@ function ExercisePlayer({
   const [gestureProgress, setGestureProgress] = useState(
     draft?.gestureProgress ?? (exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0)
   );
+  const [systemLab, setSystemLab] = useState<SystemLabState | undefined>(draft?.systemLab);
   const [result, setResult] = useState<boolean | null>(draft ? draft.result : (alreadyCompleted ? true : null));
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, result });
-  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, result, onDraftChange]);
+    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, result });
+  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, result, onDraftChange]);
   const choiceOrder = useMemo(
     () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
     [exercise],
@@ -1135,6 +1148,7 @@ function ExercisePlayer({
     conversions: { fr: "Conversions", ar: "تحويلات" },
     diagnostic: { fr: "Diagnostic en 2 étapes", ar: "تشخيص في مرحلتين" },
     gesture: { fr: "Manipulation", ar: "تطبيق عملي" },
+    "system-lab": { fr: "Manipulation guidée", ar: "تطبيق موجه" },
   };
   const currentTypeLabel = exercise.type === "match" && exercise.interaction === "drag"
     ? { fr: "Glisser-déposer", ar: "سحب وإفلات" }
@@ -1627,7 +1641,19 @@ function ExercisePlayer({
         </div>
       )}
 
-      {exercise.type !== "gesture" && (
+      {exercise.type === "system-lab" && (
+        <Session3SystemLab mode={exercise.mode} initialState={systemLab} onStateChange={setSystemLab} onValidate={(state, checks) => recordResult(checks.every(Boolean), {
+          question: exercise.prompt,
+          mode: exercise.mode,
+          environment: "simulation",
+          checks,
+          completedMissions: checks.filter(Boolean).length,
+          totalMissions: checks.length,
+          state,
+        })} />
+      )}
+
+      {exercise.type !== "gesture" && exercise.type !== "system-lab" && (
         <div className="exercise-actions">
           <button className="check-exercise" disabled={!canCheck} onClick={checkCurrent}>
             <CheckCircle2 size={17} />{lang === "fr" ? "Vérifier ma réponse" : "التحقق من جوابي"}
@@ -1695,10 +1721,13 @@ function Unit1Workshop({
     setCompletedExercises(new Set());
     const stored = window.localStorage.getItem(`lab2ac-unit1-session-${session.id}-${participantId}`);
     if (stored) {
-      try { setCompletedExercises(new Set(JSON.parse(stored) as string[])); } catch { /* Ignore malformed local data. */ }
+      try {
+        const storedIds = JSON.parse(stored) as string[];
+        setCompletedExercises(new Set(storedIds.filter((id) => lab.exercises.some((item) => item.id === id))));
+      } catch { /* Ignore malformed local data. */ }
     }
     setProgressLoaded(true);
-  }, [participantId, session.id]);
+  }, [participantId, session.id, lab]);
 
   useEffect(() => {
     if (!progressLoaded) return;
@@ -1722,6 +1751,11 @@ function Unit1Workshop({
 
   return (
     <div className="tab-content unit1-lab page-enter">
+      {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exerciseIndex < 7
+        ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
+        : exerciseIndex < 9
+          ? { fr: "Étape 2 · Je découvre le système d’exploitation — 20 min", ar: "المرحلة 2 · أكتشف نظام التشغيل — 20 دقيقة" }
+          : { fr: "Étape 3 · Je manipule Windows et j’organise mes fichiers — 50 min", ar: "المرحلة 3 · أستعمل Windows وأنظم ملفاتي — 50 دقيقة" }} /></div>}
       <div className="exercise-counter" ref={exerciseAnchorRef}>
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
@@ -1746,7 +1780,7 @@ function Unit1Workshop({
       <ExerciseNavigation
         index={exerciseIndex}
         total={lab.exercises.length}
-        done={completedExercises.size}
+        done={lab.exercises.filter((item) => completedExercises.has(item.id)).length}
         lang={lang}
         onPrevious={() => setExerciseIndex((current) => Math.max(0, current - 1))}
         onNext={() => exerciseIndex === lab.exercises.length - 1 ? onGoToTrace() : setExerciseIndex((current) => current + 1)}
@@ -1966,7 +2000,7 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
                 ) : null}
                 {section.items.length > 0 && (
                   <ul>
-                    {section.items.map((item) => <li key={item.fr}>{txt(item, lang)}</li>)}
+                    {section.items.map((item) => <li key={item.fr}>{session.id === 3 ? <BilingualText value={item} /> : txt(item, lang)}</li>)}
                   </ul>
                 )}
               </section>
@@ -2629,6 +2663,10 @@ function QuizView({
 
   return (
     <div className="tab-content simple-quiz page-enter">
+      {session.id === 3 && <aside className="s3-native-note"><MonitorCog size={22} /><BilingualText value={{
+        fr: "Bilan individuel · 10 min. Réponds aux 6 questions, puis crée un dossier Bilan sur ton poste et copies-y un fichier d’exercice. Explique la différence entre copier et déplacer. Le professeur vérifie la manipulation sur Windows.",
+        ar: "تقويم فردي · 10 دقائق. أجب عن الأسئلة الستة ثم أنشئ مجلدا باسم Bilan على حاسوبك وانسخ إليه ملفا من التمرين. اشرح الفرق بين النسخ والنقل. يتحقق الأستاذ من التطبيق في Windows.",
+      }} /></aside>}
       {session.id === 2 && (
         <div className="evaluation-stage-tabs" role="tablist" aria-label="Étapes de l’évaluation / مراحل التقويم">
           <button type="button" role="tab" aria-selected={evaluationStage === "simulator"} onClick={() => setEvaluationStage("simulator")}>
@@ -2920,6 +2958,7 @@ export default function HomePage() {
   const [sessionAccess, setSessionAccess] = useState<SessionAccess[]>([]);
   const [sessionAccessLoaded, setSessionAccessLoaded] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [previewSessionId, setPreviewSessionId] = useState(2);
   const mainRef = useRef<HTMLElement>(null);
   const submissionFlushRef = useRef(false);
   const saveStatusTimerRef = useRef<number | null>(null);
@@ -2927,21 +2966,24 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
-      const previewTab = session2PreviewTab();
+      const preview3Tab = session3PreviewTab();
+      const previewTab = preview3Tab ?? session2PreviewTab();
+      const previewSessionId = preview3Tab ? 3 : 2;
       if (previewTab) {
         const previewProfile: StudentProfile = {
           id: "00000000-0000-4000-8000-000000000002",
-          studentOne: "Élève test · Séance 2",
+          studentOne: `Élève test · Séance ${previewSessionId}`,
           studentTwo: null,
           className: "2/1",
           groupName: "1",
           isPair: false,
         };
         setPreviewMode(true);
+        setPreviewSessionId(previewSessionId);
         setStudentProfile(previewProfile);
-        setSessionAccess([{ sessionId: 2, isUnlocked: true, updatedAt: new Date().toISOString() }]);
+        setSessionAccess([{ sessionId: previewSessionId, isUnlocked: true, updatedAt: new Date().toISOString() }]);
         setSessionAccessLoaded(true);
-        setSelectedId(2);
+        setSelectedId(previewSessionId);
         setActiveTab(previewTab);
         autoOpenedSessionRef.current = true;
         setIdentityLoaded(true);
@@ -3032,7 +3074,7 @@ export default function HomePage() {
       return;
     }
     if (previewMode) {
-      setSessionAccess([{ sessionId: 2, isUnlocked: true, updatedAt: new Date().toISOString() }]);
+      setSessionAccess([{ sessionId: previewSessionId, isUnlocked: true, updatedAt: new Date().toISOString() }]);
       setSessionAccessLoaded(true);
       return;
     }
@@ -3058,7 +3100,7 @@ export default function HomePage() {
       cancelled = true;
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
     };
-  }, [previewMode, studentProfile]);
+  }, [previewMode, studentProfile, previewSessionId]);
 
   const unlockedSessions = useMemo(
     () => new Set(sessionAccess.filter((session) => session.isUnlocked).map((session) => session.sessionId)),

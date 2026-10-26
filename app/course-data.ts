@@ -1,3 +1,5 @@
+import { session3 } from "./session3-data";
+
 export type Lang = "fr" | "ar";
 
 export type LocalizedText = {
@@ -394,73 +396,7 @@ export const sessions: CourseSession[] = [
       },
     ],
   },
-  {
-    id: 3,
-    unit: 1,
-    title: t("Environnement système", "بيئة النظام"),
-    subtitle: t("Système d’exploitation, Bureau, fichiers et dossiers", "نظام التشغيل وسطح المكتب والملفات والمجلدات"),
-    mission: t("Prendre en main le Bureau puis réorganiser correctement l’espace numérique d’une classe.", "التعرف على سطح المكتب ثم إعادة تنظيم الفضاء الرقمي للقسم بشكل صحيح."),
-    situation: t("Après la connexion, un élève ne sait pas où trouver les applications. Le Bureau contient aussi des fichiers mal nommés et mélangés.", "بعد تسجيل الدخول لا يعرف تلميذ مكان التطبيقات، كما يحتوي سطح المكتب على ملفات مختلطة وأسماء غير واضحة."),
-    objectives: [
-      t("Définir le système d’exploitation et reconnaître des exemples.", "تعريف نظام التشغيل والتعرف على أمثلة."),
-      t("Repérer les principaux éléments du Bureau.", "تحديد العناصر الأساسية لسطح المكتب."),
-      t("Distinguer fichier, dossier, nom et extension.", "التمييز بين الملف والمجلد والاسم والامتداد."),
-      t("Créer une arborescence puis copier, déplacer, renommer, rechercher et supprimer sans risque.", "إنشاء شجرة مجلدات ثم النسخ والنقل وإعادة التسمية والبحث والحذف بأمان."),
-    ],
-    workshops: [
-      { label: "A", duration: 35, text: t("Explorer un Bureau Windows, identifier ses zones et reconnaître fichiers, dossiers et extensions.", "استكشاف سطح مكتب Windows وتحديد مناطقه والتعرف على الملفات والمجلدات والامتدادات.") },
-      { label: "B", duration: 50, text: t("Construire une arborescence, choisir les bonnes opérations puis résoudre le Bureau désordonné.", "بناء شجرة مجلدات واختيار العمليات المناسبة ثم حل مشكلة سطح المكتب غير المنظم.") },
-    ],
-    deliverable: t("14 exercices réussis + arborescence 2AC/Informatique/Travaux correctement organisée.", "إنجاز 14 تمرينا + شجرة 2AC/Informatique/Travaux منظمة بشكل صحيح."),
-    trace: [
-      t("Le système d’exploitation gère le matériel, les applications et les fichiers.", "يدير نظام التشغيل المعدات والتطبيقات والملفات."),
-      t("Le Bureau est l’interface principale affichée après la connexion.", "سطح المكتب هو الواجهة الرئيسية بعد تسجيل الدخول."),
-      t("Un fichier contient des données ; un dossier organise des fichiers et d’autres dossiers.", "يحتوي الملف على معطيات وينظم المجلد الملفات والمجلدات الأخرى."),
-      t("L’extension indique le type du fichier ; un nom clair facilite la recherche.", "يبين الامتداد نوع الملف ويسهل الاسم الواضح البحث."),
-    ],
-    traceSections: [
-      {
-        title: t("1. Système d’exploitation", "1. نظام التشغيل"),
-        items: [
-          t("Un système d’exploitation est un logiciel de base qui gère le matériel, les applications et les fichiers.", "نظام التشغيل برنامج أساسي يدير المعدات والتطبيقات والملفات."),
-          t("Exemples : Windows, Linux, macOS et Android.", "أمثلة: Windows وLinux وmacOS وAndroid."),
-        ],
-      },
-      {
-        title: t("2. Le Bureau", "2. سطح المكتب"),
-        items: [
-          t("Le Bureau est l’écran principal affiché après la connexion.", "سطح المكتب هو الشاشة الرئيسية بعد تسجيل الدخول."),
-          t("La barre des tâches gère les applications ouvertes ; le bouton Démarrer donne accès aux applications et paramètres.", "يدير شريط المهام التطبيقات المفتوحة ويتيح زر ابدأ الوصول إلى التطبيقات والإعدادات."),
-          t("Les icônes sont des raccourcis ; la zone de notification affiche heure, volume, batterie et réseau.", "الأيقونات اختصارات وتعرض منطقة الإشعارات الوقت والصوت والبطارية والشبكة."),
-        ],
-      },
-      {
-        title: t("3. Fichiers et dossiers", "3. الملفات والمجلدات"),
-        items: [
-          t("Un fichier contient des informations ; un dossier range des fichiers et des sous-dossiers.", "يحتوي الملف على معلومات ويرتب المجلد الملفات والمجلدات الفرعية."),
-          t("Un fichier possède un nom, une extension, une taille et une date de modification.", "للملف اسم وامتداد وحجم وتاريخ تعديل."),
-          t("Extensions courantes : .docx ou .txt (texte), .jpg ou .png (image), .mp3 (audio), .mp4 (vidéo), .xlsx (tableur), .pdf (document).", "امتدادات شائعة: .docx أو .txt للنص و.jpg أو .png للصورة و.mp3 للصوت و.mp4 للفيديو و.xlsx للجدول و.pdf للوثيقة."),
-        ],
-      },
-      {
-        title: t("4. Organiser et agir", "4. التنظيم والعمليات"),
-        items: [
-          t("Une arborescence organise les dossiers du général vers le particulier.", "تنظم شجرة المجلدات من العام إلى الخاص."),
-          t("Copier crée un double ; couper puis coller déplace ; renommer change le nom ; rechercher retrouve ; supprimer envoie à la Corbeille.", "ينشئ النسخ نسخة إضافية وينقل القص ثم اللصق ويغير إعادة التسمية الاسم ويجد البحث الملف ويرسل الحذف إلى سلة المحذوفات."),
-          t("Avant de supprimer, vérifier le fichier. Après l’enregistrement, vérifier son nom et son emplacement.", "قبل الحذف تحقق من الملف، وبعد الحفظ تحقق من اسمه ومكانه."),
-        ],
-      },
-    ],
-    vocabulary: [t("Système d’exploitation", "نظام تشغيل"), t("Bureau", "سطح المكتب"), t("Fichier", "ملف"), t("Dossier", "مجلد"), t("Extension", "امتداد"), t("Arborescence", "شجرة المجلدات"), t("Corbeille", "سلة المحذوفات")],
-    quiz: [
-      { question: t("Quel logiciel gère le matériel et les applications ?", "أي برنامج يدير المعدات والتطبيقات؟"), choices: [t("Le système d’exploitation", "نظام التشغيل"), t("Une photo", "صورة"), t("Un câble", "سلك")], answer: 0 },
-      { question: t("Le bouton Démarrer donne accès…", "يتيح زر ابدأ الوصول إلى…"), choices: [t("aux applications et paramètres", "التطبيقات والإعدادات"), t("au processeur physique", "المعالج المادي"), t("au papier", "الورق")], answer: 0 },
-      { question: t("Quel élément peut contenir des fichiers ?", "أي عنصر يمكنه احتواء ملفات؟"), choices: [t("Un dossier", "مجلد"), t("Une extension", "امتداد"), t("Le pointeur", "المؤشر")], answer: 0 },
-      { question: t("Dans Photo.jpg, .jpg est…", "في Photo.jpg، تمثل .jpg…"), choices: [t("l’extension", "الامتداد"), t("le dossier", "المجلد"), t("la taille", "الحجم")], answer: 0 },
-      { question: t("Copier un fichier signifie…", "نسخ ملف يعني…"), choices: [t("le déplacer", "نقله"), t("créer un double", "إنشاء نسخة"), t("le renommer", "إعادة تسميته")], answer: 1 },
-      { question: t("Quel nom est le plus clair ?", "ما الاسم الأكثر وضوحا؟"), choices: [t("final2.xlsx", "final2.xlsx"), t("Budget_2AC_G03.xlsx", "Budget_2AC_G03.xlsx"), t("nouveau.xlsx", "nouveau.xlsx")], answer: 1 },
-    ],
-  },
+  session3,
   {
     id: 4,
     unit: 2,

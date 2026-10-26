@@ -81,9 +81,9 @@ export const beginnerGuides: Record<number, LocalizedText[]> = {
     t("Utilise la molette pour descendre sans tirer la barre de défilement.", "استعمل عجلة الفأرة للنزول دون سحب شريط التمرير."),
   ],
   3: [
-    t("Double-clique sur un dossier pour l’ouvrir ; utilise la flèche Retour pour revenir.", "انقر نقرا مزدوجا على المجلد لفتحه واستعمل سهم الرجوع للعودة."),
-    t("Pour renommer : clic droit, Renommer, écrire, puis Entrée.", "لإعادة التسمية: زر الفأرة الأيمن ثم Renommer ثم الكتابة وEntrée."),
-    t("Enregistre souvent avec Ctrl + S.", "احفظ عملك باستمرار باستعمال Ctrl + S."),
+    t("Commence par les 7 exercices de rappel des séances 1 et 2.", "ابدأ بالتمارين السبعة للتذكير بالحصتين 1 و2."),
+    t("Pars des gestes que tu connais sur Android pour comprendre Windows.", "انطلق من الحركات التي تعرفها في Android لفهم Windows."),
+    t("Entraîne-toi dans les simulations, puis refais les gestes sur Windows avec ton binôme.", "تدرب في المحاكاة ثم أعد الحركات في Windows مع زميلك."),
   ],
   4: [
     t("Double-clique sur BeeBEEP, puis attends l’ouverture sans cliquer plusieurs fois.", "انقر نقرا مزدوجا على BeeBEEP ثم انتظر الفتح دون تكرار النقر."),

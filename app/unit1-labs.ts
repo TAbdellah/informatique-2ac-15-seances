@@ -1,4 +1,5 @@
 import type { Lang, LocalizedText } from "./course-data";
+import { session3Lab } from "./session3-lab-data";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 
@@ -73,6 +74,11 @@ export type GestureExercise = ExerciseBase & {
   mode: "precision" | "double" | "typing";
 };
 
+export type SystemLabExercise = ExerciseBase & {
+  type: "system-lab";
+  mode: "windows" | "files";
+};
+
 export type Unit1Exercise =
   | ChoiceExercise
   | MultiExercise
@@ -81,6 +87,7 @@ export type Unit1Exercise =
   | TextExercise
   | ConversionExercise
   | DiagnosticExercise
+  | SystemLabExercise
   | GestureExercise;
 
 export type Unit1Lab = {
@@ -113,11 +120,6 @@ const enterKeysImage: ExerciseImage = {
   caption: t("Repère les deux touches Entrée du clavier", "لاحظ زري Enter في لوحة المفاتيح"),
 };
 
-const desktopImage: ExerciseImage = {
-  src: "https://i.imgur.com/cwhu6dv.png",
-  alt: t("Capture réelle d’un bureau Windows", "لقطة حقيقية لسطح مكتب Windows"),
-  caption: t("Bureau Windows · support du cours", "سطح مكتب Windows · دعامة الدرس"),
-};
 
 const session2Image = (file: string, fr: string, ar: string): ExerciseImage => ({
   src: `session2/${file}`,
@@ -596,195 +598,5 @@ export const unit1Labs: Record<1 | 2 | 3, Unit1Lab> = {
       },
     ],
   },
-  3: {
-    title: t("Laboratoire 3 · Bureau, fichiers et dossiers", "المختبر 3 · سطح المكتب والملفات والمجلدات"),
-    subtitle: t(
-      "14 exercices : système d’exploitation, bureau, extensions, rangement et opérations.",
-      "14 تمرينا: نظام التشغيل وسطح المكتب والامتدادات والترتيب والعمليات."
-    ),
-    exercises: [
-      {
-        id: "s3-os-definition",
-        type: "choice",
-        level: "start",
-        title: t("Définir le système d’exploitation", "تعريف نظام التشغيل"),
-        prompt: t("Un système d’exploitation est…", "نظام التشغيل هو…"),
-        choices: [
-          t("un logiciel de base qui gère le matériel et les applications", "برنامج أساسي يدير المعدات والتطبيقات"),
-          t("un fichier image", "ملف صورة"),
-          t("un câble réseau", "سلك شبكة"),
-        ],
-        answer: 0,
-        feedback: t("Sans système d’exploitation, l’utilisateur ne peut pas piloter facilement l’ordinateur.", "بدون نظام تشغيل لا يستطيع المستخدم التحكم بسهولة في الحاسوب."),
-      },
-      {
-        id: "s3-os-exemples",
-        type: "multi",
-        level: "start",
-        title: t("Reconnaître les systèmes", "التعرف على الأنظمة"),
-        prompt: t("Sélectionne uniquement les systèmes d’exploitation.", "حدد أنظمة التشغيل فقط."),
-        choices: [t("Windows", "Windows"), t("Linux", "Linux"), t("macOS", "macOS"), t("Android", "Android"), t("Clavier", "لوحة مفاتيح"), t("PDF", "PDF")],
-        answers: [0, 1, 2, 3],
-        feedback: t("Windows, Linux, macOS et Android sont des systèmes d’exploitation.", "Windows وLinux وmacOS وAndroid أنظمة تشغيل."),
-      },
-      {
-        id: "s3-bureau-photo",
-        type: "choice",
-        level: "start",
-        title: t("Observer le Bureau", "ملاحظة سطح المكتب"),
-        prompt: t("Comment s’appelle l’écran principal affiché après la connexion ?", "ما اسم الشاشة الرئيسية التي تظهر بعد تسجيل الدخول؟"),
-        choices: [t("Le Bureau", "سطح المكتب"), t("Le processeur", "المعالج"), t("La corbeille physique", "سلة ورقية")],
-        answer: 0,
-        feedback: t("Le Bureau donne accès aux applications, fichiers et fonctions du système.", "يتيح سطح المكتب الوصول إلى التطبيقات والملفات ووظائف النظام."),
-        image: desktopImage,
-      },
-      {
-        id: "s3-bureau-elements",
-        type: "match",
-        level: "train",
-        title: t("Associer les éléments du Bureau", "ربط عناصر سطح المكتب"),
-        prompt: t("Associe chaque élément à sa fonction.", "اربط كل عنصر بوظيفته."),
-        categories: [
-          t("Applications ouvertes", "التطبيقات المفتوحة"),
-          t("Applications et paramètres", "التطبيقات والإعدادات"),
-          t("Raccourcis", "اختصارات"),
-          t("Heure, volume et réseau", "الوقت والصوت والشبكة"),
-        ],
-        rows: [
-          { label: t("Barre des tâches", "شريط المهام"), answer: 0 },
-          { label: t("Bouton Démarrer", "زر ابدأ"), answer: 1 },
-          { label: t("Icônes", "أيقونات"), answer: 2 },
-          { label: t("Zone de notification", "منطقة الإشعارات"), answer: 3 },
-        ],
-        feedback: t("Chaque zone du Bureau donne accès à une fonction précise.", "تمنح كل منطقة في سطح المكتب وظيفة محددة."),
-      },
-      {
-        id: "s3-fichier-dossier",
-        type: "match",
-        level: "train",
-        title: t("Distinguer fichier et dossier", "التمييز بين الملف والمجلد"),
-        prompt: t("Classe chaque élément.", "صنف كل عنصر."),
-        categories: [t("Fichier", "ملف"), t("Dossier", "مجلد")],
-        rows: [
-          { label: t("Rapport.docx", "Rapport.docx"), answer: 0 },
-          { label: t("Images", "Images"), answer: 1 },
-          { label: t("Photo.jpg", "Photo.jpg"), answer: 0 },
-          { label: t("Travaux_2AC", "Travaux_2AC"), answer: 1 },
-        ],
-        feedback: t("Un fichier contient des données ; un dossier range des fichiers et d’autres dossiers.", "يحتوي الملف على معطيات بينما يرتب المجلد الملفات والمجلدات الأخرى."),
-      },
-      {
-        id: "s3-extensions",
-        type: "match",
-        level: "train",
-        title: t("Lire les extensions", "قراءة الامتدادات"),
-        prompt: t("Associe chaque fichier à son type.", "اربط كل ملف بنوعه."),
-        categories: [t("Texte", "نص"), t("Image", "صورة"), t("Audio", "صوت"), t("Vidéo", "فيديو"), t("Tableur", "جدول إلكتروني")],
-        rows: [
-          { label: t("Lettre.docx", "Lettre.docx"), answer: 0 },
-          { label: t("Logo.png", "Logo.png"), answer: 1 },
-          { label: t("Podcast.mp3", "Podcast.mp3"), answer: 2 },
-          { label: t("Film.mp4", "Film.mp4"), answer: 3 },
-          { label: t("Budget.xlsx", "Budget.xlsx"), answer: 4 },
-        ],
-        feedback: t("L’extension placée après le point indique le format du fichier.", "يبين الامتداد الموجود بعد النقطة صيغة الملف."),
-      },
-      {
-        id: "s3-caracteristiques",
-        type: "multi",
-        level: "train",
-        title: t("Lire les propriétés d’un fichier", "قراءة خصائص الملف"),
-        prompt: t("Quelles informations font partie des caractéristiques d’un fichier ?", "ما المعلومات التي تعد من خصائص الملف؟"),
-        choices: [t("Nom", "الاسم"), t("Extension", "الامتداد"), t("Taille", "الحجم"), t("Date de modification", "تاريخ التعديل"), t("Couleur du bureau", "لون سطح المكتب")],
-        answers: [0, 1, 2, 3],
-        feedback: t("Ces quatre caractéristiques aident à identifier et retrouver un fichier.", "تساعد هذه الخصائص الأربع على تحديد الملف والعثور عليه."),
-      },
-      {
-        id: "s3-operations",
-        type: "match",
-        level: "train",
-        title: t("Choisir la bonne opération", "اختيار العملية المناسبة"),
-        prompt: t("Associe l’objectif à l’opération correcte.", "اربط الهدف بالعملية الصحيحة."),
-        categories: [t("Copier", "نسخ"), t("Couper", "قص"), t("Renommer", "إعادة تسمية"), t("Supprimer", "حذف"), t("Rechercher", "بحث")],
-        rows: [
-          { label: t("Créer un double sans enlever l’original", "إنشاء نسخة مع إبقاء الأصل"), answer: 0 },
-          { label: t("Déplacer vers un autre dossier", "نقل إلى مجلد آخر"), answer: 1 },
-          { label: t("Changer le nom", "تغيير الاسم"), answer: 2 },
-          { label: t("Envoyer à la Corbeille", "الإرسال إلى سلة المحذوفات"), answer: 3 },
-          { label: t("Retrouver rapidement", "العثور بسرعة"), answer: 4 },
-        ],
-        feedback: t("Choisir la bonne opération évite les doublons et les pertes de fichiers.", "اختيار العملية المناسبة يمنع التكرار وضياع الملفات."),
-      },
-      {
-        id: "s3-arborescence",
-        type: "sequence",
-        level: "challenge",
-        title: t("Construire une arborescence", "بناء شجرة مجلدات"),
-        prompt: t("Clique du dossier le plus général au fichier le plus précis.", "انقر من المجلد العام إلى الملف الأكثر تحديدا."),
-        steps: [t("2AC", "2AC"), t("Informatique", "Informatique"), t("Travaux", "Travaux"), t("Projet_Reseau.pdf", "Projet_Reseau.pdf")],
-        shuffled: [2, 0, 3, 1],
-        feedback: t("Une arborescence va du général vers le particulier.", "تنتقل شجرة المجلدات من العام إلى الخاص."),
-      },
-      {
-        id: "s3-nom-clair",
-        type: "choice",
-        level: "challenge",
-        title: t("Nommer clairement", "اختيار اسم واضح"),
-        prompt: t("Quel nom permet de retrouver le devoir le plus facilement ?", "أي اسم يسهل العثور على الفرض؟"),
-        choices: [t("nouveau2.docx", "nouveau2.docx"), t("Devoir_Informatique_2AC_G03.docx", "Devoir_Informatique_2AC_G03.docx"), t("document.docx", "document.docx")],
-        answer: 1,
-        feedback: t("Un nom clair indique le contenu, la classe et, si utile, le groupe.", "يبين الاسم الواضح المحتوى والقسم والمجموعة عند الحاجة."),
-      },
-      {
-        id: "s3-rangement-ordre",
-        type: "sequence",
-        level: "challenge",
-        title: t("Ranger sans perdre", "الترتيب دون ضياع"),
-        prompt: t("Remets les actions dans l’ordre pour ranger un nouveau devoir.", "رتب خطوات حفظ فرض جديد."),
-        steps: [
-          t("Créer ou ouvrir le bon dossier", "إنشاء أو فتح المجلد المناسب"),
-          t("Donner un nom clair au fichier", "منح الملف اسما واضحا"),
-          t("Enregistrer dans le dossier", "الحفظ داخل المجلد"),
-          t("Vérifier que le fichier apparaît", "التحقق من ظهور الملف"),
-        ],
-        shuffled: [2, 1, 3, 0],
-        feedback: t("Toujours vérifier le nom et l’emplacement après l’enregistrement.", "تحقق دائما من الاسم والمكان بعد الحفظ."),
-      },
-      {
-        id: "s3-taille",
-        type: "choice",
-        level: "challenge",
-        title: t("Comparer les tailles", "مقارنة الأحجام"),
-        prompt: t("Quel fichier occupe le plus d’espace ?", "أي ملف يشغل مساحة أكبر؟"),
-        choices: [t("Notes.txt · 12 kB", "Notes.txt · 12 kB"), t("Photo.jpg · 3 MB", "Photo.jpg · 3 MB"), t("Film.mp4 · 1,2 GB", "Film.mp4 · 1,2 GB")],
-        answer: 2,
-        feedback: t("1,2 GB est beaucoup plus grand que 3 MB et 12 kB.", "1,2 GB أكبر بكثير من 3 MB و12 kB."),
-      },
-      {
-        id: "s3-situation-classe",
-        type: "multi",
-        level: "challenge",
-        title: t("Situation-problème : Bureau désordonné", "وضعية مشكلة: سطح مكتب غير منظم"),
-        prompt: t("Le Bureau contient 40 fichiers mélangés. Quelles actions sont pertinentes ?", "يحتوي سطح المكتب على 40 ملفا مختلطا. ما الخطوات المناسبة؟"),
-        choices: [
-          t("Créer des dossiers par matière", "إنشاء مجلدات حسب المواد"),
-          t("Renommer les fichiers importants", "إعادة تسمية الملفات المهمة"),
-          t("Déplacer les fichiers dans les bons dossiers", "نقل الملفات إلى المجلدات المناسبة"),
-          t("Tout supprimer sans vérifier", "حذف كل شيء دون تحقق"),
-        ],
-        answers: [0, 1, 2],
-        feedback: t("On structure, renomme et déplace ; on ne supprime jamais sans vérifier.", "ننظم ونعيد التسمية وننقل، ولا نحذف دون تحقق."),
-      },
-      {
-        id: "s3-extension-texte",
-        type: "text",
-        level: "challenge",
-        title: t("Écrire une extension", "كتابة امتداد"),
-        prompt: t("Écris une extension courante de fichier image.", "اكتب امتدادا شائعا لملف صورة."),
-        placeholder: t("Ex. : .jpg", "مثال: .jpg"),
-        accepted: { fr: ["jpg", ".jpg", "jpeg", ".jpeg", "png", ".png", "gif", ".gif", "bmp", ".bmp"], ar: ["jpg", ".jpg", "jpeg", ".jpeg", "png", ".png", "gif", ".gif", "bmp", ".bmp"] },
-        feedback: t(".jpg, .png, .gif et .bmp sont des extensions d’image courantes.", ".jpg و.png و.gif و.bmp امتدادات شائعة للصور."),
-      },
-    ],
-  },
+  3: session3Lab,
 };
