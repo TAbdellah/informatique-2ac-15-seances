@@ -4,19 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Calculator, Check, Copy, FileText, Folder, FolderPlus, ImageIcon, Minus, Monitor, Pencil, RotateCcw, Scissors, Search, Trash2, X } from "lucide-react";
 import type { LocalizedText } from "./course-data";
 import { session3, session3Schedule } from "./session3-data";
+import { Session3Text } from "./session3-translation";
 import "./session3.css";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 let nextFileId = 0;
 const createLabId = () => `lab-${Date.now().toString(36)}-${++nextFileId}`;
 function CopyText({ value }: { value: LocalizedText }) {
-  return <span className="bilingual-copy"><span className="bilingual-copy-fr" lang="fr">{value.fr}</span><span className="bilingual-copy-ar" lang="ar" dir="rtl">{value.ar}</span></span>;
+  return <Session3Text value={value} />;
 }
 
 export function Session3Overview() {
   return <div className="s3-overview">
     <section className="s3-intro">
-      <span className="card-kicker">SÉANCE 3 · الحصة 3</span>
+      <span className="card-kicker"><CopyText value={t("SÉANCE 3", "الحصة 3")} /></span>
       <h2><CopyText value={t("Je me rappelle, puis je prends les commandes", "أتذكر ثم أتحكم في الحاسوب")} /></h2>
       <p><CopyText value={t("25 min pour réactiver les séances 1 et 2. Puis je comprends le système d’exploitation et je manipule Windows.", "25 دقيقة لاستحضار الحصتين 1 و2، ثم أفهم نظام التشغيل وأستعمل Windows.")} /></p>
       <div className="s3-competence"><CopyText value={t("C31 · Utiliser l’interface graphique pour interagir avec le système informatique.", "C31 · أستعمل الواجهة الرسومية للتفاعل مع النظام المعلوماتي.")} /></div>
@@ -185,7 +186,7 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
     <div className="s3-file-address">
       <button type="button" disabled={state.folder === "root"} aria-label="Dossier parent / المجلد الأب" onClick={() => navigate(state.files.find((f) => f.id === state.folder)?.parent ?? "root")}><ArrowLeft size={18} /></button>
       <div className="s3-breadcrumb"><button type="button" onClick={() => navigate("root")}>Exercice</button>{inTrash ? <span> / Corbeille</span> : breadcrumb.map((f) => <span key={f.id}> / <button type="button" onClick={() => navigate(f.id)}>{f.name}</button></span>)}</div>
-      <button type="button" className={inTrash ? "active" : ""} onClick={() => navigate(inTrash ? "root" : "trash")}><Trash2 size={16} />{inTrash ? "Exercice / التمرين" : "Corbeille / السلة"}</button>
+      <button type="button" className={inTrash ? "active" : ""} onClick={() => navigate(inTrash ? "root" : "trash")}><Trash2 size={16} /><CopyText value={inTrash ? t("Exercice", "التمرين") : t("Corbeille", "السلة")} /></button>
     </div>
     {!inTrash && <form className="s3-search" onSubmit={(event) => {
       event.preventDefault();
@@ -194,21 +195,21 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
         setState((s) => ({ ...s, flags: withFlag(s.flags, "searched-photo") }));
         setMessage(t("Recherche réussie : tu as retrouvé Photo_club.jpg.", "بحث ناجح: عثرت على Photo_club.jpg."));
       } else setMessage(t(`${visible.length} résultat(s). Pour la mission, recherche Photo_club.jpg depuis Exercice.`, `${visible.length} نتيجة. لإنجاز المهمة ابحث عن Photo_club.jpg انطلاقا من Exercice.`));
-    }}><Search size={17} /><input aria-label="Rechercher un fichier / البحث عن ملف" placeholder="Rechercher ici… / ابحث هنا…" value={state.search} onChange={(event) => setState((s) => ({ ...s, search: event.target.value, selection: null }))} /><button type="submit">Rechercher / بحث</button></form>}
+    }}><Search size={17} /><input aria-label="Rechercher un fichier / البحث عن ملف" placeholder="Rechercher ici…" value={state.search} onChange={(event) => setState((s) => ({ ...s, search: event.target.value, selection: null }))} /><button type="submit"> <CopyText value={t("Rechercher", "بحث")} /></button></form>}
     {dialog && <form className="s3-name-form" onSubmit={(event) => { event.preventDefault(); saveName(); }}>
       <label><CopyText value={dialog === "folder" ? t("Nom du nouveau dossier", "اسم المجلد الجديد") : t("Nouveau nom (garde l’extension)", "الاسم الجديد مع الحفاظ على الامتداد")} /><input autoFocus value={name} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setName(event.target.value)} /></label>
-      <button type="submit">Valider / تأكيد</button><button type="button" onClick={() => setDialog(null)}>Annuler / إلغاء</button>
+      <button type="submit"><CopyText value={t("Valider", "تأكيد")} /></button><button type="button" onClick={() => setDialog(null)}><CopyText value={t("Annuler", "إلغاء")} /></button>
     </form>}
     <div className="s3-file-list" aria-label="Contenu du dossier / محتويات المجلد">
       {!visible.length && <p><CopyText value={t("Ce dossier est vide.", "هذا المجلد فارغ.")} /></p>}
       {visible.map((file) => <div className={`s3-file ${state.selection === file.id ? "selected" : ""} ${state.clipboard?.id === file.id && state.clipboard.cut ? "cut" : ""}`} key={file.id}>
         <button type="button" aria-pressed={state.selection === file.id} onClick={() => { setState((s) => ({ ...s, selection: file.id })); setMessage(null); }} onDoubleClick={() => file.kind === "folder" && !inTrash ? navigate(file.id) : setMessage(t("Fichier sélectionné. Utilise la barre d’outils pour agir.", "تم تحديد الملف. استعمل شريط الأدوات لإنجاز العملية."))}>
-          {file.kind === "folder" ? <Folder size={29} /> : file.kind === "image" ? <ImageIcon size={27} /> : <FileText size={27} />}<span>{file.name}</span><small>{file.kind === "folder" ? "Dossier / مجلد" : file.kind === "image" ? "Image / صورة" : "Texte / نص"}</small>
+          {file.kind === "folder" ? <Folder size={29} /> : file.kind === "image" ? <ImageIcon size={27} /> : <FileText size={27} />}<span>{file.name}</span><small><CopyText value={file.kind === "folder" ? t("Dossier", "مجلد") : file.kind === "image" ? t("Image", "صورة") : t("Texte", "نص")} /></small>
         </button>
-        {file.kind === "folder" && !inTrash && <button type="button" className="s3-open-folder" onClick={() => navigate(file.id)}>Ouvrir / فتح</button>}
+        {file.kind === "folder" && !inTrash && <button type="button" className="s3-open-folder" onClick={() => navigate(file.id)}><CopyText value={t("Ouvrir", "فتح")} /></button>}
       </div>)}
     </div>
-    <div className="s3-file-status">{visible.length} élément(s) / عنصر · {current?.name ?? "Sélectionne un élément / حدد عنصرا"}</div>
+    <div className="s3-file-status"><CopyText value={t(`${visible.length} élément(s)`, `${visible.length} عنصر`)} /> · {current?.name ?? <CopyText value={t("Sélectionne un élément", "حدد عنصرا")} />}</div>
   </div>;
 
   return <section className="s3-system-lab">
@@ -218,24 +219,24 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
       <CopyText value={nextMission === -1 ? t("Toutes les missions sont réalisées. Vérifie ton travail.", "أنجزت جميع المهام. تحقق من عملك.") : tasks[nextMission]} />
     </div>
     {mode === "files" && nextMission === 0 && <figure className="s3-folder-model"><img src="session3/visuels/arborescence.svg" alt="2AC_G01 / Informatique / Travaux, avec les sous-dossiers Images et Documents" /></figure>}
-    <details className="s3-missions-details"><summary>Voir les 6 missions / عرض المهام الست</summary><ol className="s3-task-list">{tasks.map((task, i) => <li className={checks[i] ? "done" : ""} key={task.fr}><span>{checks[i] ? <Check size={16} /> : i + 1}</span><CopyText value={task} /></li>)}</ol></details>
+    <details className="s3-missions-details"><summary><CopyText value={t("Voir les 6 missions", "عرض المهام الست")} /></summary><ol className="s3-task-list">{tasks.map((task, i) => <li className={checks[i] ? "done" : ""} key={task.fr}><span>{checks[i] ? <Check size={16} /> : i + 1}</span><CopyText value={task} /></li>)}</ol></details>
     {mode === "files" ? explorer : <div className="s3-desktop">
-      <div className="s3-desktop-label"><Monitor size={24} /><span>Bureau · سطح المكتب</span></div>
+      <div className="s3-desktop-label"><Monitor size={24} /><span><CopyText value={t("Bureau", "سطح المكتب")} /></span></div>
       {state.active && (state.active !== "calculator" || !state.minimized) && <div className={`s3-app-window ${state.active === "explorer" ? "explorer" : "calculator"}`} style={{ left: `min(${state.position.x}px, max(0px, calc(100% - 330px)))`, top: state.position.y }}>
         <div className="s3-titlebar" onPointerDown={(event) => {
           if ((event.target as HTMLElement).closest("button")) return;
           drag.current = { x: event.clientX, y: event.clientY, left: state.position.x, top: state.position.y }; event.currentTarget.setPointerCapture(event.pointerId);
         }} onPointerMove={(event) => { if (drag.current) { const dx = event.clientX - drag.current.x; const dy = event.clientY - drag.current.y; if (Math.abs(dx) + Math.abs(dy) > 5) moveWindow(drag.current.left + dx, drag.current.top + dy); } }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
-          <span>{state.active === "calculator" ? <Calculator size={16} /> : <Folder size={16} />}{state.active === "calculator" ? "Calculatrice / الحاسبة" : "Explorateur / المستكشف"}</span>
+          <span>{state.active === "calculator" ? <Calculator size={16} /> : <Folder size={16} />}<CopyText value={state.active === "calculator" ? t("Calculatrice", "الحاسبة") : t("Explorateur", "المستكشف")} /></span>
           <div><button type="button" title="Déplacer la fenêtre / تحريك النافذة" onClick={() => moveWindow(state.position.x > 100 ? 30 : 135, state.position.y > 80 ? 25 : 105)}>↔</button><button type="button" aria-label="Réduire / تصغير" onClick={() => setState((s) => ({ ...s, active: null, minimized: s.active === "calculator" ? true : s.minimized, flags: s.active === "calculator" ? withFlag(s.flags, "minimized") : s.flags }))}><Minus size={17} /></button><button type="button" aria-label="Fermer / إغلاق" onClick={() => setState((s) => ({ ...s, active: null, apps: { ...s.apps, [s.active!]: false } }))}><X size={17} /></button></div>
         </div>
-        {state.active === "calculator" ? <div className="s3-calculator"><strong>2 × 1 000</strong><output>2 000</output><p>Go → Mo</p><small>Application ouverte / التطبيق مفتوح</small></div> : <div className="s3-explorer-home"><Folder size={48} /><h3>Explorateur de fichiers</h3><p lang="ar" dir="rtl">مستكشف الملفات</p><span>Documents · Images · Téléchargements</span></div>}
+        {state.active === "calculator" ? <div className="s3-calculator"><strong>2 × 1 000</strong><output>2 000</output><p>Go → Mo</p><small><CopyText value={t("Application ouverte", "التطبيق مفتوح")} /></small></div> : <div className="s3-explorer-home"><Folder size={48} /><h3><CopyText value={t("Explorateur de fichiers", "مستكشف الملفات")} /></h3><span><CopyText value={t("Documents · Images · Téléchargements", "مستندات · صور · تنزيلات")} /></span></div>}
       </div>}
-      {startOpen && <div className="s3-start-menu"><strong>Démarrer / ابدأ</strong><button type="button" onClick={() => openApp("calculator", true)}><Calculator size={24} /><CopyText value={t("Calculatrice", "الحاسبة")} /></button><button type="button" onClick={() => openApp("explorer", true)}><Folder size={24} /><CopyText value={t("Explorateur de fichiers", "مستكشف الملفات")} /></button></div>}
-      <div className="s3-taskbar"><button type="button" className="s3-start-button" onClick={() => setStartOpen((s) => !s)} aria-expanded={startOpen}><Monitor size={22} />Démarrer / ابدأ</button>{state.apps.calculator && <button type="button" className={state.active === "calculator" ? "active" : ""} onClick={() => openApp("calculator")}><Calculator size={20} />Calculatrice</button>}{state.apps.explorer && <button type="button" className={state.active === "explorer" ? "active" : ""} onClick={() => openApp("explorer")}><Folder size={20} />Explorateur</button>}</div>
+      {startOpen && <div className="s3-start-menu"><strong><CopyText value={t("Démarrer", "ابدأ")} /></strong><button type="button" onClick={() => openApp("calculator", true)}><Calculator size={24} /><CopyText value={t("Calculatrice", "الحاسبة")} /></button><button type="button" onClick={() => openApp("explorer", true)}><Folder size={24} /><CopyText value={t("Explorateur de fichiers", "مستكشف الملفات")} /></button></div>}
+      <div className="s3-taskbar"><button type="button" className="s3-start-button" onClick={() => setStartOpen((s) => !s)} aria-expanded={startOpen}><Monitor size={22} /><CopyText value={t("Démarrer", "ابدأ")} /></button>{state.apps.calculator && <button type="button" className={state.active === "calculator" ? "active" : ""} onClick={() => openApp("calculator")}><Calculator size={20} /><CopyText value={t("Calculatrice", "الحاسبة")} /></button>}{state.apps.explorer && <button type="button" className={state.active === "explorer" ? "active" : ""} onClick={() => openApp("explorer")}><Folder size={20} /><CopyText value={t("Explorateur", "المستكشف")} /></button>}</div>
     </div>}
     {message && <p className="s3-lab-message" role="status"><CopyText value={message} /></p>}
-    <div className="s3-lab-validation"><strong>{checks.filter(Boolean).length} / {checks.length} missions</strong><button type="button" onClick={() => onValidate(state, checks)}><Check size={18} />Vérifier mes missions / أتحقق من مهامي</button></div>
-    {mode === "files" && <aside className="s3-native-note"><Monitor size={20} /><div><CopyText value={t("Sur Windows : extrais le ZIP dans Documents. Refais les missions avec le nom de ton groupe.", "في Windows: استخرج ZIP داخل Documents. أعد المهام باسم مجموعتك.")} /><a href="session3/fichiers-exercice-seance3.zip" download>Télécharger les fichiers d’exercice / تحميل ملفات التمرين</a></div></aside>}
+    <div className="s3-lab-validation"><strong>{checks.filter(Boolean).length} / {checks.length} missions</strong><button type="button" onClick={() => onValidate(state, checks)}><Check size={18} /><CopyText value={t("Vérifier mes missions", "أتحقق من مهامي")} /></button></div>
+    {mode === "files" && <aside className="s3-native-note"><Monitor size={20} /><div><CopyText value={t("Sur Windows : extrais le ZIP dans Documents. Refais les missions avec le nom de ton groupe.", "في Windows: استخرج ZIP داخل Documents. أعد المهام باسم مجموعتك.")} /><a href="session3/fichiers-exercice-seance3.zip" download><CopyText value={t("Télécharger les fichiers d’exercice", "تحميل ملفات التمرين")} /></a></div></aside>}
   </section>;
 }

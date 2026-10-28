@@ -1,12 +1,10 @@
 import { ArrowDown } from "lucide-react";
 import type { LocalizedText } from "./course-data";
 import { session3Trace } from "./session3-data";
+import { Session3Text } from "./session3-translation";
 
 function TraceText({ value }: { value: LocalizedText }) {
-  return <span className="s3-trace-pair">
-    <span lang="fr" dir="ltr">{value.fr}</span>
-    <span lang="ar" dir="rtl">{value.ar}</span>
-  </span>;
+  return <Session3Text value={value} />;
 }
 
 export function Session3Trace() {
@@ -14,7 +12,7 @@ export function Session3Trace() {
     <article className="notebook s3-os-notebook" dir="ltr" aria-labelledby="s3-trace-title">
       <div className="notebook-margin" aria-hidden="true" />
       <header className="s3-os-heading">
-        <small><span lang="fr">Séance 03</span> · <span lang="ar" dir="rtl">الحصة 3</span></small>
+        <small><TraceText value={{ fr: "Séance 03", ar: "الحصة 3" }} /></small>
         <h2 id="s3-trace-title"><TraceText value={session3Trace.title} /></h2>
       </header>
 

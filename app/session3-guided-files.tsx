@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, FileText, Folder, FolderPlus, Scissors } from "lucide-react";
 import type { LocalizedText } from "./course-data";
 import { initialSystemLabState, type SystemLabState } from "./session3-system-lab";
+import { Session3Text } from "./session3-translation";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 function Copy({ value }: { value: LocalizedText }) {
-  return <span className="bilingual-copy"><span className="bilingual-copy-fr" lang="fr">{value.fr}</span><span className="bilingual-copy-ar" lang="ar" dir="rtl">{value.ar}</span></span>;
+  return <Session3Text value={value} />;
 }
 
 export function initialGuidedFilesState(): SystemLabState {
@@ -82,6 +83,6 @@ export function Session3GuidedFiles({ initialState, onStateChange, onValidate }:
       </div>
     </div>
     <div className="s3-lab-validation"><strong>{checks.filter(Boolean).length} / 6</strong><button type="button" disabled={!complete} onClick={() => onValidate(state, checks)}><Check size={18} /><Copy value={t("Vérifier mon rangement", "أتحقق من ترتيبي")} /></button></div>
-    <details className="s3-missions-details"><summary>Refaire dans Windows / التطبيق في Windows</summary><p><Copy value={t("Télécharge la photo. Avec ton professeur, refais les mêmes gestes sur le poste.", "حمل الصورة وأعد الحركات نفسها على الحاسوب بمساعدة أستاذك.")} /></p><a href="session2/items/unite-centrale-lenovo.jpg" download="photo.jpg">Télécharger photo.jpg / تحميل photo.jpg</a></details>
+    <details className="s3-missions-details"><summary><Copy value={t("Refaire dans Windows", "التطبيق في Windows")} /></summary><p><Copy value={t("Télécharge la photo. Avec ton professeur, refais les mêmes gestes sur le poste.", "حمل الصورة وأعد الحركات نفسها على الحاسوب بمساعدة أستاذك.")} /></p><a href="session2/items/unite-centrale-lenovo.jpg" download="photo.jpg"><Copy value={t("Télécharger photo.jpg", "تحميل photo.jpg")} /></a></details>
   </section>;
 }

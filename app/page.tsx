@@ -52,6 +52,8 @@ import {
 import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
 import { Session3GuidedFiles } from "./session3-guided-files";
 import { Session3Trace } from "./session3-trace";
+import { Session3Text, Session3TranslationScope, useSession3Translation } from "./session3-translation";
+import "./session3-theme.css";
 import {
   getSessionAccess,
   registerParticipant,
@@ -260,6 +262,8 @@ function bilingualAria(value: LocalizedText) {
 }
 
 function BilingualText({ value, className = "" }: { value: LocalizedText; className?: string }) {
+  const hoverTranslation = useSession3Translation();
+  if (hoverTranslation) return <Session3Text value={value} className={className} />;
   const isSharedText = value.fr.trim().toLocaleLowerCase() === value.ar.trim().toLocaleLowerCase();
 
   if (isSharedText) {
@@ -836,12 +840,12 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
               ? `${unit1Labs[session.id as 1 | 2 | 3].exercises.length} ${lang === "fr" ? "EXERCICES" : "تمرينًا"}`
               : "85 MIN PRATIQUE"}</strong>
           </div>
-          <h1>{txt(session.title, lang)}</h1>
-          <p>{txt(session.subtitle, lang)}</p>
+          <h1>{session.id === 3 ? <BilingualText value={session.title} /> : txt(session.title, lang)}</h1>
+          <p>{session.id === 3 ? <BilingualText value={session.subtitle} /> : txt(session.subtitle, lang)}</p>
         </div>
         <button className={`complete-button ${completed ? "done" : ""}`} onClick={onToggleCompleted}>
           {completed ? <CheckCircle2 size={19} /> : <Circle size={19} />}
-          {completed ? labels.completed : labels.complete}
+          {session.id === 3 ? <BilingualText value={{ fr: completed ? ui.fr.completed : ui.fr.complete, ar: completed ? ui.ar.completed : ui.ar.complete }} /> : completed ? labels.completed : labels.complete}
         </button>
         <div className="session-hero-pattern" aria-hidden="true"><span /><span /><span /><span /></div>
       </section>
@@ -989,7 +993,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
       <div className={`mission-support-grid ${session.id === 2 ? "s2-mission-support" : ""}`}>
         {session.id !== 2 && (
           <article className="content-card objective-card">
-            <span className="card-kicker">{labels.objectives}</span>
+            <span className="card-kicker">{session.id === 3 ? <BilingualText value={{ fr: ui.fr.objectives, ar: ui.ar.objectives }} /> : labels.objectives}</span>
             <ol className="objective-list">
               {session.objectives.map((objective, index) => (
                 <li key={objective.fr}><span>{index + 1}</span><p>{session.id === 3 ? <BilingualText value={objective} /> : txt(objective, lang)}</p></li>
@@ -998,18 +1002,18 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
           </article>
         )}
         <article className="content-card pair-card">
-          <span className="card-kicker"><Users size={16} /> {labels.organization}</span>
-          <div className="role-row"><span>P</span><div><strong>{labels.pilot}</strong><small>{labels.pilotText}</small></div></div>
-          <div className="role-row"><span>C</span><div><strong>{labels.copilot}</strong><small>{labels.copilotText}</small></div></div>
+          <span className="card-kicker"><Users size={16} /> {session.id === 3 ? <BilingualText value={{ fr: ui.fr.organization, ar: ui.ar.organization }} /> : labels.organization}</span>
+          <div className="role-row"><span>P</span><div><strong>{session.id === 3 ? <BilingualText value={{ fr: ui.fr.pilot, ar: ui.ar.pilot }} /> : labels.pilot}</strong><small>{session.id === 3 ? <BilingualText value={{ fr: ui.fr.pilotText, ar: ui.ar.pilotText }} /> : labels.pilotText}</small></div></div>
+          <div className="role-row"><span>C</span><div><strong>{session.id === 3 ? <BilingualText value={{ fr: ui.fr.copilot, ar: ui.ar.copilot }} /> : labels.copilot}</strong><small>{session.id === 3 ? <BilingualText value={{ fr: ui.fr.copilotText, ar: ui.ar.copilotText }} /> : labels.copilotText}</small></div></div>
         </article>
       </div>
       <button className="practice-button mission-start-button" onClick={onStartPractice}>
         <MousePointer2 size={18} />
         {session.id === 2
           ? <BilingualText value={{ fr: "J’ai compris — commencer l’atelier", ar: "فهمت — أبدأ الورشة" }} />
-          : labels.startPractice}
+          : session.id === 3 ? <BilingualText value={{ fr: ui.fr.startPractice, ar: ui.ar.startPractice }} /> : labels.startPractice}
       </button>
-      <button className="back-link mission-back-link" onClick={onBack}><ArrowLeft size={17} />{labels.back}</button>
+      <button className="back-link mission-back-link" onClick={onBack}><ArrowLeft size={17} />{session.id === 3 ? <BilingualText value={{ fr: ui.fr.back, ar: ui.ar.back }} /> : labels.back}</button>
     </div>
   );
 }
@@ -2950,13 +2954,15 @@ function SessionPage({
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
       <div className="session-student-identity">
+        {session.id === 3 && <div className="s3-brand"><span aria-hidden="true"><FlaskConical size={23} /></span><div><strong>LAB 2AC</strong><small>SÉANCE 03 · INFORMATIQUE</small></div></div>}
         <StudentIdentityBadge lang={lang} student={student} onChangeStudent={onChangeStudent} />
       </div>
+      {session.id === 3 && <p className="s3-translation-help"><Languages size={17} aria-hidden="true" /><BilingualText value={{ fr: "Survole une phrase pour lire sa traduction arabe. Éloigne le pointeur pour la masquer.", ar: "مرر المؤشر فوق عبارة لقراءة ترجمتها العربية كاملة، وأبعده لإخفائها." }} /></p>}
       <nav className="tab-nav" aria-label="Contenu de la séance">
         {tabItems.map(({ id, icon: Icon }) => (
           <button className={activeTab === id ? "active" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => showTab(id)} key={id}>
             <Icon size={17} />
-            <span>{ui.fr[id]}<small lang="ar" dir="rtl">{ui.ar[id]}</small></span>
+            {session.id === 3 ? <BilingualText value={{ fr: ui.fr[id], ar: ui.ar[id] }} /> : <span>{ui.fr[id]}<small lang="ar" dir="rtl">{ui.ar[id]}</small></span>}
           </button>
         ))}
       </nav>
@@ -3295,9 +3301,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className={`app-shell ${selected ? "session-focus" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
+    <Session3TranslationScope enabled={selected?.id === 3} scopeKey={`${selectedId}-${activeTab}`}>
+    <div className={`app-shell ${selected ? "session-focus" : ""} ${selected?.id === 3 ? "session3-theme" : ""}`} dir={selected?.id === 3 ? "ltr" : lang === "ar" ? "rtl" : "ltr"}>
       <Sidebar
-        lang={lang}
+        lang={selected?.id === 3 ? "fr" : lang}
         selectedId={selectedId}
         completed={completed}
         unlockedSessions={unlockedSessions}
@@ -3341,7 +3348,7 @@ export default function HomePage() {
             <SessionPage
               key={`${studentProfile.id}-${selected.id}`}
               session={selected}
-              lang={lang}
+              lang={selected.id === 3 ? "fr" : lang}
               student={studentProfile}
               activeTab={activeTab}
               completed={completed.has(selected.id)}
@@ -3363,5 +3370,6 @@ export default function HomePage() {
         </main>
       </div>
     </div>
+    </Session3TranslationScope>
   );
 }
