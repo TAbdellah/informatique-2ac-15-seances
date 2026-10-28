@@ -52,6 +52,10 @@ import {
 import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
 import { Session3GuidedFiles } from "./session3-guided-files";
 import { Session3Trace } from "./session3-trace";
+import { Session3ExerciseGuide } from "./session3-exercise-guides";
+import { Session3Windows11 } from "./session3-windows11";
+import { Session3Assessment } from "./session3-assessment";
+import type { WindowsState, WindowsMode } from "./session3-windows-model";
 import { Session3Text, Session3TranslationScope, useSession3Translation } from "./session3-translation";
 import "./session3-theme.css";
 import {
@@ -92,6 +96,7 @@ type ExerciseDraft = {
   diagnosticRepair: number | null;
   gestureProgress: number;
   systemLab?: SystemLabState;
+  windows11?: WindowsState;
   result: boolean | null;
 };
 
@@ -1118,12 +1123,13 @@ function ExercisePlayer({
     draft?.gestureProgress ?? (exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0)
   );
   const [systemLab, setSystemLab] = useState<SystemLabState | undefined>(draft?.systemLab);
+  const [windows11, setWindows11] = useState<WindowsState | undefined>(draft?.windows11);
   const [result, setResult] = useState<boolean | null>(draft ? draft.result : (alreadyCompleted ? true : null));
   const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, result });
-  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, result, onDraftChange]);
+    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, windows11, result });
+  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, windows11, result, onDraftChange]);
   const choiceOrder = useMemo(
     () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
     [exercise],
@@ -1277,7 +1283,7 @@ function ExercisePlayer({
     (exercise.type === "diagnostic" && diagnosticComponent !== null && diagnosticRepair !== null);
 
   return (
-    <article className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-") ? "s3-visual-exercise" : ""}`}>
+    <article data-exercise-id={exercise.id} className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-") ? "s3-visual-exercise" : ""}`}>
       <div className="exercise-copy">
         <div className="exercise-meta">
           <strong>{txt(currentTypeLabel, lang)}</strong>
@@ -1291,6 +1297,7 @@ function ExercisePlayer({
         </div>
       </div>
 
+      {exercise.id.startsWith("s3-") && <Session3ExerciseGuide id={exercise.id} />}
       {exercise.image && exercise.type !== "hotspot" && (
         <figure className="exercise-image">
           <img src={exercise.image.src} alt={bilingualAria(exercise.image.alt)} loading="lazy" referrerPolicy="no-referrer" />
@@ -1698,9 +1705,11 @@ function ExercisePlayer({
       )}
 
       {exercise.type === "system-lab" && (
-        exercise.mode === "guided-files"
+        exercise.mode.startsWith("windows11-")
+          ? <Session3Windows11 key={exercise.id} mode={exercise.mode.slice(10) as WindowsMode} initialState={windows11} onStateChange={setWindows11} onValidate={(answer,checks)=>recordResult(checks.every(Boolean),{question:exercise.prompt,...answer})} />
+          : exercise.mode === "guided-files"
           ? <Session3GuidedFiles initialState={systemLab} onStateChange={setSystemLab} onValidate={checkSystemLab} />
-          : <Session3SystemLab mode={exercise.mode} initialState={systemLab} onStateChange={setSystemLab} onValidate={checkSystemLab} />
+          : <Session3SystemLab mode={exercise.mode as "windows" | "files"} initialState={systemLab} onStateChange={setSystemLab} onValidate={checkSystemLab} />
       )}
 
       {exercise.type !== "gesture" && exercise.type !== "system-lab" && (
@@ -2717,10 +2726,6 @@ function QuizView({
 
   return (
     <div className="tab-content simple-quiz page-enter">
-      {session.id === 3 && <aside className="s3-native-note"><MonitorCog size={22} /><BilingualText value={{
-        fr: "Bilan individuel · 10 min. Réponds aux six questions.",
-        ar: "تقويم فردي · 10 دقائق. أجب عن الأسئلة الستة.",
-      }} /></aside>}
       {session.id === 2 && (
         <div className="evaluation-stage-tabs" role="tablist" aria-label="Étapes de l’évaluation / مراحل التقويم">
           <button type="button" role="tab" aria-selected={evaluationStage === "simulator"} onClick={() => setEvaluationStage("simulator")}>
@@ -2877,10 +2882,6 @@ function QuizView({
               <p>{score === maxScore ? (lang === "fr" ? "Excellent : les réponses et leurs justifications sont maîtrisées." : "ممتاز: تم إتقان الأجوبة وتعليلاتها.") : (lang === "fr" ? "Consulte les questions à revoir, puis recommence l’évaluation." : "راجع الأسئلة التي تحتاج إلى تصحيح ثم أعد التقويم.")}</p>
             </div>
           )}
-          {submitted && session.id === 3 && <aside className="s3-native-note"><MonitorCog size={22} /><BilingualText value={{
-            fr: "Sur Windows : crée un dossier Bilan et copies-y un fichier. Montre le résultat au professeur.",
-            ar: "في Windows: أنشئ مجلدا باسم Bilan وانسخ إليه ملفا. اعرض النتيجة على الأستاذ.",
-          }} /></aside>}
         </div>
       </div>
       <ExerciseNavigation
@@ -2991,7 +2992,9 @@ function SessionPage({
       )}
       {visitedTabs.includes("quiz") && (
         <section className="session-panel" data-panel="quiz" hidden={activeTab !== "quiz"}>
-          <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />
+          {session.id === 3
+            ? <Session3Assessment key={`${participantId}-3`} participantId={participantId} onRecordSubmission={onRecordSubmission} />
+            : <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />}
         </section>
       )}
 

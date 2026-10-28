@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { session3Lab } from "../session3-lab-data";
 import {
   Activity,
   ArrowLeft,
@@ -211,7 +212,8 @@ const pedagogicalSessions = {
 } as const;
 
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
-  return session1ActivityLabels[attempt.activityId] ?? session2ActivityLabels[attempt.activityId] ?? activityLabels[attempt.activityType] ?? attempt.activityType;
+  if (attempt.activityId === "session-3-bilan-situations-v5") return "Séance 3 · Bilan en trois situations / 20";
+  return session1ActivityLabels[attempt.activityId] ?? session2ActivityLabels[attempt.activityId] ?? session3Lab.exercises.find(exercise => exercise.id === attempt.activityId)?.title.fr ?? activityLabels[attempt.activityType] ?? attempt.activityType;
 }
 
 const answerLabels: Record<string, string> = {
@@ -319,6 +321,10 @@ function answerPreview(row: Attempt) {
   const answer = parseAttemptAnswer(row);
   if (answer && typeof answer === "object" && !Array.isArray(answer)) {
     const record = answer as Record<string, unknown>;
+    if (record.environment === "simulation Windows 11" && Array.isArray(record.criteria)) {
+      const criteria = record.criteria as Array<{label:string;correct:boolean}>;
+      return criteria.map(c => `${c.correct ? "✓" : "À revoir"} : ${c.label}`).join(" · ");
+    }
     const quizAnswers = Array.isArray(record.answers) ? record.answers as Array<Record<string, unknown>> : [];
     if (quizAnswers.length > 0) {
       return quizAnswers.map((item, index) => {

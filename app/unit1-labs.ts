@@ -79,7 +79,7 @@ export type GestureExercise = ExerciseBase & {
 
 export type SystemLabExercise = ExerciseBase & {
   type: "system-lab";
-  mode: "windows" | "files" | "guided-files";
+  mode: "windows" | "files" | "guided-files" | "windows11-desktop" | "windows11-copy" | "windows11-move" | "windows11-restore" | "windows11-rename" | "windows11-project";
 };
 
 export type HotspotExercise = ExerciseBase & {

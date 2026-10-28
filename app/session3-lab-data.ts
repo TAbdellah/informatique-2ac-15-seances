@@ -29,13 +29,51 @@ export const session3Lab: Unit1Lab = {
       feedback: t("Un message écrit est du texte. La photographie est une image. Le lecteur C diffuse du son ; D présente une vidéo.", "الرسالة المكتوبة نص والصورة الفوتوغرافية صورة. يقدم المشغل C صوتا وD فيديو."),
     },
     {
-      id: "s3-v3-traitement", type: "sequence", stage: "recall", level: "start", minutes: 3,
-      title: t("Comment obtenir la moyenne ?", "كيف نحصل على المعدل؟"),
-      prompt: t("Range les trois cartes dans l’ordre.", "رتب البطاقات الثلاث."),
-      steps: [t("Carte A", "البطاقة A"), t("Carte B", "البطاقة B"), t("Carte C", "البطاقة C")],
-      stepImages: [visual("traitement-donnees"), visual("traitement-calcul"), visual("traitement-resultat")], shuffled: [2,0,1],
-      hint: t("Pars des notes. Quel calcul permet d’obtenir le résultat ?", "انطلق من النقط. ما العملية التي تعطي النتيجة؟"),
-      feedback: t("Notes 12, 14 et 16 → calcul de la moyenne → résultat 14. C’est un traitement de l’information.", "النقط 12 و14 و16 ثم حساب المعدل ثم النتيجة 14. هذه معالجة للمعلومات."),
+      "id": "s3-v5-traitement",
+      "type": "sequence",
+      "stage": "recall",
+      "level": "start",
+      "minutes": 3,
+      "title": {
+        "fr": "La moyenne de Sara, vue par l’ordinateur",
+        "ar": "معدل سارة كما ينجزه الحاسوب"
+      },
+      "prompt": {
+        "fr": "Clique sur les trois cartes proposées dans l’ordre où l’ordinateur doit les utiliser. Le premier clic remplit la case 1.",
+        "ar": "انقر البطاقات الثلاث المقترحة وفق ترتيب استعمال الحاسوب لها. يملأ النقر الأول الخانة 1."
+      },
+      "feedback": {
+        "fr": "L’ordinateur reçoit les notes, calcule leur moyenne, puis affiche 14/20. Tu as reconstitué une chaîne de traitement de l’information.",
+        "ar": "يتوصل الحاسوب بالنقط ثم يحسب معدلها ويعرض 14/20. أعدت بناء سلسلة معالجة المعلومات."
+      },
+      "steps": [
+        {
+          "fr": "Sara saisit ses trois notes : 12/20, 14/20 et 16/20. L’ordinateur reçoit ces données et les garde en mémoire pour pouvoir calculer.",
+          "ar": "تدخل سارة نقطها الثلاث: 12/20 و14/20 و16/20. يتوصل الحاسوب بهذه المعطيات ويحتفظ بها في الذاكرة حتى يتمكن من الحساب."
+        },
+        {
+          "fr": "L’ordinateur applique la règle de la moyenne : il additionne 12 + 14 + 16, puis divise la somme 42 par le nombre de notes, 3.",
+          "ar": "يطبق الحاسوب قاعدة المعدل: يجمع 12 + 14 + 16 ثم يقسم المجموع 42 على عدد النقط وهو 3."
+        },
+        {
+          "fr": "L’écran affiche le résultat : « Ta moyenne est 14/20. » Sara peut maintenant lire cette nouvelle information obtenue après le traitement.",
+          "ar": "تعرض الشاشة النتيجة: « معدلك هو 14/20 ». تستطيع سارة الآن قراءة هذه المعلومة الجديدة الناتجة عن المعالجة."
+        }
+      ],
+      "stepImages": [
+        "session3/visuels/traitement-donnees.svg",
+        "session3/visuels/traitement-calcul.svg",
+        "session3/visuels/traitement-resultat.svg"
+      ],
+      "shuffled": [
+        2,
+        0,
+        1
+      ],
+      "hint": {
+        "fr": "Demande-toi ce qui doit être connu avant de calculer et ce qui sera affiché après le calcul.",
+        "ar": "اسأل نفسك عما يجب معرفته قبل الحساب وما سيعرض بعده."
+      }
     },
     {
       id: "s3-v3-types", type: "match", stage: "recall", level: "start", minutes: 4,
@@ -51,13 +89,56 @@ export const session3Lab: Unit1Lab = {
       feedback: t("Le classement dépend des opérations décrites et du rôle de l’humain.", "يعتمد التصنيف على العمليات الموصوفة ودور الإنسان."),
     },
     {
-      id: "s3-v3-peripheriques", type: "multi", stage: "recall", level: "start", minutes: 5,
-      title: t("Autour de l’unité centrale", "حول الوحدة المركزية"),
-      prompt: t("Choisis les trois périphériques.", "اختر الملحقات الثلاثة."),
-      choices: [t("Matériel A", "الجهاز A"),t("Matériel B", "الجهاز B"),t("Matériel C", "الجهاز C"),t("Matériel D", "الجهاز D")],
-      choiceImages: ["session2/items/unite-centrale-lenovo.jpg","session2/items/ex02-card-05.jpg","session2/items/ex02-card-04.jpg","session2/items/ex02-card-16.png"], answers: [1,2,3],
-      hint: t("L’unité centrale et les périphériques forment le poste informatique.", "تكون الوحدة المركزية والملحقات الحاسوب."),
-      feedback: t("Le clavier, la souris et l’écran sont les trois périphériques présentés. Le boîtier est l’unité centrale.", "لوحة المفاتيح والفأرة والشاشة هي الملحقات الثلاثة المعروضة. الصندوق هو الوحدة المركزية."),
+      "id": "s3-v5-peripheriques",
+      "type": "multi",
+      "stage": "recall",
+      "level": "start",
+      "minutes": 5,
+      "title": {
+        "fr": "Autour de l’unité centrale",
+        "ar": "حول الوحدة المركزية"
+      },
+      "prompt": {
+        "fr": "Observe les quatre photos et sélectionne les trois périphériques. Ne sélectionne pas l’unité centrale.",
+        "ar": "لاحظ الصور الأربع وحدد الملحقات الثلاثة دون تحديد الوحدة المركزية."
+      },
+      "feedback": {
+        "fr": "Le clavier, la souris et l’écran sont des périphériques. Le boîtier est l’unité centrale.",
+        "ar": "لوحة المفاتيح والفأرة والشاشة ملحقات. الصندوق هو الوحدة المركزية."
+      },
+      "choices": [
+        {
+          "fr": "Matériel A",
+          "ar": "الجهاز A"
+        },
+        {
+          "fr": "Matériel B",
+          "ar": "الجهاز B"
+        },
+        {
+          "fr": "Matériel C",
+          "ar": "الجهاز C"
+        },
+        {
+          "fr": "Matériel D",
+          "ar": "الجهاز D"
+        }
+      ],
+      "choiceImages": [
+        "session2/items/unite-centrale-lenovo.jpg",
+        "session3/ressources/clavier.jpg",
+        "session2/items/ex02-card-04.jpg",
+        "session2/items/ex02-card-16.png"
+      ],
+      "answers": [
+        1,
+        2,
+        3
+      ],
+      "hint": {
+        "fr": "Les périphériques servent notamment à saisir, afficher ou échanger des informations avec l’unité centrale.",
+        "ar": "تستعمل الملحقات لإدخال المعلومات أو عرضها أو تبادلها مع الوحدة المركزية."
+      }
     },
     {
       id: "s3-v3-composants", type: "match", stage: "recall", level: "start", minutes: 5,
@@ -69,41 +150,300 @@ export const session3Lab: Unit1Lab = {
       feedback:t("Le processeur exécute les instructions ; la RAM est temporaire ; le SSD conserve les fichiers après l’arrêt.", "ينفذ المعالج التعليمات وتحفظ RAM مؤقتا ويحتفظ SSD بالملفات بعد الإيقاف."),
     },
     {
-      id:"s3-v3-capacites",type:"conversions",stage:"recall",level:"start",minutes:5,
-      title:t("Les fichiers du club", "ملفات النادي"),
-      prompt:t("Observe les tailles. Complète les conversions.", "لاحظ الأحجام وأكمل التحويلات."),
-      image:image("stockage-fichiers","Deux fichiers : vidéo de 2 Go et archive de 3 000 Mo", "ملفان: فيديو حجمه 2 Go وأرشيف حجمه 3000 Mo"),
-      rows:[{before:"Vidéo =",after:"Mo",accepted:["2000"]},{before:"Archives =",after:"Go",accepted:["3"]}],
-      hint:t("Dans ce cours : 1 Go = 1 000 Mo. Multiplie ou divise par 1 000.", "في هذا الدرس: 1 Go = 1000 Mo. اضرب أو اقسم على 1000."),
-      feedback:t("La vidéo occupe 2 000 Mo. L’archive occupe 3 Go.", "حجم الفيديو 2000 Mo وحجم الأرشيف 3 Go."),
+      "id": "s3-v5-capacites",
+      "type": "conversions",
+      "stage": "recall",
+      "level": "start",
+      "minutes": 5,
+      "title": {
+        "fr": "Le club change d’unité",
+        "ar": "النادي يغير وحدة القياس"
+      },
+      "prompt": {
+        "fr": "Explore l’exemple, puis écris les trois nombres manquants pour préparer les fichiers du club.",
+        "ar": "استكشف المثال ثم اكتب الأعداد الثلاثة الناقصة لإعداد ملفات النادي."
+      },
+      "feedback": {
+        "fr": "2 Go = 2 000 Mo ; 3 500 Mo = 3,5 Go ; 16 bits = 2 octets. Chaque déplacement d’unité applique le facteur adapté.",
+        "ar": "2 Go = 2000 Mo و3500 Mo = 3,5 Go و16 bits = 2 octets. يستعمل كل انتقال العامل المناسب."
+      },
+      "rows": [
+        {
+          "before": "La vidéo : 2 Go =",
+          "after": "Mo",
+          "accepted": [
+            "2000"
+          ]
+        },
+        {
+          "before": "Les photos : 3 500 Mo =",
+          "after": "Go",
+          "accepted": [
+            "3.5"
+          ]
+        },
+        {
+          "before": "Un code : 16 bits =",
+          "after": "octets",
+          "accepted": [
+            "2"
+          ]
+        }
+      ],
+      "hint": {
+        "fr": "Vers une unité plus petite, multiplie. Vers une plus grande, divise. Le facteur bit/octet est 8 ; les autres valent 1 000.",
+        "ar": "اضرب نحو الوحدة الأصغر واقسم نحو الأكبر. عامل البت والأوكتات 8، وبقية العوامل 1000."
+      }
     },
     {
-      id:"s3-v3-ecrans",type:"multi",stage:"discover",level:"train",minutes:4,
-      title:t("Quels appareils sont prêts ?", "أي الأجهزة جاهزة؟"),
-      prompt:t("Choisis les deux écrans qui donnent accès aux applications.", "اختر الشاشتين اللتين تتيحان الوصول إلى التطبيقات."),
-      choices:[t("Écran A", "الشاشة A"),t("Écran B", "الشاشة B"),t("Écran C", "الشاشة C")],
-      choiceImages:[visual("ecran-android"),visual("ecran-sans-systeme"),visual("ecran-windows")],answers:[0,2],
-      hint:t("Repère un accueil avec des applications ou un message d’erreur.", "ميز واجهة تتضمن تطبيقات عن رسالة خطأ."),
-      feedback:t("Android et Windows proposent un environnement pour utiliser les applications. L’écran B signale qu’aucun système n’a été trouvé.", "يوفر Android وWindows بيئة لاستعمال التطبيقات. تبين الشاشة B عدم العثور على نظام."),
+      "id": "s3-v5-diagnostic-systeme",
+      "type": "diagnostic",
+      "stage": "discover",
+      "level": "train",
+      "minutes": 4,
+      "title": {
+        "fr": "Le poste s’allume, mais Sara ne peut rien faire",
+        "ar": "يشتغل الجهاز لكن سارة لا تستطيع استعماله"
+      },
+      "prompt": {
+        "fr": "Lis le constat, puis choisis le problème et l’action adaptée. Il faut une réponse dans chacune des deux étapes.",
+        "ar": "اقرأ الملاحظة ثم اختر المشكلة والعملية المناسبة. يجب اختيار جواب في كل مرحلة."
+      },
+      "feedback": {
+        "fr": "Le matériel est branché, mais il manque le logiciel de base. Installer un système d’exploitation compatible permet ensuite de lancer les applications.",
+        "ar": "المعدات موصولة لكن البرنامج الأساسي غير موجود. يتيح تثبيت نظام تشغيل مناسب تشغيل التطبيقات بعده."
+      },
+      "scenario": {
+        "fr": "L’unité centrale est neuve. L’écran, le clavier et la souris sont branchés. Aucun système n’a encore été installé sur le disque : le poste affiche « Aucun système d’exploitation trouvé ».",
+        "ar": "الوحدة المركزية جديدة والشاشة ولوحة المفاتيح والفأرة موصولة. لم يثبت أي نظام على القرص بعد، ويعرض الحاسوب عدم العثور على نظام تشغيل."
+      },
+      "image": {
+        "src": "session3/visuels/ecran-sans-systeme.svg",
+        "alt": {
+          "fr": "Message : aucun système d’exploitation trouvé",
+          "ar": "رسالة عدم العثور على نظام تشغيل"
+        },
+        "caption": {
+          "fr": "Le poste fonctionne électriquement ; le disque n’a pas encore de système.",
+          "ar": "يشتغل الجهاز كهربائيا لكن لم يثبت نظام على القرص بعد."
+        }
+      },
+      "components": [
+        {
+          "label": {
+            "fr": "Le logiciel de base manque",
+            "ar": "البرنامج الأساسي غير موجود"
+          }
+        },
+        {
+          "label": {
+            "fr": "Le clavier est absent",
+            "ar": "لوحة المفاتيح غير موجودة"
+          }
+        },
+        {
+          "label": {
+            "fr": "La souris est débranchée",
+            "ar": "الفأرة غير موصولة"
+          }
+        }
+      ],
+      "componentAnswer": 0,
+      "repairs": [
+        {
+          "fr": "Installer un système d’exploitation compatible",
+          "ar": "تثبيت نظام تشغيل مناسب"
+        },
+        {
+          "fr": "Installer seulement un navigateur Web",
+          "ar": "تثبيت متصفح ويب وحده"
+        },
+        {
+          "fr": "Remplacer la souris par une autre",
+          "ar": "تغيير الفأرة بأخرى"
+        }
+      ],
+      "repairAnswer": 0,
+      "hint": {
+        "fr": "Un navigateur est une application. Quel logiciel doit rendre le poste utilisable avant les applications ?",
+        "ar": "المتصفح تطبيق. ما البرنامج الذي يتيح استعمال الحاسوب قبل التطبيقات؟"
+      }
     },
     {
-      id:"s3-v3-systemes-applications",type:"match",interaction:"drag",stage:"discover",level:"train",minutes:4,
-      title:t("Le système et ses applications", "النظام وتطبيقاته"),
-      prompt:t("Place chaque carte dans la bonne famille.", "ضع كل بطاقة في الفئة المناسبة."),
-      categories:[t("Système d’exploitation", "نظام تشغيل"),t("Application", "تطبيق")],
-      rows:[{label:t("Android", "Android"),image:visual("logo-android"),answer:0},{label:t("Windows", "Windows"),image:visual("logo-windows"),answer:0},{label:t("Calculatrice", "الحاسبة"),image:visual("app-calculatrice"),answer:1},{label:t("Navigateur", "المتصفح"),image:visual("app-navigateur"),answer:1}],
-      hint:t("Le système permet de lancer plusieurs applications.", "يتيح النظام تشغيل تطبيقات متعددة."),
-      feedback:t("Android et Windows sont des systèmes. La Calculatrice et le navigateur sont des applications.", "Android وWindows نظاما تشغيل. الحاسبة والمتصفح تطبيقان."),
+      "id": "s3-v5-materiel-logiciel",
+      "type": "match",
+      "stage": "discover",
+      "level": "train",
+      "minutes": 4,
+      "title": {
+        "fr": "Dans le sac ou dans les programmes ?",
+        "ar": "داخل الحقيبة أم ضمن البرامج؟"
+      },
+      "prompt": {
+        "fr": "Le club prépare un poste. Range les six cartes : d’un côté les objets physiques, de l’autre les programmes. Glisse une carte ou clique dessus puis sur sa famille.",
+        "ar": "يعد النادي حاسوبا. صنف البطاقات الست إلى أشياء مادية وبرامج. اسحب البطاقة أو انقرها ثم انقر فئتها."
+      },
+      "feedback": {
+        "fr": "Un système informatique associe du matériel et des logiciels. Le processeur, le clavier et le SSD sont physiques ; Windows, la Calculatrice et le navigateur sont des programmes.",
+        "ar": "يجمع النظام المعلوماتي بين المعدات والبرمجيات. المعالج ولوحة المفاتيح وSSD عناصر مادية، وWindows والحاسبة والمتصفح برامج."
+      },
+      "interaction": "drag",
+      "categories": [
+        {
+          "fr": "Matériel",
+          "ar": "المعدات"
+        },
+        {
+          "fr": "Logiciels",
+          "ar": "البرمجيات"
+        }
+      ],
+      "rows": [
+        {
+          "label": {
+            "fr": "Processeur",
+            "ar": "المعالج"
+          },
+          "image": "session2/items/ex12-card-01.png",
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Clavier",
+            "ar": "لوحة المفاتيح"
+          },
+          "image": "session3/ressources/clavier.jpg",
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "SSD",
+            "ar": "SSD"
+          },
+          "image": "session2/items/ex12-card-05.jpg",
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Windows",
+            "ar": "Windows"
+          },
+          "image": "session3/visuels/logo-windows.svg",
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "Calculatrice",
+            "ar": "الحاسبة"
+          },
+          "image": "session3/visuels/app-calculatrice.svg",
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "Navigateur Web",
+            "ar": "متصفح الويب"
+          },
+          "image": "session3/visuels/app-navigateur.svg",
+          "answer": 1
+        }
+      ],
+      "hint": {
+        "fr": "Peut-on transporter la carte dans un sac, ou s’agit-il d’un programme à exécuter ?",
+        "ar": "هل تمثل البطاقة شيئا يمكن حمله في حقيبة أم برنامجا ينفذ؟"
+      }
     },
     {
-      id:"s3-v3-installer-systeme",type:"choice",stage:"discover",level:"train",minutes:4,
-      title:t("Aide Sara à démarrer", "ساعد سارة على البدء"),
-      prompt:t("Quel logiciel peut donner un Bureau à ce poste ?", "أي برنامج يمكن أن يوفر سطح مكتب لهذا الحاسوب؟"),
-      image:image("ecran-sans-systeme","Le poste indique : aucun système d’exploitation trouvé", "يعرض الحاسوب: لم يتم العثور على نظام تشغيل"),
-      choices:[t("Windows", "Windows"),t("Calculatrice", "الحاسبة"),t("Navigateur", "المتصفح")],
-      choiceImages:[visual("logo-windows"),visual("app-calculatrice"),visual("app-navigateur")],answer:0,
-      hint:t("Choisis le logiciel de base, qui permet ensuite de lancer les applications.", "اختر البرنامج الأساسي الذي يتيح تشغيل التطبيقات بعده."),
-      feedback:t("Windows est un système d’exploitation : il gère le matériel, les applications et les fichiers.", "Windows نظام تشغيل يدير المعدات والتطبيقات والملفات."),
+      "id": "s3-v5-logiciels-familles",
+      "type": "match",
+      "stage": "discover",
+      "level": "train",
+      "minutes": 4,
+      "title": {
+        "fr": "Chaque logiciel a son métier",
+        "ar": "لكل برنامج وظيفة"
+      },
+      "prompt": {
+        "fr": "Sara a préparé huit étiquettes. Sépare les logiciels de base et les applications pour expliquer ce qui rend l’appareil utilisable et ce qui sert à une tâche précise.",
+        "ar": "أعدت سارة ثماني بطاقات. ميز البرمجيات الأساسية عن التطبيقات لتفسير ما يتيح استعمال الجهاز وما ينجز مهمة محددة."
+      },
+      "feedback": {
+        "fr": "Windows, Android, Linux et macOS sont des systèmes d’exploitation. Word, Excel, VLC et Firefox sont des applications pour écrire, calculer, lire des médias ou naviguer.",
+        "ar": "Windows وAndroid وLinux وmacOS أنظمة تشغيل. Word وExcel وVLC وFirefox تطبيقات للكتابة والحساب وقراءة الوسائط والتصفح."
+      },
+      "interaction": "drag",
+      "categories": [
+        {
+          "fr": "Logiciel de base · système d’exploitation",
+          "ar": "برنامج أساسي · نظام تشغيل"
+        },
+        {
+          "fr": "Logiciel d’application",
+          "ar": "برنامج تطبيقي"
+        }
+      ],
+      "rows": [
+        {
+          "label": {
+            "fr": "Windows",
+            "ar": "Windows"
+          },
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Android",
+            "ar": "Android"
+          },
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Linux / Ubuntu",
+            "ar": "Linux / Ubuntu"
+          },
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "macOS",
+            "ar": "macOS"
+          },
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Word · écrire un texte",
+            "ar": "Word · كتابة نص"
+          },
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "Excel · travailler sur des tableaux",
+            "ar": "Excel · العمل على الجداول"
+          },
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "VLC · lire un son ou une vidéo",
+            "ar": "VLC · قراءة صوت أو فيديو"
+          },
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "Firefox · naviguer sur le Web",
+            "ar": "Firefox · تصفح الويب"
+          },
+          "answer": 1
+        }
+      ],
+      "hint": {
+        "fr": "Un système gère l’appareil et les applications. Une application sert à un besoin particulier.",
+        "ar": "يدير النظام الجهاز والتطبيقات. يستعمل التطبيق لتلبية حاجة محددة."
+      }
     },
     {
       id:"s3-v3-demarrer",type:"hotspot",stage:"discover",level:"train",minutes:3,
@@ -131,11 +471,28 @@ export const session3Lab: Unit1Lab = {
       feedback:t("L’Explorateur permet de consulter et d’organiser les fichiers et les dossiers.", "يسمح المستكشف بتصفح الملفات والمجلدات وتنظيمها."),
     },
     {
-      id:"s3-v3-bureau-pratique",type:"system-lab",mode:"windows",stage:"practice",level:"train",minutes:15,
-      title:t("À toi de piloter Windows", "حان دورك للتحكم في Windows"),
-      prompt:t("Réalise les missions, une par une.", "أنجز المهام واحدة تلو الأخرى."),
-      hint:t("Commence par Démarrer. Chaque mission réussie devient verte.", "ابدأ بزر ابدأ. تصبح كل مهمة ناجحة خضراء."),
-      feedback:t("Tu sais ouvrir, déplacer, réduire et retrouver une fenêtre. Refais les gestes sur le vrai poste.", "تستطيع فتح نافذة وتحريكها وتصغيرها وإظهارها مجددا. أعد الحركات على الحاسوب الحقيقي."),
+      "id": "s3-v5-windows-bureau",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "train",
+      "minutes": 15,
+      "title": {
+        "fr": "Pilote un bureau Windows 11",
+        "ar": "تحكم في مكتب Windows 11"
+      },
+      "prompt": {
+        "fr": "Utilise le menu Démarrer et la barre des tâches. Effectue les sept missions sur les vraies commandes de cette simulation, puis vérifie ton travail.",
+        "ar": "استعمل قائمة ابدأ وشريط المهام. أنجز المهام السبع باستعمال أوامر هذه المحاكاة ثم تحقق من عملك."
+      },
+      "feedback": {
+        "fr": "Tu as utilisé des applications, effectué un calcul, déplacé et géré des fenêtres. Refais ces gestes sur le poste Windows de la salle.",
+        "ar": "استعملت تطبيقات وأنجزت حسابا وحركت النوافذ وتحكمت فيها. أعد الحركات على حاسوب Windows في القاعة."
+      },
+      "mode": "windows11-desktop",
+      "hint": {
+        "fr": "La barre de titre déplace une fenêtre. Les boutons −, □ et × servent à réduire, agrandir et fermer. Une fenêtre réduite reste dans la barre des tâches.",
+        "ar": "يحرك شريط العنوان النافذة. تستعمل أزرار التصغير والتكبير والإغلاق، وتبقى النافذة المصغرة في شريط المهام."
+      }
     },
     {
       id:"s3-v3-fichiers-dossiers",type:"match",interaction:"drag",stage:"practice",level:"train",minutes:4,
@@ -147,12 +504,84 @@ export const session3Lab: Unit1Lab = {
       feedback:t("Documents est un dossier. La photo et le compte rendu sont des fichiers.", "Documents مجلد. الصورة والتقرير ملفان."),
     },
     {
-      id:"s3-v3-extension",type:"hotspot",stage:"practice",level:"train",minutes:3,
-      title:t("Un indice dans le nom", "دليل في اسم الملف"),
-      prompt:t("Clique sur l’extension du fichier.", "انقر على امتداد الملف."),
-      image:image("nom-extension","Nom de fichier Photo_club.jpg", "اسم الملف Photo_club.jpg"),regions:[region(195,119,333,100,920,300),region(532,119,145,100,920,300)],answer:1,
-      hint:t("L’extension commence par le dernier point.", "يبدأ الامتداد من النقطة الأخيرة."),
-      feedback:t(".jpg est l’extension. Photo_club est le nom du fichier sans son extension.", ".jpg هو الامتداد وPhoto_club اسم الملف دون امتداده."),
+      "id": "s3-v5-information-fichier",
+      "type": "match",
+      "stage": "practice",
+      "level": "train",
+      "minutes": 5,
+      "title": {
+        "fr": "Quatre informations deviennent quatre fichiers",
+        "ar": "أربع معلومات تصبح أربعة ملفات"
+      },
+      "prompt": {
+        "fr": "Ouvre le petit exemple, puis observe, lis ou écoute le contenu de chaque fichier. Associe chaque fichier à la forme d’information qu’il contient.",
+        "ar": "استكشف المثال ثم لاحظ أو اقرأ أو استمع إلى محتوى كل ملف. اربط كل ملف بشكل المعلومة الذي يحتويه."
+      },
+      "feedback": {
+        "fr": "Un fichier peut conserver du texte, une image, un son ou une vidéo. Son nom permet de le retrouver et son extension renseigne sur son format.",
+        "ar": "يمكن أن يحفظ الملف نصا أو صورة أو صوتا أو فيديو. يسمح اسمه بالعثور عليه ويدل امتداده على صيغته."
+      },
+      "categories": [
+        {
+          "fr": "Texte",
+          "ar": "نص"
+        },
+        {
+          "fr": "Image",
+          "ar": "صورة"
+        },
+        {
+          "fr": "Son",
+          "ar": "صوت"
+        },
+        {
+          "fr": "Vidéo",
+          "ar": "فيديو"
+        }
+      ],
+      "rows": [
+        {
+          "label": {
+            "fr": "Invitation.txt",
+            "ar": "Invitation.txt"
+          },
+          "content": {
+            "fr": "Le club vous invite vendredi à 16 h en salle informatique.",
+            "ar": "يدعوكم النادي يوم الجمعة على الساعة الرابعة إلى قاعة المعلوميات."
+          },
+          "answer": 0
+        },
+        {
+          "label": {
+            "fr": "Materiel_club.jpg",
+            "ar": "Materiel_club.jpg"
+          },
+          "image": "session2/items/unite-centrale-lenovo.jpg",
+          "answer": 1
+        },
+        {
+          "label": {
+            "fr": "Message_club.wav",
+            "ar": "Message_club.wav"
+          },
+          "image": "session3/visuels/information-audio.svg",
+          "audio": "session3/medias/message-sonore.wav",
+          "answer": 2
+        },
+        {
+          "label": {
+            "fr": "Reportage_club.mp4",
+            "ar": "Reportage_club.mp4"
+          },
+          "image": "session3/visuels/information-video.svg",
+          "video": "session3/medias/animation-club.mp4",
+          "answer": 3
+        }
+      ],
+      "hint": {
+        "fr": "Regarde le contenu, pas seulement l’icône du fichier. Les boutons de lecture permettent d’écouter ou de voir les médias.",
+        "ar": "لاحظ المحتوى وليس أيقونة الملف وحدها. تسمح أزرار التشغيل بالاستماع إلى الوسائط أو مشاهدتها."
+      }
     },
     {
       id:"s3-v3-comparer-copie",type:"choice",stage:"practice",level:"train",minutes:3,
@@ -164,13 +593,28 @@ export const session3Lab: Unit1Lab = {
       feedback:t("L’original est resté dans Documents et une copie a été créée dans Travaux.", "بقي الأصل في Documents وأنشئت نسخة في Travaux."),
     },
     {
-      id:"s3-v3-renommer-format",type:"choice",stage:"practice",level:"challenge",minutes:2,
-      title:t("Changer le nom change-t-il le contenu ?", "هل يغير الاسم محتوى الملف؟"),
-      prompt:t("« Cette photo est devenue un son. » Vrai ou faux ?", "«أصبحت هذه الصورة ملفا صوتيا». صحيح أم خطأ؟"),
-      image:image("renommer-format","Même image renommée de Photo_club.jpg à Photo_club.mp3", "الصورة نفسها بعد تغيير الاسم من Photo_club.jpg إلى Photo_club.mp3"),
-      choices:[t("Vrai", "صحيح"),t("Faux", "خطأ")],answer:1,
-      hint:t("On a seulement changé les lettres du nom, sans convertir le fichier.", "غيرنا حروف الاسم فقط دون تحويل الملف."),
-      feedback:t("Faux. Renommer ne convertit pas le contenu ; changer l’extension peut empêcher l’ouverture correcte du fichier.", "خطأ. لا تغير إعادة التسمية المحتوى، وقد يمنع تغيير الامتداد فتح الملف بشكل صحيح."),
+      "id": "s3-v5-copie-pratique",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "train",
+      "minutes": 2,
+      "title": {
+        "fr": "Partager une photo sans perdre l’original",
+        "ar": "مشاركة صورة دون فقدان الأصل"
+      },
+      "prompt": {
+        "fr": "Copie Photo_club.jpg depuis Images dans Documents / Publication. L’original doit rester dans Images. Choisis les commandes toi-même.",
+        "ar": "انسخ Photo_club.jpg من Images إلى Documents / Publication. يجب أن يبقى الأصل داخل Images. اختر الأوامر بنفسك."
+      },
+      "feedback": {
+        "fr": "La publication possède sa copie et l’original est resté dans Images. Tu as réalisé Copier puis Coller.",
+        "ar": "يتوفر المنشور على نسخة وبقي الأصل داخل Images. أنجزت النسخ ثم اللصق."
+      },
+      "mode": "windows11-copy",
+      "hint": {
+        "fr": "Ouvre Images, sélectionne le fichier et utilise Copier. Ouvre ensuite Documents puis Publication et colle.",
+        "ar": "افتح Images وحدد الملف ثم انسخه. افتح بعده Documents ثم Publication وألصق."
+      }
     },
     {
       id:"s3-v3-commande-copier",type:"hotspot",stage:"practice",level:"challenge",minutes:3,
@@ -182,11 +626,28 @@ export const session3Lab: Unit1Lab = {
       feedback:t("Copier prépare un double. Ouvre ensuite le dossier de destination et utilise Coller.", "يعد النسخ نسخة إضافية. افتح مجلد الوجهة ثم استعمل اللصق."),
     },
     {
-      id:"s3-v4-ranger-photo",type:"system-lab",mode:"guided-files",stage:"practice",level:"train",minutes:8,
-      title:t("Je range une photo", "أرتب صورة"),
-      prompt:t("Mets photo.jpg dans Photos. Suis les six étapes.", "ضع photo.jpg داخل Photos. اتبع الخطوات الست."),
-      hint:t("Le bouton utile est encadré. Lis seulement l’étape affichée.", "الزر المطلوب داخل إطار. اقرأ الخطوة المعروضة فقط."),
-      feedback:t("La photo est maintenant dans Photos : tu as créé un dossier puis déplacé un fichier.", "أصبحت الصورة داخل Photos: أنشأت مجلدا ثم نقلت ملفا."),
+      "id": "s3-v5-deplacement-son",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "challenge",
+      "minutes": 3,
+      "title": {
+        "fr": "Le message de la radio est prêt",
+        "ar": "رسالة الإذاعة جاهزة"
+      },
+      "prompt": {
+        "fr": "Déplace audio001.wav de Téléchargements vers Documents / Radio. Renomme-le Message_club.wav sans changer son format. Il ne doit plus rester dans Téléchargements.",
+        "ar": "انقل audio001.wav من Téléchargements إلى Documents / Radio ثم سمه Message_club.wav دون تغيير صيغته. يجب ألا يبقى داخل Téléchargements."
+      },
+      "feedback": {
+        "fr": "Tu as déplacé le son et choisi un nom utile. Le fichier .wav garde son contenu sonore.",
+        "ar": "نقلت الصوت واخترت اسما مفيدا، وبقي محتوى الملف .wav صوتيا."
+      },
+      "mode": "windows11-move",
+      "hint": {
+        "fr": "Couper puis Coller change l’emplacement. Renommer change le nom ; conserve .wav.",
+        "ar": "يغير القص ثم اللصق الموضع وتغير إعادة التسمية الاسم. حافظ على .wav."
+      }
     },
     {
       id:"s3-v4-reduire",type:"hotspot",stage:"practice",level:"train",minutes:2,
@@ -216,31 +677,76 @@ export const session3Lab: Unit1Lab = {
       feedback:t("Le fichier a été déplacé : couper, puis coller dans le nouveau dossier.", "نقل الملف باستعمال القص ثم اللصق في المجلد الجديد."),
     },
     {
-      id:"s3-v4-restaurer",type:"hotspot",stage:"practice",level:"challenge",minutes:3,
-      title:t("J’ai supprimé le brouillon par erreur", "حذفت المسودة بالخطأ"),
-      prompt:t("Le brouillon est sélectionné. Clique pour le récupérer.", "المسودة محددة. انقر لاسترجاعها."),
-      image:image("corbeille-actions","Brouillon sélectionné dans la Corbeille avec les commandes Restaurer et Supprimer", "المسودة محددة في السلة مع أمري الاستعادة والحذف",true),
-      regions:[region(55,95,220,68,920,350),region(300,95,220,68,920,350),region(55,195,790,85,920,350)],answer:0,
-      hint:t("La Corbeille permet de remettre un fichier à son ancienne place.", "تسمح السلة بإعادة الملف إلى مكانه السابق."),
-      feedback:t("Restaurer remet le fichier à son emplacement d’origine.", "تعيد الاستعادة الملف إلى مكانه الأصلي."),
+      "id": "s3-v5-restauration-pratique",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "challenge",
+      "minutes": 3,
+      "title": {
+        "fr": "Retrouve les consignes du professeur",
+        "ar": "استعد تعليمات الأستاذ"
+      },
+      "prompt": {
+        "fr": "consignes.txt a été supprimé par erreur. Ouvre la Corbeille et remets ce document à sa place dans Documents.",
+        "ar": "حذف consignes.txt بالخطأ. افتح سلة المحذوفات وأعد الوثيقة إلى مكانها داخل Documents."
+      },
+      "feedback": {
+        "fr": "La restauration a remis le document dans Documents. Tu peux à nouveau l’ouvrir et lire les consignes.",
+        "ar": "أعادت الاستعادة الوثيقة إلى Documents ويمكن فتحها وقراءة التعليمات."
+      },
+      "mode": "windows11-restore",
+      "hint": {
+        "fr": "Dans la Corbeille, sélectionne le document puis utilise Restaurer. Reviens dans Documents pour vérifier.",
+        "ar": "حدد الوثيقة داخل السلة ثم استعمل استعادة. عد إلى Documents للتحقق."
+      }
     },
     {
-      id:"s3-v4-nom-clair",type:"choice",stage:"practice",level:"challenge",minutes:3,
-      title:t("Un nom facile à retrouver", "اسم يسهل العثور عليه"),
-      prompt:t("Choisis un nom clair pour cette photo du matériel.", "اختر اسما واضحا لصورة المعدات هذه."),
-      image:{src:"session2/items/unite-centrale-lenovo.jpg",alt:t("Photo d’une unité centrale du club", "صورة لوحدة مركزية في النادي"),caption:t("La photo servira à présenter le matériel du club.", "ستستعمل الصورة لتقديم معدات النادي.")},
-      choices:[t("Materiel_club.jpg", "Materiel_club.jpg"),t("image1.jpg", "image1.jpg"),t("final2.jpg", "final2.jpg")],answer:0,
-      hint:t("Un nom clair renseigne sur le contenu du fichier.", "يدل الاسم الواضح على محتوى الملف."),
-      feedback:t("Materiel_club.jpg indique le contenu et facilite la recherche. L’extension .jpg est conservée.", "يبين Materiel_club.jpg المحتوى ويسهل البحث. احتفظنا بالامتداد .jpg."),
+      "id": "s3-v5-nommage-pratique",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "challenge",
+      "minutes": 3,
+      "title": {
+        "fr": "Prépare l’image pour l’affiche",
+        "ar": "أعد الصورة للملصق"
+      },
+      "prompt": {
+        "fr": "Dans Images, ouvre IMG_0007.jpg pour voir son contenu. Renomme ensuite ce même fichier Materiel_club.jpg en conservant .jpg.",
+        "ar": "افتح IMG_0007.jpg داخل Images لملاحظة محتواه ثم أعد تسمية الملف نفسه Materiel_club.jpg مع الحفاظ على .jpg."
+      },
+      "feedback": {
+        "fr": "Un nom précis permet de reconnaître la photo du matériel. Renommer n’a changé ni l’image ni son format.",
+        "ar": "يسمح الاسم الدقيق بالتعرف على صورة المعدات، ولم تغير إعادة التسمية الصورة أو صيغتها."
+      },
+      "mode": "windows11-rename",
+      "hint": {
+        "fr": "Sélectionne le fichier puis utilise Renommer ou F2. Tu peux garder la même extension.",
+        "ar": "حدد الملف ثم استعمل إعادة التسمية أو F2 وحافظ على امتداده."
+      }
     },
     {
-      id:"s3-v4-ordre-copie",type:"sequence",stage:"practice",level:"challenge",minutes:4,
-      title:t("Je prépare une copie", "أعد نسخة"),
-      prompt:t("Range les actions pour copier le fichier dans Travaux.", "رتب العمليات لنسخ الملف داخل Travaux."),
-      steps:[t("Sélectionner le fichier", "تحديد الملف"),t("Cliquer sur Copier", "النقر على نسخ"),t("Ouvrir Travaux", "فتح Travaux"),t("Cliquer sur Coller", "النقر على لصق")],
-      stepImages:[visual("copie-selection"),visual("copie-commande"),visual("copie-destination"),visual("copie-coller")],shuffled:[3,1,0,2],
-      hint:t("On choisit d’abord le fichier. On colle après avoir ouvert le dossier de destination.", "نحدد الملف أولا ونلصق بعد فتح مجلد الوجهة."),
-      feedback:t("Sélectionner → Copier → ouvrir Travaux → Coller. L’original reste à sa place.", "تحديد الملف ثم نسخه ثم فتح Travaux ثم لصقه. يبقى الأصل في مكانه."),
+      "id": "s3-v5-projet-exposition",
+      "type": "system-lab",
+      "stage": "practice",
+      "level": "challenge",
+      "minutes": 7,
+      "title": {
+        "fr": "Le dossier de l’exposition du club",
+        "ar": "مجلد معرض النادي"
+      },
+      "prompt": {
+        "fr": "Dans Documents, crée Expo_club avec deux sous-dossiers : Photos et Textes. Déplace Photo_club.jpg de Téléchargements vers Photos. Copie Invitation.txt de Documents vers Textes, en gardant l’original.",
+        "ar": "أنشئ داخل Documents مجلد Expo_club بمجلدين فرعيين Photos وTextes. انقل الصورة من Téléchargements إلى Photos وانسخ Invitation.txt من Documents إلى Textes مع إبقاء الأصل."
+      },
+      "feedback": {
+        "fr": "Ton dossier contient des fichiers rangés selon leur contenu. Tu as créé une arborescence, déplacé une photo et copié un texte sans perdre l’original.",
+        "ar": "يتضمن مجلدك ملفات منظمة حسب محتواها. أنشأت بنية مجلدات ونقلت صورة ونسخت نصا دون فقدان الأصل."
+      },
+      "mode": "windows11-project",
+      "hint": {
+        "fr": "Les noms et les emplacements du dossier final comptent. Tu peux utiliser la barre d’outils, le clic droit ou les raccourcis.",
+        "ar": "تحتسب أسماء عناصر المجلد النهائي ومواضعها. يمكنك استعمال شريط الأدوات أو الزر الأيمن أو الاختصارات."
+      }
     },
   ],
 };

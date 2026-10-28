@@ -55,9 +55,9 @@ export const session3: CourseSession = {
     { label: "1", duration: 25, text: t("Rappel actif : 6 exercices sur les séances 1 et 2.", "تذكير نشيط: 6 تمارين حول الحصتين 1 و2.") },
     { label: "2", duration: 20, text: t("Résoudre la situation de Sara, puis comparer Android et Windows.", "أحل وضعية سارة ثم أقارن Android وWindows.") },
     { label: "3", duration: 15, text: t("Manipuler le Bureau et les fenêtres dans une simulation, puis sur le poste Windows.", "أستعمل سطح المكتب والنوافذ في المحاكاة ثم على حاسوب Windows.") },
-    { label: "4", duration: 40, text: t("Distinguer fichiers et dossiers, choisir les opérations puis organiser l’espace de Sara.", "أميز الملفات والمجلدات وأختار العمليات ثم أنظم فضاء سارة.") },
+    { label: "4", duration: 40, text: t("Relier texte, image, son et vidéo à leurs fichiers ; copier, déplacer, renommer et restaurer avant de préparer le dossier de l’exposition.", "أربط النص والصورة والصوت والفيديو بملفاتها، وأنسخ وأنقل وأسمي وأستعيد الملفات قبل إعداد مجلد المعرض.") },
   ],
-  deliverable: t("25 activités visuelles. Défi guidé : ranger photo.jpg dans Photos. Chacun manipule à son tour.", "25 نشاطا بصريا. تحد موجه: وضع photo.jpg داخل Photos. يستعمل كل تلميذ الحاسوب بالتناوب."),
+  deliverable: t("25 activités puis un bilan individuel sur 20. Défi final : créer Expo_club avec Photos et Textes, déplacer la photo et copier l’invitation en gardant l’original. Chacun manipule à son tour.", "25 نشاطا ثم تقويم فردي على 20. التحدي الأخير: إنشاء Expo_club مع Photos وTextes، ونقل الصورة ونسخ الدعوة مع إبقاء الأصل. يستعمل كل تلميذ الحاسوب بالتناوب."),
   trace: [
     session3Trace.definition,
     ...session3Trace.functions,
@@ -65,12 +65,6 @@ export const session3: CourseSession = {
     t(session3Trace.architecture.map((item) => item.fr).join(" → "), session3Trace.architecture.map((item) => item.ar).join(" ← ")),
   ],
   vocabulary: [],
-  quiz: [
-    { question: t("Quel logiciel permet d’obtenir un Bureau sur ce poste ?", "أي برنامج يوفر سطح مكتب لهذا الحاسوب؟"), image: {src:"session3/visuels/ecran-sans-systeme.svg",alt:t("Poste sans système d’exploitation détecté", "حاسوب لم يعثر على نظام تشغيل")}, choices: [t("Windows", "Windows"),t("Calculatrice", "الحاسبة"),t("Navigateur", "المتصفح")], answer:0 },
-    { question: t("Android est…", "Android هو…"), image: {src:"session3/visuels/logo-android.svg",alt:t("Android", "Android")}, choices:[t("un système d’exploitation", "نظام تشغيل"),t("une application de calcul", "تطبيق للحساب"),t("un dossier", "مجلد")],answer:0 },
-    { question: t("Où retrouves-tu une application réduite ?", "أين تجد تطبيقا مصغرا؟"),image:{src:"session3/visuels/ecran-windows.svg",alt:t("Bureau Windows avec barre des tâches", "سطح مكتب Windows بشريط المهام")},choices:[t("Dans la barre des tâches", "في شريط المهام"),t("Dans la Corbeille", "في سلة المحذوفات"),t("Dans le nom du fichier", "في اسم الملف")],answer:0 },
-    { question: t("Cet élément est…", "هذا العنصر هو…"),image:{src:"session3/visuels/element-image.svg",alt:t("Photo_club.jpg", "Photo_club.jpg")},choices:[t("un fichier", "ملف"),t("un dossier", "مجلد"),t("un système d’exploitation", "نظام تشغيل")],answer:0 },
-    { question: t("Observe avant et après. Quelle opération a été faite ?", "لاحظ قبل وبعد. ما العملية المنجزة؟"),image:{src:"session3/visuels/deplacement-avant-apres.svg",alt:t("Le fichier a quitté Documents et se trouve dans Travaux", "غادر الملف Documents وأصبح في Travaux")},choices:[t("Copier puis coller", "نسخ ثم لصق"),t("Couper puis coller", "قص ثم لصق"),t("Renommer", "إعادة تسمية")],answer:1 },
-    { question: t("Comment récupérer brouillon.txt ?", "كيف تسترجع brouillon.txt؟"),image:{src:"session3/visuels/corbeille.svg",alt:t("Brouillon dans la Corbeille", "المسودة في سلة المحذوفات")},choices:[t("Restaurer", "استعادة"),t("Renommer", "إعادة تسمية"),t("Supprimer", "حذف")],answer:0 },
-  ],
+  // The lesson uses Session3Assessment: three situations with file-system evidence.
+  quiz: [],
 };
