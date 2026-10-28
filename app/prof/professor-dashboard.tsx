@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { session3Lab } from "../session3-lab-data";
+import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
   Activity,
   ArrowLeft,
@@ -198,6 +199,14 @@ const session1Competencies = [
   { label: "Types de traitement", ids: ["s1-types-image", "s1-types-associer", "s1-automatique-caracteristiques", "s1-exemple-automatique"] },
 ] as const;
 
+const session3Competencies = [
+  {label:"Information et traitement",ids:[0,1,2].map(i=>session3Lab.exercises[i].id)},
+  {label:"Matériel et conversions",ids:[3,4,5].map(i=>session3Lab.exercises[i].id)},
+  {label:"Système d’exploitation et applications",ids:[6,7,8].map(i=>session3Lab.exercises[i].id)},
+  {label:"Bureau et fenêtres Windows",ids:[9,10,11,12,19,20].map(i=>session3Lab.exercises[i].id)},
+  {label:"Fichiers et organisation des dossiers",ids:[13,14,15,16,17,18,21,22,23,24].map(i=>session3Lab.exercises[i].id)},
+];
+
 const pedagogicalSessions = {
   1: {
     title: "Information et traitement",
@@ -208,6 +217,11 @@ const pedagogicalSessions = {
     title: "Environnement matériel d’un système informatique",
     exerciseCount: 12,
     competencies: session2Competencies,
+  },
+  3: {
+    title:"Système d’exploitation · Windows et fichiers",
+    exerciseCount:session3Lab.exercises.length,
+    competencies:session3Competencies,
   },
 } as const;
 
@@ -389,17 +403,18 @@ function bestAttempt(attempts: Attempt[], activityId: string) {
     }, null);
 }
 
-function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2) {
+function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2 | 3) {
   const config = pedagogicalSessions[sessionId];
   const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === sessionId);
-  const successfulIds = new Set(sessionAttempts.filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect)).map((attempt) => attempt.activityId));
+  const successfulIds = new Set(sessionAttempts.filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect) && (sessionId !== 3 || session3Lab.exercises.some(e=>e.id===attempt.activityId))).map((attempt) => attempt.activityId));
   const bestQuiz = bestAttempt(sessionAttempts, `session-${sessionId}-quiz`);
+  const bestBilan = sessionId === 3 ? bestAttempt(sessionAttempts,"session-3-bilan-situations-v5") : null;
   const bestAssembly = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-assembler") : null;
   const bestRepair = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-depanner") : null;
-  const evaluationAttempts = [bestAssembly, bestRepair, bestQuiz].filter((attempt): attempt is Attempt => Boolean(attempt));
+  const evaluationAttempts = (sessionId === 3 ? [bestBilan] : [bestAssembly, bestRepair, bestQuiz]).filter((attempt): attempt is Attempt => Boolean(attempt));
   const evaluationScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.score ?? 0), 0);
   const evaluationMaxScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.maxScore ?? 0), 0);
-  const evaluationPercentage = sessionId === 2 && evaluationAttempts.length === 3 && evaluationMaxScore > 0
+  const evaluationPercentage = ((sessionId === 2 && evaluationAttempts.length === 3) || (sessionId === 3 && Boolean(bestBilan))) && evaluationMaxScore > 0
     ? Math.round((evaluationScore / evaluationMaxScore) * 100)
     : null;
   const competencies = config.competencies.map((competency) => {
@@ -409,7 +424,9 @@ function sessionSummaryForAttempts(attempts: Attempt[], sessionId: 1 | 2) {
   return {
     attempts: sessionAttempts.length,
     exercises: successfulIds.size,
+    successfulIds,
     bestQuiz,
+    bestBilan,
     bestAssembly,
     bestRepair,
     evaluationPercentage,
@@ -672,7 +689,7 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
           return (
             <article key={`${index}-${displayAnswerValue(item.question)}`}>
               <div className="prof-question-line">
-                <strong>Question {index + 1}</strong>
+                <strong>{attempt.activityId === "session-3-bilan-situations-v5" ? "Critère" : "Question"} {index + 1}</strong>
                 <span className={item.correct ? "prof-result-good" : "prof-result-bad"}>
                   {item.correct ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
                   {earnedPoints}/{maxPoints} point{maxPoints > 1 ? "s" : ""}
@@ -685,7 +702,7 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
                   <dd>{displayAnswerValue(item.selectedChoice)} <small>{answerCorrect ? "Correcte" : "Incorrecte"}</small></dd>
                 </div>
                 <div><dt>Réponse attendue</dt><dd>{displayAnswerValue(item.correctChoice)}</dd></div>
-                <div><dt>Lettre affichée</dt><dd>{displayAnswerValue(item.displayedChoice)}</dd></div>
+                {item.displayedChoice !== undefined && <div><dt>Lettre affichée</dt><dd>{displayAnswerValue(item.displayedChoice)}</dd></div>}
                 {hasJustification && (
                   <>
                     <div className={justificationCorrect ? "prof-detail-correct" : "prof-detail-incorrect"}>
@@ -799,26 +816,19 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
   return <p className="prof-answer-plain">{displayAnswerValue(answer)}</p>;
 }
 
-function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; sessionId: 1 | 2 }) {
+function SessionLearningReport({ attempts, sessionId, onOpenAttempt }: { attempts: Attempt[]; sessionId: 1 | 2 | 3; onOpenAttempt?:(attempt:Attempt)=>void }) {
   const config = pedagogicalSessions[sessionId];
   const sessionAttempts = attempts.filter((attempt) => attempt.sessionId === sessionId);
+  const summary = sessionSummaryForAttempts(attempts,sessionId);
+  const {successfulIds,bestQuiz,bestBilan,bestAssembly,bestRepair,evaluationPercentage,evaluationGrade} = summary;
+  const bestEvaluation = sessionId === 3 ? bestBilan : bestQuiz;
+  const evaluationAttempts = [bestAssembly,bestRepair,bestQuiz].filter((attempt):attempt is Attempt=>Boolean(attempt));
+  const evaluationScore = evaluationAttempts.reduce((sum,a)=>sum+(a.score??0),0);
+  const evaluationMaxScore = evaluationAttempts.reduce((sum,a)=>sum+(a.maxScore??0),0);
+  const bilanAnswer = bestBilan ? parseAttemptAnswer(bestBilan) : null;
+  const bilanSections = bilanAnswer && typeof bilanAnswer === "object" && "sections" in bilanAnswer && Array.isArray(bilanAnswer.sections) ? bilanAnswer.sections as number[] : null;
   if (sessionAttempts.length === 0) return null;
 
-  const successfulIds = new Set(
-    sessionAttempts
-      .filter((attempt) => attempt.activityType === "unit1_exercise" && Boolean(attempt.isCorrect))
-      .map((attempt) => attempt.activityId),
-  );
-  const bestQuiz = bestAttempt(sessionAttempts, `session-${sessionId}-quiz`);
-  const bestAssembly = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-assembler") : null;
-  const bestRepair = sessionId === 2 ? bestAttempt(sessionAttempts, "s2-evaluation-depanner") : null;
-  const evaluationAttempts = [bestAssembly, bestRepair, bestQuiz].filter((attempt): attempt is Attempt => Boolean(attempt));
-  const evaluationScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.score ?? 0), 0);
-  const evaluationMaxScore = evaluationAttempts.reduce((total, attempt) => total + (attempt.maxScore ?? 0), 0);
-  const evaluationPercentage = sessionId === 2 && evaluationAttempts.length === 3 && evaluationMaxScore > 0
-    ? Math.round((evaluationScore / evaluationMaxScore) * 100)
-    : null;
-  const evaluationGrade = percentageToGrade(evaluationPercentage);
   const progressPercent = Math.round((successfulIds.size / config.exerciseCount) * 100);
   const gradedAttempts = sessionAttempts.filter((attempt) => attempt.isCorrect !== null);
   const correctAttempts = gradedAttempts.filter((attempt) => Boolean(attempt.isCorrect)).length;
@@ -839,7 +849,7 @@ function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; s
         </article>
         <article className="prof-session2-score-card">
           <span className="prof-session2-card-icon"><GraduationCap size={20} /></span>
-          <div><small>MEILLEURE ÉVALUATION</small><strong>{bestQuiz ? `${bestQuiz.score ?? 0}/${bestQuiz.maxScore ?? 0}` : "—"}</strong><span>{bestQuiz ? `${attemptPercentage(bestQuiz) ?? 0}% de réussite` : "Évaluation non réalisée"}</span></div>
+          <div><small>{sessionId === 3 ? "MEILLEUR BILAN / 20" : "MEILLEURE ÉVALUATION"}</small><strong>{bestEvaluation ? `${bestEvaluation.score ?? 0}/${bestEvaluation.maxScore ?? 0}` : "—"}</strong><span>{bestEvaluation ? `${attemptPercentage(bestEvaluation) ?? 0}% de réussite` : "Évaluation non réalisée"}</span></div>
         </article>
         <article className="prof-session2-score-card success">
           <span className="prof-session2-card-icon"><Target size={20} /></span>
@@ -876,6 +886,11 @@ function SessionLearningReport({ attempts, sessionId }: { attempts: Attempt[]; s
           </footer>
         </section>
       )}
+      {sessionId === 3 && <section className="prof-evaluation-path" aria-label="Bilan de l’évaluation de la séance 3">
+        <header><div><small>BILAN EN TROIS SITUATIONS</small><strong>Classer · Reconnaître · Organiser</strong></div><span className={bestBilan?"complete":"pending"}>{bestBilan?`${bestBilan.score}/${bestBilan.maxScore} points` : "Bilan non remis"}</span></header>
+        <div className="prof-evaluation-stage-grid">{[{name:"Le poste du club",maximum:6},{name:"Les fichiers à utiliser",maximum:4},{name:"Le dossier à remettre",maximum:10}].map((part,i)=><article className={bestBilan?"complete":"pending"} key={part.name}><span className="prof-evaluation-stage-icon"><Target size={19}/></span><div><small>SITUATION {i+1}</small><strong>{part.name}</strong><p>{bilanSections&&Number.isFinite(bilanSections[i])?`${bilanSections[i]}/${part.maximum} points`:"Non remise"}</p></div></article>)}</div>
+        <footer><span>Le bilan est noté sur 20. Les tentatives d’entraînement sont comptées séparément.</span>{bestBilan&&onOpenAttempt&&<button type="button" className="prof-detail-button" onClick={()=>onOpenAttempt(bestBilan)}><Eye size={15}/>Consulter les 15 critères</button>}</footer>
+      </section>}
       <div className="prof-competency-title"><strong>Maîtrise des compétences</strong><span>Une compétence est acquise lorsque tous ses exercices sont réussis.</span></div>
       <div className="prof-competency-grid">
         {config.competencies.map((competency) => {
@@ -916,7 +931,8 @@ export default function ProfessorDashboard() {
   const [learnerAttempts, setLearnerAttempts] = useState<Attempt[]>([]);
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
-  const [reportScope, setReportScope] = useState<"session1" | "session2" | "all">("session1");
+  const [reportScope, setReportScope] = useState<ReportScope>("all");
+  const reportRequestRef = useRef(0);
   const [reportView, setReportView] = useState<"answers" | "summary">("answers");
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
@@ -1054,11 +1070,14 @@ export default function ProfessorDashboard() {
         "S2 - QCM (points)", "S2 - QCM (maximum)", "S2 - QCM (%)",
         "S2 - Évaluation globale (%)", "S2 - Note globale (/20)", "S2 - Étapes réussies (/3)",
         "S2 - Bilan des compétences",
+        "S3 - Tentatives", "S3 - Exercices réussis (/25)", "S3 - Bilan (points)", "S3 - Bilan (maximum)",
+        "S3 - Bilan (%)", "S3 - Bilan des compétences",
       ];
       const summaryRows = (data?.learners ?? []).map((learner) => {
         const learnerRows = payload.rows.filter((attempt) => attempt.participantId === learner.id);
         const session1 = sessionSummaryForAttempts(learnerRows, 1);
         const session2 = sessionSummaryForAttempts(learnerRows, 2);
+        const session3 = sessionSummaryForAttempts(learnerRows, 3);
         return [
           learner.className,
           `Groupe ${learner.groupName}`,
@@ -1096,13 +1115,19 @@ export default function ProfessorDashboard() {
           session2.evaluationGrade ?? "",
           session2.completedEvaluationStages,
           session2.competencies,
+          session3.attempts,
+          session3.exercises,
+          session3.bestBilan?.score ?? "",
+          session3.bestBilan?.maxScore ?? "",
+          session3.evaluationPercentage ?? "",
+          session3.competencies,
         ];
       });
       const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
       summaryWorksheet["!cols"] = summaryHeader.map((label) => ({
         wch: label.includes("Bilan des compétences") ? 90 : Math.min(36, Math.max(12, label.length + 3)),
       }));
-      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:AJ${summaryRows.length + 1}` };
+      if (summaryRows.length > 0) summaryWorksheet["!autofilter"] = { ref: `A1:${XLSX.utils.encode_col(summaryHeader.length-1)}${summaryRows.length + 1}` };
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Résumé par élève");
       XLSX.utils.book_append_sheet(workbook, worksheet, "Réponses détaillées");
@@ -1190,26 +1215,32 @@ export default function ProfessorDashboard() {
     setSelectedLearner(learner);
     setLearnerAttempts([]);
     setSelectedAttemptId(null);
-    setReportScope(isSession2EvaluationPreview() ? "session2" : "session1");
+    const reportRequest = ++reportRequestRef.current;
+    setReportScope("all");
     setReportView("answers");
     setReportLoading(true);
     setError("");
     try {
       if (isSession2EvaluationPreview()) {
-        setLearnerAttempts(readEvaluationPreviewAttempts());
+        const attempts = readEvaluationPreviewAttempts();
+        setLearnerAttempts(attempts);
+        setReportScope(initialReportScope(attempts,"2"));
         return;
       }
       const report = await teacherLearnerReport<{ attempts: Attempt[]; truncated: boolean }>(learner.id);
+      if (reportRequest !== reportRequestRef.current) return;
       setLearnerAttempts(report.attempts);
+      setReportScope(initialReportScope(report.attempts,appliedFilters.sessionId));
       if (report.truncated) setError("Le rapport est limité aux 25 000 tentatives les plus récentes.");
     } catch (reportError) {
+      if (reportRequest !== reportRequestRef.current) return;
       if ((reportError as Error & { status?: number }).status === 401) {
         logout();
         return;
       }
       setError(reportError instanceof Error ? reportError.message : "Rapport impossible à charger.");
     } finally {
-      setReportLoading(false);
+      if (reportRequest === reportRequestRef.current) setReportLoading(false);
     }
   }
 
@@ -1405,7 +1436,7 @@ export default function ProfessorDashboard() {
         </section>
       </div>
 
-      <Dialog open={Boolean(selectedLearner)} onOpenChange={(open) => { if (!open) { setSelectedLearner(null); setSelectedAttemptId(null); } }}>
+      <Dialog open={Boolean(selectedLearner)} onOpenChange={(open) => { if (!open) { reportRequestRef.current += 1; setSelectedLearner(null); setSelectedAttemptId(null); setReportLoading(false); } }}>
         <DialogContent className="prof-answer-dialog prof-learner-report-dialog">
           {selectedLearner && (
             <>
@@ -1416,6 +1447,7 @@ export default function ProfessorDashboard() {
                   {selectedLearner.className} · Groupe {selectedLearner.groupName} · {selectedLearner.isPair ? "Binôme" : "Individuel"}
                 </DialogDescription>
               </DialogHeader>
+              <p className="prof-report-global-caption">Statistiques globales · toutes les séances</p>
               <div className="prof-report-summary">
                 <article><small>Tentatives</small><strong>{selectedLearner.totalAttempts}</strong></article>
                 <article><small>Réussite</small><strong>{selectedLearner.gradedAttempts > 0 ? `${selectedLearner.correctAttempts}/${selectedLearner.gradedAttempts}` : "—"}</strong></article>
@@ -1433,18 +1465,18 @@ export default function ProfessorDashboard() {
                 <div className="prof-session-reports">
                   <SessionLearningReport attempts={learnerAttempts} sessionId={1} />
                   <SessionLearningReport attempts={learnerAttempts} sessionId={2} />
-                  {!learnerAttempts.some((attempt) => attempt.sessionId === 1 || attempt.sessionId === 2) && (
-                    <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1 ou 2.</p></div>
+                  <SessionLearningReport attempts={learnerAttempts} sessionId={3} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(3);setSelectedAttemptId(attempt.id)}} />
+                  {!learnerAttempts.some((attempt) => [1,2,3].includes(attempt.sessionId)) && (
+                    <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1, 2 ou 3.</p></div>
                   )}
                 </div>
               )}
               {!reportLoading && reportView === "answers" && learnerAttempts.length > 0 && (
                 <div className="prof-report-toolbar">
-                  <div><strong>Historique des réponses</strong><span>{reportScope === "session1" ? "Séance 1 uniquement" : reportScope === "session2" ? "Séance 2 uniquement" : "Toutes les séances"}</span></div>
+                  <div><strong>Historique des réponses</strong><span>{reportScope === "all" ? "Toutes les séances" : `Séance ${reportScope} uniquement`} · {filterReportAttempts(learnerAttempts,reportScope).length} réponse(s)</span></div>
                   <div>
-                    <button className={reportScope === "session1" ? "active" : ""} onClick={() => setReportScope("session1")}>Séance 1</button>
-                    <button className={reportScope === "session2" ? "active" : ""} onClick={() => setReportScope("session2")}>Séance 2</button>
-                    <button className={reportScope === "all" ? "active" : ""} onClick={() => setReportScope("all")}>Toutes</button>
+                    {reportSessionIds(learnerAttempts).map(id=><button type="button" aria-pressed={reportScope===id} className={reportScope===id?"active":""} key={id} onClick={()=>{setReportScope(id);setSelectedAttemptId(null)}}>Séance {id}<span className="prof-report-scope-count">{learnerAttempts.filter(a=>a.sessionId===id).length}</span></button>)}
+                    <button type="button" aria-pressed={reportScope === "all"} className={reportScope === "all" ? "active" : ""} onClick={() => {setReportScope("all");setSelectedAttemptId(null)}}>Toutes</button>
                   </div>
                 </div>
               )}
@@ -1452,7 +1484,7 @@ export default function ProfessorDashboard() {
                 <div className="prof-report-loading"><LoaderCircle className="spin" size={22} /> Chargement des réponses…</div>
               ) : reportView === "answers" && learnerAttempts.length > 0 ? (
                 <div className="prof-report-attempts">
-                  {learnerAttempts.filter((attempt) => reportScope === "all" || attempt.sessionId === (reportScope === "session1" ? 1 : 2)).map((attempt) => {
+                  {filterReportAttempts(learnerAttempts,reportScope).map((attempt) => {
                     const expanded = selectedAttemptId === attempt.id;
                     const percentage = attemptPercentage(attempt);
                     const grade = percentageToGrade(percentage);
@@ -1473,12 +1505,7 @@ export default function ProfessorDashboard() {
                       </article>
                     );
                   })}
-                  {reportScope === "session1" && !learnerAttempts.some((attempt) => attempt.sessionId === 1) && (
-                    <div className="prof-report-no-session"><Activity size={22} /><strong>Aucune réponse pour la séance 1</strong><span>Choisissez « Toutes » pour consulter les autres séances.</span></div>
-                  )}
-                  {reportScope === "session2" && !learnerAttempts.some((attempt) => attempt.sessionId === 2) && (
-                    <div className="prof-report-no-session"><Activity size={22} /><strong>Aucune réponse pour la séance 2</strong><span>Choisissez « Toutes » pour consulter les autres séances.</span></div>
-                  )}
+                  {reportScope !== "all" && !learnerAttempts.some(attempt=>attempt.sessionId===reportScope) && <div className="prof-report-no-session"><Activity size={22}/><strong>Aucune réponse pour la séance {reportScope}</strong><span>Les autres réponses sont disponibles dans les onglets des séances ou dans « Toutes ».</span></div>}
                 </div>
               ) : reportView === "answers" ? (
                 <div className="prof-empty"><Activity size={25} /><strong>Aucune tentative</strong><p>Cet élève n’a encore envoyé aucune réponse.</p></div>

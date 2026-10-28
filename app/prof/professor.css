@@ -922,6 +922,11 @@
 .prof-report-toolbar > div:last-child { display: inline-flex; padding: 3px; border-radius: 9px; background: #edf1f3; }
 .prof-report-toolbar button { padding: 7px 11px; border: 0; border-radius: 7px; background: transparent; color: var(--prof-muted); cursor: pointer; font-size: 9px; font-weight: 850; }
 .prof-report-toolbar button.active { background: #fff; color: var(--prof-navy); box-shadow: 0 2px 8px rgba(11,32,55,.1); }
+.prof-report-toolbar > div:last-child { flex-wrap: wrap; gap: 2px; max-width: 100%; }
+.prof-report-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; }
+.prof-report-scope-count { display: inline-grid; min-width: 18px; height: 18px; padding: 0 3px; place-items: center; border-radius: 5px; background: #e0e9ed; font-size: 9px; }
+.prof-report-toolbar button.active .prof-report-scope-count { background: #dff1f2; color: #178998; }
+.prof-report-global-caption { margin: 0; color: var(--prof-muted); font-size: 10px; }
 .prof-report-no-session { display: grid; min-height: 140px; place-content: center; justify-items: center; color: #9aa5ae; text-align: center; }
 .prof-report-no-session strong { margin-top: 8px; color: var(--prof-navy); font-size: 12px; }
 .prof-report-no-session span { margin-top: 4px; font-size: 9px; }
