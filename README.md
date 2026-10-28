@@ -50,7 +50,7 @@ Les 25 exercices occupent 100 minutes (rappel 25, découverte 20, pratique 55), 
 
 Les exercices 13, 17, 19, 23, 24 et 25 utilisent un bureau d’entraînement inspiré de Windows 11 : fenêtres, calculatrice, Explorateur, dossiers, presse-papiers, renommage et Corbeille. Son système de fichiers est virtuel. Les élèves refont ensuite les gestes sur leur poste Windows. Références : [Explorateur de fichiers](https://support.microsoft.com/fr-fr/windows/experience/fileexplorer/file-explorer-in-windows) et [raccourcis Windows](https://support.microsoft.com/fr-fr/windows/raccourcis-clavier-dans-windows-dcc61a57-8ff0-cffe-9796-cb9706c75eec).
 
-Le bilan remplace le QCM de la séance 3 par trois situations : classer six éléments (6 points), reconnaître le contenu de quatre fichiers (4 points), organiser un dossier dans le simulateur (10 points). La correction apparaît après confirmation de remise. La tentative transmise au tableau professeur comprend les 15 critères et l’état du dossier. Le brouillon reste dans la session du navigateur. Les scores sont indicatifs : le dispositif reste un entraînement côté navigateur, et l’observation des gestes sur le poste complète l’évaluation.
+Le bilan remplace le QCM de la séance 3 par trois situations : classer six éléments (6 points), reconnaître le contenu de quatre fichiers (4 points), organiser un dossier dans le simulateur (10 points). La correction apparaît après confirmation de remise. La tentative transmise au tableau professeur comprend les 15 critères et l’état du dossier. Le brouillon reste dans la session du navigateur. La fonction serveur accepte le contrat `session3-bilan-situations-v5`, recalcule les critères à partir des choix et du dossier transmis, et vérifie la cohérence du total sur 20. Les règles de la séance 2 restent distinctes. Les scores sont indicatifs : le dispositif reste un entraînement côté navigateur, et l’observation des gestes sur le poste complète l’évaluation.
 
 Les schémas de conversion et d’exemples de systèmes d’exploitation proviennent des supports fournis par l’enseignant. Les conversions utilisent les multiples décimaux : 1 Ko = 1 000 octets ; 1 octet = 8 bits. La carte du système distingue composants internes et périphériques externes.
 
@@ -59,3 +59,5 @@ Photographie du clavier : Pixloom, [Wireless Computer Keyboard](https://commons.
 ## Auteur
 
 Prof. Abdellah TAHTOH — Collège Othmane Ibn Affane
+
+Validation du contrat et de la réception des évaluations (sans requête réseau ni écriture en production) : `node scripts/test-session3-backend.cjs`.

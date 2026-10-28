@@ -1,3 +1,5 @@
+import { validSession3Evaluation } from "./session3-evaluation.ts";
+
 const allowedOrigins = new Set([
   "https://tabdellah.github.io",
   "https://lab-2ac-v3-test.tahtoh-abdellah.chatgpt.site",
@@ -78,6 +80,9 @@ function validPracticalEvaluation(
   maxScore: number | null,
 ) {
   if (activityType !== "practical_evaluation") return true;
+  if (sessionId === 3 && activityId === "session-3-bilan-situations-v5") {
+    return validSession3Evaluation(answer, isCorrect, score, maxScore);
+  }
   if (sessionId !== 2 || isCorrect !== true || !isRecord(answer) || answer.completed !== true) return false;
 
   const errors = Number(answer.errors);
