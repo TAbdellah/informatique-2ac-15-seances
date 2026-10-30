@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { ArrowLeft, ArrowUp, Calculator, Check, ChevronRight, Clipboard, Copy, Download, FileImage, FileText, Folder, FolderPlus, Home, Maximize2, Minimize2, Minus, MoreHorizontal, Music2, Pencil, Play, RotateCcw, Save, Scissors, Search, Trash2, Video, Volume2, Wifi, X } from "lucide-react";
 import { Session3Text as Text } from "./session3-translation";
 import type { LocalizedText } from "./course-data";
@@ -18,7 +18,7 @@ function FileIcon({file,size=24}:{file:VirtualFile;size?:number}){return file.ki
 function AppIcon({app,size=22}:{app:WindowsApp;size?:number}){return app==="calculator"?<Calculator size={size} className="w11-calculator-icon"/>:app==="explorer"?<Folder size={size} className="w11-folder-icon"/>:<FileText size={size} className="w11-text-icon"/>}
 
 export function Session3Windows11({mode,initialState,onStateChange,onValidate,assessment=false,disabled=false}:{mode:WindowsMode;initialState?:WindowsState;onStateChange?:(s:WindowsState)=>void;onValidate?:(answer:ReturnType<typeof windowsEvidence>,checks:boolean[])=>void;assessment?:boolean;disabled?:boolean}){
-  const [state,dispatch]=useReducer(windowsReducer,undefined,()=>isWindowsState(initialState,mode)?initialState:createWindowsState(mode));
+  const [state,setState]=useState(()=>isWindowsState(initialState,mode)?initialState:createWindowsState(mode));
   const [startOpen,setStartOpen]=useState(false),[startSearch,setStartSearch]=useState("");
   const [search,setSearch]=useState("");
   const [dialog,setDialog]=useState<DialogState>(null),[name,setName]=useState("");
@@ -31,7 +31,8 @@ export function Session3Windows11({mode,initialState,onStateChange,onValidate,as
   const surfaceRef=useRef<HTMLDivElement>(null),nameRef=useRef<HTMLInputElement>(null);
   const dragging=useRef<{app:WindowsApp;x:number;y:number;left:number;top:number}|null>(null);
   const latestState=useRef(state);latestState.current=state;
-  useEffect(()=>{onStateChange?.(state)},[state,onStateChange]);
+  const onChangeRef=useRef(onStateChange);onChangeRef.current=onStateChange;
+  const dispatch=useCallback((action:Parameters<typeof windowsReducer>[1])=>{const next=windowsReducer(latestState.current,action);latestState.current=next;onChangeRef.current?.(next);setState(next)},[]);
   useEffect(()=>{const tick=()=>setClock(new Intl.DateTimeFormat("fr-MA",{hour:"2-digit",minute:"2-digit",timeZone:"Africa/Casablanca"}).format(new Date()));tick();const id=window.setInterval(tick,60000);return()=>window.clearInterval(id)},[]);
   useEffect(()=>{if(dialog&&dialog.kind!=="reset"){nameRef.current?.focus();nameRef.current?.select()}},[dialog]);
   const criteria=windowsCriteria(state);

@@ -1,3 +1,4 @@
+import { createLearningService } from "./learning-service.ts";
 import { validSession3Evaluation } from "./session3-evaluation.ts";
 
 const allowedOrigins = new Set([
@@ -499,6 +500,8 @@ async function updateSessionAccess(sessionIdValue: unknown, unlockedValue: unkno
   return sessionAccess();
 }
 
+const learningService = createLearningService({database,secret:async()=>(await teacherConfig()).session_secret});
+
 Deno.serve(async (request) => {
   const origin = request.headers.get("origin");
   const headers = cors(origin);
@@ -513,7 +516,10 @@ Deno.serve(async (request) => {
   if (!originAllowed) return json({ error: "Origine refusée." }, 403, headers);
 
   try {
-    const body = (await request.json()) as Record<string, unknown>;
+    const rawBody = await request.text();
+    if (encoder.encode(rawBody).length > 600000) return json({error:"Requête trop volumineuse."},413,headers);
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
+    if (!isRecord(body)) return json({error:"Requête invalide."},400,headers);
 
     if (body.action === "login") {
       const password = typeof body.password === "string" ? body.password : "";
@@ -525,39 +531,8 @@ Deno.serve(async (request) => {
       return json({ token: await createSession(), expiresIn: 28800 }, 200, headers);
     }
 
-    if (body.action === "register") {
-      const studentOne = cleanText(body.studentOne, 100);
-      const isPair = body.isPair === true;
-      const studentTwo = isPair ? cleanText(body.studentTwo, 100) : "";
-      const className = cleanText(body.className, 10);
-      const groupName = cleanText(body.groupName, 5);
-      if (
-        studentOne.length < 2 ||
-        (isPair && studentTwo.length < 2) ||
-        !/^2\/[1-9]$/.test(className) ||
-        (groupName !== "1" && groupName !== "2")
-      ) {
-        return json(
-          { error: "Tous les champs obligatoires doivent être remplis. / يجب ملء جميع الخانات المطلوبة." },
-          400,
-          headers,
-        );
-      }
-      const id = crypto.randomUUID();
-      const rows = (await database("course_2ac_participants?select=*", {
-        method: "POST",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify({
-          id,
-          student_one: studentOne,
-          student_two: isPair ? studentTwo : null,
-          class_name: className,
-          group_name: groupName,
-          is_pair: isPair,
-        }),
-      })) as ParticipantRow[];
-      return json({ participant: publicParticipant(rows[0]) }, 201, headers);
-    }
+    const learningResult = await learningService.publicAction(body);
+    if (learningResult) return json(learningResult.body, learningResult.status, headers);
 
     if (body.action === "session_access") {
       return json({ sessions: await sessionAccess() }, 200, headers);
@@ -614,6 +589,8 @@ Deno.serve(async (request) => {
     }
 
     if (!(await validSession(body.token))) return json({ error: "Session expirée." }, 401, headers);
+    const learningAdmin = await learningService.adminAction(body);
+    if (learningAdmin) return json(learningAdmin, 200, headers);
     if (body.action === "dashboard") return json(await dashboard(body.filters, body.page), 200, headers);
     if (body.action === "export") return json(await exportRows(body.filters), 200, headers);
     if (body.action === "learner_report") {
@@ -634,6 +611,7 @@ Deno.serve(async (request) => {
     }
     return json({ error: "Action inconnue." }, 400, headers);
   } catch (error) {
+    if (error && typeof error === "object" && "status" in error && Number(error.status)>=400 && Number(error.status)<500) return json({error:error instanceof Error?error.message:"Requête invalide."},Number(error.status),headers);
     console.error("informatique_2ac_api_error", error);
     return json(
       { error: "Service momentanément indisponible. / الخدمة غير متاحة مؤقتا." },

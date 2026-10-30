@@ -4,7 +4,7 @@ const compile=source=>ts.transpileModule(source,{compilerOptions:{target:ts.Scri
 const load=(relative,imports={},append='')=>{const exports={};vm.runInNewContext(compile(fs.readFileSync(project+'/'+relative,'utf8'))+append,{exports,require:name=>imports[name]??require(name),process,console});return exports};
 const catalog=load('app/session3-lab-data.ts');
 const reportModel=load('app/prof/learner-report-model.ts');
-const dashboard=load('app/prof/professor-dashboard.tsx',{'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions};');
+const dashboard=load('app/prof/professor-dashboard.tsx',{'./learning-dashboard':{},'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions};');
 const {sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions}=dashboard.test;
 const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++},ok=(value,msg)=>{assert.ok(value,msg);assertions++};

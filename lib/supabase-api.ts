@@ -10,6 +10,9 @@ export type StudentProfile = {
   className: string;
   groupName: string;
   isPair: boolean;
+  studentOneId?: string;
+  studentTwoId?: string | null;
+  resumeToken?: string;
 };
 
 export type ProfessorFilters = {
@@ -27,7 +30,7 @@ export type SessionAccess = {
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  const timeout = window.setTimeout(() => controller.abort(), (["learning_session", "learning_state", "save_learning_state", "roster_suggestions"].includes(String(body.action)) ? 8_000 : 20_000));
 
   try {
     const response = await fetch(endpoint, {
@@ -41,8 +44,9 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
     });
     const data = (await response.json().catch(() => ({}))) as { error?: string };
     if (!response.ok) {
-      const error = new Error(data.error || "Service momentanément indisponible.") as Error & { status?: number };
+      const error = new Error(data.error || "Service momentanément indisponible.") as Error & { status?: number; data?:unknown };
       error.status = response.status;
+      error.data = data;
       throw error;
     }
     return data as T;
@@ -103,6 +107,17 @@ export function teacherDeleteAllData(token = teacherToken()) {
 export function teacherDeleteLearner(participantId: string, token = teacherToken()) {
   return call<{ deleted: true }>({ action: "delete_learner", token, participantId, confirmation: "SUPPRIMER" });
 }
+
+export type RosterStudent={id:string;fullName:string;className:string;groupName:string|null;massarCode?:string|null;source:"registration"|"import"|"manual";active:boolean};
+export type ActivityProgress={participantId:string;sessionId:number;activityId:string;activityType:string;attempts:number;graded:number;correct:number;successful:boolean;firstSuccessAt:string|null;lastAt:string;bestScore:number|null;maxScore:number|null;sections:number[]|null};
+export type LearningAnalytics={students:RosterStudent[];participants:Array<StudentProfile&{createdAt:string}>;activities:ActivityProgress[];sessionAccess:SessionAccess[];generatedAt:string;truncated:boolean};
+export function rosterSuggestions(className:string,groupName:string){return call<{students:Array<{id:string;fullName:string}>}>({action:"roster_suggestions",className,groupName})}
+export async function openLearnerSession(profile:StudentProfile){const data=await call<{participant:StudentProfile}>({action:"learning_session",participantId:profile.id,resumeToken:profile.resumeToken});return data.participant}
+export function loadLearningState(resumeToken:string){return call<{checkpoints:import("./learning-storage").LearningSnapshot[];progress:Array<{sessionId:number;completedIds:string[]}>}>({action:"learning_state",resumeToken})}
+export function saveLearningState(resumeToken:string,checkpoint:import("./learning-storage").LearningSnapshot){return call<{saved:true;revision:number}>({action:"save_learning_state",resumeToken,checkpoint})}
+export function teacherLearningAnalytics(token=teacherToken()){return call<LearningAnalytics>({action:"learning_analytics",token})}
+export function teacherImportRoster(students:Array<Partial<RosterStudent>&{fullName:string;className:string}>,token=teacherToken()){return call<{saved:number}>({action:"import_roster",token,students})}
+export function teacherUpdateRoster(id:string,changes:Partial<RosterStudent>,token=teacherToken()){return call<{saved:true}>({action:"update_roster",token,id,changes})}
 
 export async function teacherUpdateSessionAccess(sessionId: number, isUnlocked: boolean, token = teacherToken()) {
   const data = await call<{ sessions: SessionAccess[] }>({

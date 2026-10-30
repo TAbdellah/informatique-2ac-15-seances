@@ -58,6 +58,9 @@ import { Session3Assessment } from "./session3-assessment";
 import type { WindowsState, WindowsMode } from "./session3-windows-model";
 import { Session3Text, Session3TranslationScope, useSession3Translation } from "./session3-translation";
 import "./session3-theme.css";
+import {LearningProvider,LearningSaveBadge,useDurableLessonState} from "../lib/learning-context";
+import {forgetActiveProfile,lastLearningView,resumeOverview,readSnapshot,rememberedActiveProfile,rememberProfile,saveSnapshot} from "../lib/learning-storage";
+import {StudentIdentification,ResumeStudent} from "./student-identification";
 import {
   getSessionAccess,
   registerParticipant,
@@ -86,6 +89,7 @@ type QueuedSubmission = SubmissionInput & {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type ExerciseDraft = {
+  savedAt?:number;
   choice: number | null;
   multi: number[];
   matches: Record<number, number>;
@@ -332,102 +336,12 @@ function isStudentProfile(value: unknown): value is StudentProfile {
 }
 
 function StudentIdentityGate({ onReady }: { onReady: (profile: StudentProfile) => void }) {
-  const [isPair, setIsPair] = useState(true);
-  const [studentOne, setStudentOne] = useState("");
-  const [studentTwo, setStudentTwo] = useState("");
-  const [className, setClassName] = useState("2/1");
-  const [groupName, setGroupName] = useState("1");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  async function submitIdentity(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const participant = await registerParticipant({
-        studentOne,
-        studentTwo: isPair ? studentTwo : null,
-        className,
-        groupName,
-        isPair,
-      });
-      window.sessionStorage.setItem(activeParticipantKey, JSON.stringify(participant));
-      onReady(participant);
-    } catch (identityError) {
-      setError(identityError instanceof Error ? identityError.message : "Enregistrement impossible.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <main className="identity-gate" dir="ltr">
-      <section className="identity-card" aria-labelledby="identity-title">
-        <div className="identity-brand">
-          <span className="brand-symbol" aria-hidden="true">{"//"}</span>
-          <span><strong>LAB·2AC</strong><small>INFORMATIQUE</small></span>
-        </div>
-        <div className="identity-heading">
-          <span className="identity-kicker"><Users size={16} /> Identification des élèves · تعريف التلاميذ</span>
-          <h1 id="identity-title"><BilingualText value={{ fr: "Avant de commencer", ar: "قبل البدء" }} /></h1>
-          <p><BilingualText value={{
-            fr: "Indique ton nom, ta classe et ton groupe. Tes réponses seront enregistrées pour le suivi pédagogique.",
-            ar: "أدخل اسمك وقسمك ومجموعتك. ستُسجّل إجاباتك من أجل التتبع التربوي.",
-          }} /></p>
-        </div>
-
-        <form className="identity-form" onSubmit={submitIdentity}>
-          <label className="pair-check">
-            <input type="checkbox" checked={isPair} onChange={(event) => setIsPair(event.target.checked)} />
-            <span className="pair-check-box"><Check size={16} /></span>
-            <span><BilingualText value={{ fr: "Nous travaillons en binôme", ar: "نشتغل في ثنائي" }} /></span>
-          </label>
-
-          <div className={`student-name-grid ${isPair ? "pair" : "solo"}`}>
-            <label>
-              <span><BilingualText value={{ fr: isPair ? "Nom complet de l’élève 1" : "Nom complet", ar: isPair ? "الاسم الكامل للتلميذ(ة) الأول(ى)" : "الاسم الكامل" }} /></span>
-              <input required value={studentOne} onChange={(event) => setStudentOne(event.target.value)} autoComplete="name" dir="auto" maxLength={100} />
-            </label>
-            {isPair && (
-              <label>
-                <span><BilingualText value={{ fr: "Nom complet de l’élève 2", ar: "الاسم الكامل للتلميذ(ة) الثاني(ة)" }} /></span>
-                <input required value={studentTwo} onChange={(event) => setStudentTwo(event.target.value)} autoComplete="off" dir="auto" maxLength={100} />
-              </label>
-            )}
-          </div>
-
-          <div className="class-group-grid">
-            <label>
-              <span><BilingualText value={{ fr: "Classe", ar: "القسم" }} /></span>
-              <select required value={className} onChange={(event) => setClassName(event.target.value)}>
-                {Array.from({ length: 9 }, (_, index) => {
-                  const value = `2/${index + 1}`;
-                  return <option value={value} key={value}>{value}</option>;
-                })}
-              </select>
-            </label>
-            <label>
-              <span><BilingualText value={{ fr: "Groupe", ar: "المجموعة" }} /></span>
-              <select value={groupName} onChange={(event) => setGroupName(event.target.value)}>
-                <option value="1">Groupe 1 · المجموعة 1</option>
-                <option value="2">Groupe 2 · المجموعة 2</option>
-              </select>
-            </label>
-          </div>
-
-          {error && <div className="identity-error" role="alert"><AlertTriangle size={17} /><span>{error}</span></div>}
-
-          <button className="identity-submit" type="submit" disabled={submitting}>
-            {submitting ? <LoaderCircle className="spin" size={19} /> : <ArrowRight size={19} />}
-            <BilingualText value={{ fr: submitting ? "Enregistrement…" : "Entrer dans le cours", ar: submitting ? "جارٍ التسجيل…" : "الدخول إلى الدرس" }} />
-          </button>
-        </form>
-      </section>
-    </main>
-  );
+  return <StudentIdentification onReady={onReady}/>;
 }
+
+const learningRecord=(value:unknown):value is Record<string,unknown>=>Boolean(value&&typeof value==="object"&&!Array.isArray(value));
+function useLearningField<T extends object,K extends keyof T>(setState:React.Dispatch<React.SetStateAction<T>>,field:K){return useCallback((next:React.SetStateAction<T[K]>)=>setState(current=>{const value=typeof next==="function"?(next as (v:T[K])=>T[K])(current[field]):next;return Object.is(value,current[field])?current:{...current,[field]:value}}),[setState,field]);}
+
 
 function padTime(value: number) {
   return String(value).padStart(2, "0");
@@ -1110,26 +1024,14 @@ function ExercisePlayer({
   draft?: ExerciseDraft;
   onDraftChange: (draft: ExerciseDraft) => void;
 }) {
-  const [choice, setChoice] = useState<number | null>(draft?.choice ?? null);
-  const [multi, setMulti] = useState<Set<number>>(() => new Set(draft?.multi ?? []));
-  const [matches, setMatches] = useState<Record<number, number>>(draft?.matches ?? {});
-  const [dragSelection, setDragSelection] = useState<number | null>(null);
-  const [sequence, setSequence] = useState<number[]>(draft?.sequence ?? []);
-  const [textValue, setTextValue] = useState(draft?.textValue ?? "");
-  const [conversionValues, setConversionValues] = useState<Record<number, string>>(draft?.conversionValues ?? {});
-  const [diagnosticComponent, setDiagnosticComponent] = useState<number | null>(draft?.diagnosticComponent ?? null);
-  const [diagnosticRepair, setDiagnosticRepair] = useState<number | null>(draft?.diagnosticRepair ?? null);
-  const [gestureProgress, setGestureProgress] = useState(
-    draft?.gestureProgress ?? (exercise.type === "gesture" && exercise.mode === "precision" && alreadyCompleted ? 5 : 0)
-  );
-  const [systemLab, setSystemLab] = useState<SystemLabState | undefined>(draft?.systemLab);
-  const [windows11, setWindows11] = useState<WindowsState | undefined>(draft?.windows11);
-  const [result, setResult] = useState<boolean | null>(draft ? draft.result : (alreadyCompleted ? true : null));
-  const resultRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    onDraftChange({ choice, multi: [...multi], matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, windows11, result });
-  }, [choice, multi, matches, sequence, textValue, conversionValues, diagnosticComponent, diagnosticRepair, gestureProgress, systemLab, windows11, result, onDraftChange]);
+  type WorkingDraft=Omit<ExerciseDraft,"multi">&{multi:Set<number>};
+  const initialDraft:WorkingDraft={choice:draft?.choice??null,multi:new Set(draft?.multi??[]),matches:draft?.matches??{},sequence:draft?.sequence??[],textValue:draft?.textValue??"",conversionValues:draft?.conversionValues??{},diagnosticComponent:draft?.diagnosticComponent??null,diagnosticRepair:draft?.diagnosticRepair??null,gestureProgress:draft?.gestureProgress??(exercise.type==="gesture"&&exercise.mode==="precision"&&alreadyCompleted?5:0),systemLab:draft?.systemLab,windows11:draft?.windows11,result:draft?draft.result:(alreadyCompleted?true:null)};
+  const [working,setWorkingRaw]=useState(initialDraft),workingRef=useRef(working),draftCallback=useRef(onDraftChange);draftCallback.current=onDraftChange;
+  const setWorking=useCallback((update:React.SetStateAction<WorkingDraft>)=>{const next=typeof update==="function"?update(workingRef.current):update;if(next===workingRef.current)return;workingRef.current=next;draftCallback.current({...next,multi:[...next.multi]});setWorkingRaw(next)},[]);
+  const {choice,multi,matches,sequence,textValue,conversionValues,diagnosticComponent,diagnosticRepair,gestureProgress,systemLab,windows11,result}=working;
+  const setChoice=useLearningField(setWorking,"choice"),setMulti=useLearningField(setWorking,"multi"),setMatches=useLearningField(setWorking,"matches"),setSequence=useLearningField(setWorking,"sequence"),setTextValue=useLearningField(setWorking,"textValue"),setConversionValues=useLearningField(setWorking,"conversionValues"),setDiagnosticComponent=useLearningField(setWorking,"diagnosticComponent"),setDiagnosticRepair=useLearningField(setWorking,"diagnosticRepair"),setGestureProgress=useLearningField(setWorking,"gestureProgress"),setSystemLab=useLearningField(setWorking,"systemLab"),setWindows11=useLearningField(setWorking,"windows11"),setResult=useLearningField(setWorking,"result");
+  const [dragSelection,setDragSelection]=useState<number|null>(null);
+  const resultRef=useRef<HTMLDivElement>(null);
   const choiceOrder = useMemo(
     () => shuffledIndices(exercise.type === "choice" || exercise.type === "multi" ? exercise.choices.length : 0, `${exercise.id}-choices`),
     [exercise],
@@ -1753,6 +1655,8 @@ function ExercisePlayer({
   );
 }
 
+function HistoryMark(){return <CheckCircle2 size={17}/>;}
+
 function Unit1Workshop({
   session,
   lang,
@@ -1767,52 +1671,31 @@ function Unit1Workshop({
   onGoToTrace: () => void;
 }) {
   const lab = unit1Labs[session.id as 1 | 2 | 3];
-  const [exerciseIndex, setExerciseIndex] = useState(0);
-  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
-  const [progressLoaded, setProgressLoaded] = useState(false);
-  const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
-  const exerciseAnchorRef = useRef<HTMLDivElement>(null);
-  const exercise = lab.exercises[exerciseIndex];
-  const currentResult = completedExercises.has(exercise.id) ? true : (drafts[exercise.id]?.result ?? null);
-  const keepDraft = useCallback((draft: ExerciseDraft) => {
-    setDrafts((current) => ({ ...current, [exercise.id]: draft }));
-  }, [exercise.id]);
-
-  useEffect(() => {
-    setProgressLoaded(false);
-    setCompletedExercises(new Set());
-    const stored = window.localStorage.getItem(`lab2ac-unit1-session-${session.id}-${participantId}`);
-    if (stored) {
-      try {
-        const storedIds = JSON.parse(stored) as string[];
-        setCompletedExercises(new Set(storedIds.filter((id) => lab.exercises.some((item) => item.id === id))));
-      } catch { /* Ignore malformed local data. */ }
-    }
-    setProgressLoaded(true);
-  }, [participantId, session.id, lab]);
-
-  useEffect(() => {
-    if (!progressLoaded) return;
-    window.localStorage.setItem(`lab2ac-unit1-session-${session.id}-${participantId}`, JSON.stringify([...completedExercises]));
-  }, [completedExercises, participantId, progressLoaded, session.id]);
-
-  useEffect(() => {
-    const scrollTimer = window.setTimeout(() => {
-      exerciseAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-    }, 120);
-    return () => window.clearTimeout(scrollTimer);
-  }, [exerciseIndex]);
-
-  function markCompleted(id: string) {
-    setCompletedExercises((current) => {
-      const next = new Set(current);
-      next.add(id);
-      return next;
-    });
-  }
+  type WorkshopState={version:1;exerciseId?:string;completedIds:string[];drafts:Record<string,ExerciseDraft>};
+  const initial=useMemo<WorkshopState>(()=>{let ids:string[]=[];try{const parsed=JSON.parse(localStorage.getItem(`lab2ac-unit1-session-${session.id}-${participantId}`)??"[]");if(Array.isArray(parsed))ids=parsed.filter(id=>lab.exercises.some(ex=>ex.id===id));}catch{}return {version:1,completedIds:ids,drafts:{}}},[session.id,participantId,lab]);
+  const durable=useDurableLessonState<WorkshopState>({participantId,sessionId:session.id,kind:"workshop",initial,validate:(v):v is WorkshopState=>learningRecord(v)&&v.version===1&&Array.isArray(v.completedIds)&&(!v.drafts||learningRecord(v.drafts))});
+  const {value:work,setValue:setWork,ready:progressLoaded}=durable;
+  const completedExercises=new Set((work.completedIds??[]).filter(id=>lab.exercises.some(e=>e.id===id)));
+  const savedIndex=lab.exercises.findIndex(ex=>ex.id===work.exerciseId);
+  const firstMissing=lab.exercises.findIndex(ex=>!completedExercises.has(ex.id));
+  const exerciseIndex=savedIndex>=0?savedIndex:firstMissing>=0?firstMissing:lab.exercises.length-1;
+  const exercise=lab.exercises[exerciseIndex];
+  const drafts=work.drafts??{};
+  const exerciseAnchorRef=useRef<HTMLDivElement>(null);
+  const currentResult=completedExercises.has(exercise.id)?true:(drafts[exercise.id]?.result??null);
+  const keepDraft=useCallback((draft:ExerciseDraft)=>setWork(current=>{
+    const previous=current.drafts?.[exercise.id];
+    if(previous){const {savedAt,...content}=previous;void savedAt;if(JSON.stringify(content)===JSON.stringify(draft))return current;}
+    return {...current,exerciseId:exercise.id,drafts:{...current.drafts,[exercise.id]:{...draft,savedAt:Date.now()}}};
+  }),[exercise.id,setWork]);
+  useEffect(()=>{const timer=window.setTimeout(()=>exerciseAnchorRef.current?.scrollIntoView({behavior:"auto",block:"start"}),120);return()=>window.clearTimeout(timer)},[exerciseIndex]);
+  function goExercise(index:number){setWork(current=>({...current,exerciseId:lab.exercises[Math.max(0,Math.min(lab.exercises.length-1,index))].id}));}
+  function markCompleted(id:string){setWork(current=>{const ids=[...new Set([...current.completedIds,id])];try{localStorage.setItem(`lab2ac-unit1-session-${session.id}-${participantId}`,JSON.stringify(ids));}catch{}return {...current,completedIds:ids};});}
+  if(!progressLoaded)return <div className="learning-loading"><LoaderCircle size={19} className="spin"/> Recherche de ton travail sauvegardé… / البحث عن عملك المحفوظ…</div>;
 
   return (
     <div className="tab-content unit1-lab page-enter">
+      {durable.restored&&completedExercises.size>0&&<p className="learning-resumed-note"><HistoryMark/>{completedExercises.size} exercice(s) déjà réussi(s) : tu reprends ton parcours ici. / تستأنف مسارك من هنا.</p>}
       {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exercise.stage === "recall"
         ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
         : exercise.stage === "discover"
@@ -1844,8 +1727,8 @@ function Unit1Workshop({
         total={lab.exercises.length}
         done={lab.exercises.filter((item) => completedExercises.has(item.id)).length}
         lang={lang}
-        onPrevious={() => setExerciseIndex((current) => Math.max(0, current - 1))}
-        onNext={() => exerciseIndex === lab.exercises.length - 1 ? onGoToTrace() : setExerciseIndex((current) => current + 1)}
+        onPrevious={() => goExercise(exerciseIndex-1)}
+        onNext={() => exerciseIndex === lab.exercises.length - 1 ? onGoToTrace() : goExercise(exerciseIndex+1)}
         nextLabel={exerciseIndex === lab.exercises.length - 1 ? { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
         nextDisabled={currentResult !== true}
         resultStatus={currentResult}
@@ -1857,18 +1740,21 @@ function Unit1Workshop({
 function StandardWorkshopView({
   session,
   lang,
+  participantId,
   onRecordSubmission,
   onGoToTrace,
 }: {
   session: CourseSession;
   lang: Lang;
+  participantId:string;
   onRecordSubmission: (submission: SubmissionInput) => void;
   onGoToTrace: () => void;
 }) {
   const labels = ui[lang];
-  const [exerciseIndex, setExerciseIndex] = useState(0);
-  const [checked, setChecked] = useState<boolean[]>(() => session.workshops.map(() => false));
-  const [photoAnswer, setPhotoAnswer] = useState<number | null>(null);
+  type StandardState={version:1;exerciseIndex:number;checked:boolean[];photoAnswer:number|null};
+  const persistent=useDurableLessonState<StandardState>({participantId,sessionId:session.id,kind:"workshop",initial:{version:1,exerciseIndex:0,checked:session.workshops.map(()=>false),photoAnswer:null},validate:(v):v is StandardState=>learningRecord(v)&&v.version===1&&Number.isInteger(v.exerciseIndex)&&Number(v.exerciseIndex)>=0&&Number(v.exerciseIndex)<=session.workshops.length&&Array.isArray(v.checked)&&(v.photoAnswer===null||Number.isInteger(v.photoAnswer))});
+  const {exerciseIndex,checked,photoAnswer}=persistent.value;
+  const setExerciseIndex=useLearningField(persistent.setValue,"exerciseIndex"),setChecked=useLearningField(persistent.setValue,"checked"),setPhotoAnswer=useLearningField(persistent.setValue,"photoAnswer");
   const challenge = photoChallenges[session.id];
   const photoChoiceOrder = useMemo(
     () => shuffledIndices(challenge.choices.length, `session-${session.id}-photo`),
@@ -1885,6 +1771,7 @@ function StandardWorkshopView({
     exerciseAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [exerciseIndex]);
 
+  if(!persistent.ready)return <div className="learning-loading">Recherche de ton atelier sauvegardé…</div>;
   return (
     <div className="tab-content standard-workshop simple-workshop page-enter">
       <div className="exercise-counter" ref={exerciseAnchorRef}>
@@ -2015,7 +1902,7 @@ function WorkshopView({
   if (session.unit === 1) {
     return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
   }
-  return <StandardWorkshopView session={session} lang={lang} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
+  return <StandardWorkshopView session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
 }
 
 function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
@@ -2254,19 +2141,21 @@ const evaluationRepairCases = [
 
 function Session2AssemblyEvaluation({
   lang,
+  participantId,
   onComplete,
   onContinue,
 }: {
   lang: Lang;
+  participantId:string;
   onComplete: (result: EvaluationAssemblyResult) => void;
   onContinue: () => void;
 }) {
-  const [section, setSection] = useState<"internal" | "peripherals">("internal");
-  const [placements, setPlacements] = useState<Record<string, string>>({});
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [errors, setErrors] = useState(0);
-  const [feedback, setFeedback] = useState<{ kind: "good" | "bad"; text: LocalizedText } | null>(null);
-  const [shuffleAttempt, setShuffleAttempt] = useState("initial");
+  type AssemblyState={version:1;section:"internal"|"peripherals";placements:Record<string,string>;errors:number;shuffleAttempt:string};
+  const persistent=useDurableLessonState<AssemblyState>({participantId,sessionId:2,kind:"assembly",initial:{version:1,section:"internal",placements:{},errors:0,shuffleAttempt:"initial"},validate:(v):v is AssemblyState=>learningRecord(v)&&v.version===1&&["internal","peripherals"].includes(String(v.section))&&learningRecord(v.placements)&&Number.isInteger(v.errors)&&typeof v.shuffleAttempt==="string"});
+  const {section,placements,errors,shuffleAttempt}=persistent.value;
+  const setSection=useLearningField(persistent.setValue,"section"),setPlacements=useLearningField(persistent.setValue,"placements"),setErrors=useLearningField(persistent.setValue,"errors"),setShuffleAttempt=useLearningField(persistent.setValue,"shuffleAttempt");
+  const [selectedItem,setSelectedItem]=useState<string|null>(null);
+  const [feedback,setFeedback]=useState<{kind:"good"|"bad";text:LocalizedText}|null>(null);
   const reportedRef = useRef(false);
   const allItems = useMemo(() => [...evaluationInternalItems, ...evaluationPeripheralItems], []);
   const shuffledInternalItems = useMemo(
@@ -2285,10 +2174,11 @@ function Session2AssemblyEvaluation({
   const placedInSection = items.filter((item) => placements[item.id] === item.target).length;
 
   useEffect(() => {
+    if(!persistent.ready||shuffleAttempt!=="initial")return;
     const randomValues = new Uint32Array(2);
     window.crypto.getRandomValues(randomValues);
     setShuffleAttempt(`${randomValues[0]}-${randomValues[1]}`);
-  }, []);
+  }, [persistent.ready,shuffleAttempt,setShuffleAttempt]);
 
   useEffect(() => {
     if (!allDone || reportedRef.current) return;
@@ -2327,6 +2217,7 @@ function Session2AssemblyEvaluation({
     if (selectedItem) placeItem(selectedItem, zoneId);
   }
 
+  if(!persistent.ready)return <div className="learning-loading">Recherche de l’assemblage sauvegardé…</div>;
   return (
     <section className="native-practical-evaluation">
       <header className="native-practical-heading">
@@ -2437,21 +2328,18 @@ function Session2AssemblyEvaluation({
 
 function Session2RepairEvaluation({
   lang,
+  participantId,
   onComplete,
 }: {
   lang: Lang;
+  participantId:string;
   onComplete: (result: EvaluationRepairResult) => void;
 }) {
-  const [caseIndex, setCaseIndex] = useState(0);
-  const [componentSolved, setComponentSolved] = useState<Record<number, boolean>>({});
-  const [repairSolved, setRepairSolved] = useState<Record<number, boolean>>({});
-  const [wrongComponents, setWrongComponents] = useState<Record<number, string[]>>({});
-  const [wrongRepairs, setWrongRepairs] = useState<Record<number, string[]>>({});
-  const [reports, setReports] = useState<Array<{ componentAttempts: LocalizedText[]; repairAttempts: LocalizedText[] }>>(
-    () => evaluationRepairCases.map(() => ({ componentAttempts: [], repairAttempts: [] })),
-  );
-  const [errors, setErrors] = useState(0);
-  const [feedback, setFeedback] = useState<{ kind: "good" | "bad"; text: LocalizedText } | null>(null);
+  type RepairState={version:1;caseIndex:number;componentSolved:Record<number,boolean>;repairSolved:Record<number,boolean>;wrongComponents:Record<number,string[]>;wrongRepairs:Record<number,string[]>;reports:Array<{componentAttempts:LocalizedText[];repairAttempts:LocalizedText[]}>;errors:number};
+  const persistent=useDurableLessonState<RepairState>({participantId,sessionId:2,kind:"repair",initial:{version:1,caseIndex:0,componentSolved:{},repairSolved:{},wrongComponents:{},wrongRepairs:{},reports:evaluationRepairCases.map(()=>({componentAttempts:[],repairAttempts:[]})),errors:0},validate:(v):v is RepairState=>learningRecord(v)&&v.version===1&&Number.isInteger(v.caseIndex)&&Number(v.caseIndex)>=0&&Number(v.caseIndex)<evaluationRepairCases.length&&learningRecord(v.componentSolved)&&learningRecord(v.repairSolved)&&learningRecord(v.wrongComponents)&&learningRecord(v.wrongRepairs)&&Array.isArray(v.reports)&&v.reports.length===evaluationRepairCases.length&&Number.isInteger(v.errors)});
+  const {caseIndex,componentSolved,repairSolved,wrongComponents,wrongRepairs,reports,errors}=persistent.value;
+  const setCaseIndex=useLearningField(persistent.setValue,"caseIndex"),setComponentSolved=useLearningField(persistent.setValue,"componentSolved"),setRepairSolved=useLearningField(persistent.setValue,"repairSolved"),setWrongComponents=useLearningField(persistent.setValue,"wrongComponents"),setWrongRepairs=useLearningField(persistent.setValue,"wrongRepairs"),setReports=useLearningField(persistent.setValue,"reports"),setErrors=useLearningField(persistent.setValue,"errors");
+  const [feedback,setFeedback]=useState<{kind:"good"|"bad";text:LocalizedText}|null>(null);
   const reportedRef = useRef(false);
   const currentCase = evaluationRepairCases[caseIndex];
   const completedCases = evaluationRepairCases.filter((_, index) => repairSolved[index]).length;
@@ -2516,6 +2404,7 @@ function Session2RepairEvaluation({
     setFeedback(null);
   }
 
+  if(!persistent.ready)return <div className="learning-loading">Recherche du diagnostic sauvegardé…</div>;
   return (
     <section className="native-practical-evaluation repair-evaluation">
       <header className="native-practical-heading">
@@ -2589,25 +2478,22 @@ function Session2RepairEvaluation({
 function QuizView({
   session,
   lang,
+  participantId,
   onRecordSubmission,
 }: {
   session: CourseSession;
   lang: Lang;
+  participantId:string;
   onRecordSubmission: (submission: SubmissionInput) => void;
 }) {
   const labels = ui[lang];
   const isBilingual = true;
-  const [evaluationStage, setEvaluationStage] = useState<Session2EvaluationStage>("simulator");
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [justifications, setJustifications] = useState<Record<number, number>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [shuffleRound, setShuffleRound] = useState(0);
-  const [practicalResults, setPracticalResults] = useState<{
-    assembly?: EvaluationAssemblyResult;
-    repair?: EvaluationRepairResult;
-  }>({});
+  type QuizState={version:1;evaluationStage:Session2EvaluationStage;questionIndex:number;answers:Record<number,number>;justifications:Record<number,number>;submitted:boolean;shuffleRound:number;practicalResults:{assembly?:EvaluationAssemblyResult;repair?:EvaluationRepairResult}};
+  const persistent=useDurableLessonState<QuizState>({participantId,sessionId:session.id,kind:"quiz",initial:{version:1,evaluationStage:"simulator",questionIndex:0,answers:{},justifications:{},submitted:false,shuffleRound:0,practicalResults:{}},validate:(v):v is QuizState=>learningRecord(v)&&v.version===1&&["simulator","assembly","repair"].includes(String(v.evaluationStage))&&Number.isInteger(v.questionIndex)&&Number(v.questionIndex)>=0&&Number(v.questionIndex)<session.quiz.length&&learningRecord(v.answers)&&learningRecord(v.justifications)&&typeof v.submitted==="boolean"&&Number.isInteger(v.shuffleRound)&&learningRecord(v.practicalResults)});
+  const {evaluationStage,questionIndex,answers,justifications,submitted,shuffleRound,practicalResults}=persistent.value;
+  const setEvaluationStage=useLearningField(persistent.setValue,"evaluationStage"),setQuestionIndex=useLearningField(persistent.setValue,"questionIndex"),setAnswers=useLearningField(persistent.setValue,"answers"),setJustifications=useLearningField(persistent.setValue,"justifications"),setSubmitted=useLearningField(persistent.setValue,"submitted"),setShuffleRound=useLearningField(persistent.setValue,"shuffleRound"),setPracticalResults=useLearningField(persistent.setValue,"practicalResults");
   const practicalSignaturesRef = useRef(new Set<string>());
+  useEffect(()=>{if(practicalResults.assembly)practicalSignaturesRef.current.add("assembly");if(practicalResults.repair)practicalSignaturesRef.current.add("repair")},[practicalResults]);
   const quizChoiceOrders = useMemo(
     () => {
       void shuffleRound;
@@ -2652,7 +2538,7 @@ function QuizView({
   }, [evaluationStage, questionIndex, session.id]);
 
   const recordAssemblyResult = useCallback((result: EvaluationAssemblyResult) => {
-    if (practicalSignaturesRef.current.has("assembly")) return;
+    if (practicalSignaturesRef.current.has("assembly") || practicalResults.assembly) return;
     practicalSignaturesRef.current.add("assembly");
     setPracticalResults((current) => ({ ...current, assembly: result }));
     onRecordSubmission({
@@ -2664,10 +2550,10 @@ function QuizView({
       score: result.total,
       maxScore: result.total,
     });
-  }, [onRecordSubmission]);
+  }, [onRecordSubmission,practicalResults.assembly,practicalResults.repair,setPracticalResults]);
 
   const recordRepairResult = useCallback((result: EvaluationRepairResult) => {
-    if (practicalSignaturesRef.current.has("repair")) return;
+    if (practicalSignaturesRef.current.has("repair") || practicalResults.repair) return;
     practicalSignaturesRef.current.add("repair");
     setPracticalResults((current) => ({ ...current, repair: result }));
     onRecordSubmission({
@@ -2679,7 +2565,7 @@ function QuizView({
       score: result.score,
       maxScore: result.maxScore,
     });
-  }, [onRecordSubmission]);
+  }, [onRecordSubmission,practicalResults.assembly,practicalResults.repair,setPracticalResults]);
 
   function submitQuiz() {
     const detailedAnswers = session.quiz.map((question, questionIndex) => {
@@ -2724,6 +2610,7 @@ function QuizView({
     setSubmitted(true);
   }
 
+  if(!persistent.ready)return <div className="learning-loading">Recherche de ton évaluation sauvegardée…</div>;
   return (
     <div className="tab-content simple-quiz page-enter">
       {session.id === 2 && (
@@ -2761,6 +2648,7 @@ function QuizView({
       {session.id === 2 && (
         <div hidden={evaluationStage !== "assembly"}>
           <Session2AssemblyEvaluation
+            participantId={participantId}
             lang={lang}
             onComplete={recordAssemblyResult}
             onContinue={() => setEvaluationStage("repair")}
@@ -2771,6 +2659,7 @@ function QuizView({
       {session.id === 2 && (
         <div hidden={evaluationStage !== "repair"}>
           <Session2RepairEvaluation
+            participantId={participantId}
             lang={lang}
             onComplete={recordRepairResult}
           />
@@ -2959,6 +2848,7 @@ function SessionPage({
         <StudentIdentityBadge lang={lang} student={student} onChangeStudent={onChangeStudent} />
       </div>
       {session.id === 3 && <p className="s3-translation-help"><Languages size={17} aria-hidden="true" /><BilingualText value={{ fr: "Survole une phrase pour lire sa traduction arabe. Éloigne le pointeur pour la masquer.", ar: "مرر المؤشر فوق عبارة لقراءة ترجمتها العربية كاملة، وأبعده لإخفائها." }} /></p>}
+      <LearningSaveBadge/>
       <nav className="tab-nav" aria-label="Contenu de la séance">
         {tabItems.map(({ id, icon: Icon }) => (
           <button className={activeTab === id ? "active" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => showTab(id)} key={id}>
@@ -2994,7 +2884,7 @@ function SessionPage({
         <section className="session-panel" data-panel="quiz" hidden={activeTab !== "quiz"}>
           {session.id === 3
             ? <Session3Assessment key={`${participantId}-3`} participantId={participantId} onRecordSubmission={onRecordSubmission} />
-            : <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} onRecordSubmission={onRecordSubmission} />}
+            : <QuizView key={`${participantId}-${session.id}`} session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} />}
         </section>
       )}
 
@@ -3017,6 +2907,7 @@ export default function HomePage() {
   const [timerSeconds, setTimerSeconds] = useState(7200);
   const [timerRunning, setTimerRunning] = useState(false);
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [resumeCandidate,setResumeCandidate]=useState<StudentProfile|null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [sessionAccess, setSessionAccess] = useState<SessionAccess[]>([]);
@@ -3055,13 +2946,8 @@ export default function HomePage() {
       }
       const storedLang = window.localStorage.getItem("lab2ac-lang");
       if (storedLang === "ar") setLang("ar");
-      const storedParticipant = window.sessionStorage.getItem(activeParticipantKey);
-      if (storedParticipant) {
-        try {
-          const parsed = JSON.parse(storedParticipant) as unknown;
-          if (isStudentProfile(parsed)) setStudentProfile(parsed);
-        } catch { /* Ignore malformed local data. */ }
-      }
+      const storedParticipant=rememberedActiveProfile();
+      if(storedParticipant)setResumeCandidate(storedParticipant);
       setIdentityLoaded(true);
     }, 0);
     return () => window.clearTimeout(hydration);
@@ -3102,7 +2988,7 @@ export default function HomePage() {
 
   async function flushPendingSubmissions() {
     if (submissionFlushRef.current) return;
-    let queue = readSubmissionQueue();
+    const queue = readSubmissionQueue();
     if (queue.length === 0) {
       setSaveStatus("idle");
       return;
@@ -3111,12 +2997,19 @@ export default function HomePage() {
     submissionFlushRef.current = true;
     setSaveStatus("saving");
     try {
-      while (queue.length > 0) {
-        const submissionId = queue[0].id;
-        await submitCourseAttempt(queue[0] as unknown as Record<string, unknown>);
-        queue = readSubmissionQueue().filter((item) => item.id !== submissionId);
-        writeSubmissionQueue(queue);
+      let retainedFailure=false;
+      // Keep rejected copies for recovery while allowing other learners’ valid work through.
+      for (const pending of queue) {
+        try {
+          await submitCourseAttempt(pending as unknown as Record<string, unknown>);
+          writeSubmissionQueue(readSubmissionQueue().filter(item=>item.id!==pending.id));
+        } catch(error) {
+          const status=(error as Error&{status?:number}).status;
+          if(!status||status>=500||status===429)throw error;
+          retainedFailure=true;
+        }
       }
+      if(retainedFailure){setSaveStatus("error");return;}
       setSaveStatus("saved");
       if (saveStatusTimerRef.current !== null) window.clearTimeout(saveStatusTimerRef.current);
       saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 2400);
@@ -3128,7 +3021,12 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (studentProfile && !previewMode) void flushPendingSubmissions();
+    if (!studentProfile || previewMode) return;
+    void flushPendingSubmissions();
+    const retry=()=>void flushPendingSubmissions();
+    window.addEventListener("online",retry);
+    const timer=window.setInterval(retry,15000);
+    return()=>{window.removeEventListener("online",retry);window.clearInterval(timer)};
   }, [previewMode, studentProfile]);
 
   useEffect(() => {
@@ -3143,11 +3041,13 @@ export default function HomePage() {
       return;
     }
     let cancelled = false;
+    try {const cached=JSON.parse(localStorage.getItem("lab2ac-session-access-cache")||"null");if(Array.isArray(cached)&&cached.every(s=>Number.isInteger(s.sessionId)&&typeof s.isUnlocked==="boolean")){setSessionAccess(cached);setSessionAccessLoaded(true);}}catch{}
     let refreshTimer: number | null = null;
     const refreshAccess = async () => {
       try {
         const access = await getSessionAccess();
         if (cancelled) return;
+        try {localStorage.setItem("lab2ac-session-access-cache",JSON.stringify(access));}catch{}
         setSessionAccess(access);
         setSessionAccessLoaded(true);
       } catch {
@@ -3180,6 +3080,10 @@ export default function HomePage() {
       openSession(requested);
       return;
     }
+    const last=lastLearningView(studentProfile.id);
+    if(last&&unlockedSessions.has(last.sessionId)){openSession(last.sessionId);return;}
+    const recovered=resumeOverview(studentProfile.id);
+    if(recovered.sessionId&&unlockedSessions.has(recovered.sessionId)){openSession(recovered.sessionId);return;}
     const openSessions = [...unlockedSessions];
     if (openSessions.length === 1) openSession(openSessions[0]);
   }, [sessionAccessLoaded, studentProfile, unlockedSessions]);
@@ -3230,11 +3134,12 @@ export default function HomePage() {
   }
 
   function handleIdentityReady(profile: StudentProfile) {
-    setStudentProfile(profile);
+    rememberProfile(profile);setResumeCandidate(null);setStudentProfile(profile);
   }
+  const refreshIdentity=useCallback((profile:StudentProfile)=>setStudentProfile(profile),[]);
 
   function changeStudent() {
-    window.sessionStorage.removeItem(activeParticipantKey);
+    forgetActiveProfile();setResumeCandidate(null);
     setStudentProfile(null);
     setSelectedId(null);
     setActiveTab("mission");
@@ -3252,7 +3157,11 @@ export default function HomePage() {
   function openSession(id: number) {
     if (!unlockedSessions.has(id)) return;
     setSelectedId(id);
-    setActiveTab("mission");
+    const saved=studentProfile?readSnapshot<Record<string,unknown>>(studentProfile.id,id,"view"):null;
+    const workshop=studentProfile?readSnapshot<Record<string,unknown>>(studentProfile.id,id,"workshop"):null;
+    const tab=saved&&["mission","workshop","trace","quiz"].includes(String(saved.data.activeTab))?saved.data.activeTab as ViewTab:workshop?"workshop":"mission";
+    setActiveTab(tab);
+    if(studentProfile)saveSnapshot(studentProfile.id,id,"view",{activeTab:tab});
     setSidebarOpen(false);
     setTimerSeconds(7200);
     setTimerRunning(false);
@@ -3300,10 +3209,12 @@ export default function HomePage() {
   }
 
   if (!studentProfile) {
+    if(resumeCandidate)return <ResumeStudent profile={resumeCandidate} onResume={()=>handleIdentityReady(resumeCandidate)} onOther={()=>{forgetActiveProfile();setResumeCandidate(null)}}/>;
     return <StudentIdentityGate onReady={handleIdentityReady} />;
   }
 
   return (
+    <LearningProvider profile={studentProfile} disabled={previewMode} onProfileUpdate={refreshIdentity}>
     <Session3TranslationScope enabled={selected?.id === 3} scopeKey={`${selectedId}-${activeTab}`}>
     <div className={`app-shell ${selected ? "session-focus" : ""} ${selected?.id === 3 ? "session3-theme" : ""}`} dir={selected?.id === 3 ? "ltr" : lang === "ar" ? "rtl" : "ltr"}>
       <Sidebar
@@ -3356,7 +3267,7 @@ export default function HomePage() {
               activeTab={activeTab}
               completed={completed.has(selected.id)}
               participantId={studentProfile.id}
-              onTab={setActiveTab}
+              onTab={tab=>{setActiveTab(tab);saveSnapshot(studentProfile.id,selected.id,"view",{activeTab:tab})}}
               onToggleCompleted={toggleComplete}
               onBack={goHome}
               onChangeStudent={changeStudent}
@@ -3374,5 +3285,6 @@ export default function HomePage() {
       </div>
     </div>
     </Session3TranslationScope>
+    </LearningProvider>
   );
 }

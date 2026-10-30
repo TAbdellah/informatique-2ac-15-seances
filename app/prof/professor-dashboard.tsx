@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import LearningTeacherPortal, {TeacherNavigation, type TeacherSection} from "./learning-dashboard";
+import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-api";
 import { session3Lab } from "../session3-lab-data";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
@@ -911,6 +913,8 @@ function SessionLearningReport({ attempts, sessionId, onOpenAttempt }: { attempt
 }
 
 export default function ProfessorDashboard() {
+  const [section,setSection] = useState<TeacherSection>("progress");
+  const [learningData,setLearningData] = useState<LearningAnalytics|null>(null);
   const [authState, setAuthState] = useState<"checking" | "login" | "ready">("checking");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -937,6 +941,7 @@ export default function ProfessorDashboard() {
 
   const loadDashboard = useCallback(async (nextFilters: FilterState, nextPage: number) => {
     if (isSession2EvaluationPreview()) {
+      setSection("answers");
       setData(evaluationPreviewDashboard());
       setAuthState("ready");
       setLoading(false);
@@ -951,8 +956,8 @@ export default function ProfessorDashboard() {
     setLoading(true);
     setError("");
     try {
-      const payload = await teacherDashboard<DashboardData>(nextFilters, nextPage);
-      setData(payload);
+      if(section!=="answers") setLearningData(await teacherLearningAnalytics());
+      else {const payload = await teacherDashboard<DashboardData>(nextFilters, nextPage);setData(payload);}
       setAuthState("ready");
     } catch (loadError) {
       if ((loadError as Error & { status?: number }).status === 401) {
@@ -967,7 +972,7 @@ export default function ProfessorDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [section]);
 
   useEffect(() => {
     void loadDashboard(appliedFilters, page);
@@ -992,6 +997,7 @@ export default function ProfessorDashboard() {
   function logout() {
     teacherLogout();
     setData(null);
+    setLearningData(null);
     setAuthState("login");
   }
 
@@ -1296,6 +1302,8 @@ export default function ProfessorDashboard() {
     );
   }
 
+  if(section!=="answers") return <LearningTeacherPortal initialData={learningData} section={section} onSection={setSection} onLogout={logout} onExpired={logout}/>;
+
   return (
     <main className="prof-page">
       <header className="prof-header">
@@ -1310,6 +1318,7 @@ export default function ProfessorDashboard() {
       </header>
 
       <div className="prof-content">
+        <TeacherNavigation section={section} onChange={setSection}/>
         <section className="prof-title-row">
           <div>
             <span><GraduationCap size={17} /> SUIVI PÉDAGOGIQUE</span>

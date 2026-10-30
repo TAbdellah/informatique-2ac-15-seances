@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, FileCheck2, Folder, Send, X } from "lucide-react";
 import { Session3Text as Text } from "./session3-translation";
 import { Session3Windows11 } from "./session3-windows11";
@@ -8,19 +8,24 @@ import { createWindowsState, isWindowsState, windowsCriteria, type WindowsState 
 import { assessSession3, assessmentCards, assessmentFamilies, assessmentFiles, assessmentForms, type AssessmentAnswers } from "./session3-assessment-data";
 import type { LocalizedText } from "./course-data";
 import "./session3-assessment.css";
+import {useDurableLessonState} from "../lib/learning-context";
+import {readSnapshot,saveSnapshot} from "../lib/learning-storage";
 const t=(fr:string,ar:string):LocalizedText=>({fr,ar});
 type Draft=AssessmentAnswers&{version:1;windows:WindowsState;submitted:boolean;stage:number};
 const fresh=():Draft=>({version:1,families:{},forms:{},windows:createWindowsState("assessment"),submitted:false,stage:0});
 const isAnswerMap=(value:unknown):value is Record<string,string>=>Boolean(value&&typeof value==="object"&&!Array.isArray(value)&&Object.values(value).every(v=>typeof v==="string"));
+const validDraft=(saved:unknown):saved is Draft=>{const s=saved as Draft|null;return Boolean(s?.version===1&&isWindowsState(s.windows,"assessment")&&isAnswerMap(s.families)&&isAnswerMap(s.forms)&&typeof s.submitted==="boolean"&&[0,1,2].includes(s.stage));};
 type Submission={sessionId:number;activityType:"practical_evaluation";activityId:string;answer:unknown;score:number;maxScore:number;isCorrect:boolean};
 
 export function Session3Assessment({participantId,onRecordSubmission}:{participantId:string;onRecordSubmission:(s:Submission)=>void}){
  const storageKey=`lab2ac-session3-bilan-v5-${participantId}`;
- const [draft,setDraft]=useState<Draft>(fresh),[loaded,setLoaded]=useState(false),[selected,setSelected]=useState<string|null>(null),[confirm,setConfirm]=useState(false);
+ const initial=useMemo(()=>{try{const saved=JSON.parse(sessionStorage.getItem(storageKey)??"null");if(validDraft(saved))return saved;}catch{}return fresh()},[storageKey]);
+ const persistent=useDurableLessonState<Draft>({participantId,sessionId:3,kind:"assessment",initial,validate:validDraft});
+ const {value:draft,setValue:setDraft,ready:loaded}=persistent;
+ const [selected,setSelected]=useState<string|null>(null),[confirm,setConfirm]=useState(false);
  const submitLock=useRef(false);
- useEffect(()=>{let value:Draft=fresh();try{const saved=JSON.parse(sessionStorage.getItem(storageKey)??"null");if(saved?.version===1&&isWindowsState(saved.windows,"assessment")&&isAnswerMap(saved.families)&&isAnswerMap(saved.forms)&&typeof saved.submitted==="boolean"&&[0,1,2].includes(saved.stage))value=saved;}catch{/* A damaged local draft must not block a new assessment. */}setDraft(value);submitLock.current=value.submitted;setLoaded(true)},[storageKey]);
- useEffect(()=>{if(loaded)try{sessionStorage.setItem(storageKey,JSON.stringify(draft))}catch{/* Keep the current in-memory copy when storage is unavailable. */}},[draft,loaded,storageKey]);
- const updateWindows=useCallback((windows:WindowsState)=>setDraft(d=>d.windows===windows?d:{...d,windows}),[]);
+ useEffect(()=>{if(loaded){submitLock.current=draft.submitted;if(!readSnapshot(participantId,3,"assessment"))saveSnapshot(participantId,3,"assessment",draft)}},[loaded,draft,participantId]);
+ const updateWindows=useCallback((windows:WindowsState)=>setDraft(d=>d.windows===windows?d:{...d,windows}),[setDraft]);
  if(!loaded)return <div className="s3-bilan-loading"><Text value={t("Préparation de ton bilan…","إعداد تقويمك…")}/></div>;
  const result=assessSession3(draft,draft.windows);
  const completedA=assessmentCards.filter(c=>draft.families[c.id]).length,completedB=assessmentFiles.filter(f=>draft.forms[f.id]).length;

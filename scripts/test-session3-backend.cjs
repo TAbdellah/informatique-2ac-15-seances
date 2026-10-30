@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const project=require('node:path').resolve(__dirname,'..');
 const ts=require(project+'/node_modules/typescript');
 const compile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-const load=(relative,imports={})=>{const exports={};vm.runInNewContext(compile(fs.readFileSync(project+'/'+relative,'utf8')),{exports,require:name=>{if(!imports[name])throw Error('Unexpected import '+name);return imports[name]}});return exports};
+const load=(relative,imports={})=>{const exports={};vm.runInNewContext(compile(fs.readFileSync(project+'/'+relative,'utf8')),{exports,require:name=>{if(!imports[name])throw Error('Unexpected import '+name);return imports[name]},TextEncoder,TextDecoder,crypto:crypto.webcrypto,btoa,atob});return exports};
 const m=load('app/session3-windows-model.ts');
 const a=load('app/session3-assessment-data.ts',{'./session3-windows-model':m});
 const exportsGrader=load('supabase/functions/informatique-2ac-api/session3-evaluation.ts');
@@ -34,7 +34,7 @@ const databaseFetch=async(url,init={})=>{
  if(path.startsWith('course_2ac_submissions')){if(init.method==='POST'){const row=JSON.parse(init.body);if(!rows.some(r=>r.id===row.id))rows.push({...row,created_at:new Date().toISOString()});return new Response(null,{status:201})}return Response.json(rows)}
  throw Error('Unexpected request '+path);
 };
-const context={exports:{},require:()=>exportsGrader,Deno:{serve:f=>handler=f,env:{get:key=>key==='SUPABASE_URL'?'https://local.test':'TEST SERVER ONLY'}},fetch:databaseFetch,TextEncoder,TextDecoder,Request,Response,crypto:crypto.webcrypto,btoa,atob,console,setTimeout};
+const context={exports:{},require:name=>name.includes("learning-service")?load("supabase/functions/informatique-2ac-api/learning-service.ts"):exportsGrader,Deno:{serve:f=>handler=f,env:{get:key=>key==='SUPABASE_URL'?'https://local.test':'TEST SERVER ONLY'}},fetch:databaseFetch,TextEncoder,TextDecoder,Request,Response,crypto:crypto.webcrypto,btoa,atob,console,setTimeout};
 vm.runInNewContext(compile(fs.readFileSync(project+'/supabase/functions/informatique-2ac-api/index.ts','utf8')),context);
 const request=async(body,origin='https://tabdellah.github.io')=>{const response=await handler(new Request('https://local.test/function',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(body)}));return {status:response.status,body:await response.json()}};
 const payload={action:'submit',id:crypto.randomUUID(),participantId:learner.id,sessionId:3,activityType:'practical_evaluation',activityId:'session-3-bilan-situations-v5',answer:fullAnswer,score:20,maxScore:20,isCorrect:true};
