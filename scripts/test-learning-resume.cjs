@@ -40,4 +40,23 @@ r=await invoke({action:'learning_state',resumeToken:token});eq(r.body.checkpoint
 const device2=(await invoke({action:'learning_session',participantId:pid})).body.participant.resumeToken;r=await invoke({action:'learning_state',resumeToken:device2});eq(r.body.checkpoints.length,0,'another device cannot retrieve this device’s answers');eq(r.body.progress.length,1,'verified completions may resume across devices');
 const refreshed=(await invoke({action:'learning_session',participantId:pid,resumeToken:token})).body.participant.resumeToken;r=await invoke({action:'learning_state',resumeToken:refreshed});eq(r.body.checkpoints.length,1,'refresh preserves the device binding');
 for(const body of [{action:'learning_state',resumeToken:token+'x'},{action:'save_learning_state',resumeToken:token,checkpoint:{...snapshot,participantId:crypto.randomUUID()}}]){let rejected=false;try{await invoke(body)}catch(e){rejected=e.status>=400&&e.status<500}ok(rejected,'tampered token or mismatched learner rejected')}
+// Registration must reuse the canonical dossier; archiving must not validate an unverified name.
+const members=[],people=[];let importedRows=[];
+const registry=async(path,init={})=>{
+ const u=new URL('https://isolated.test/'+path),q=u.searchParams;
+ if(path==='rpc/course_2ac_import_roster'){importedRows=JSON.parse(init.body).p_rows;for(const next of importedRows){const index=members.findIndex(m=>m.id===next.id);if(index>=0)members[index]={...members[index],...next};else members.push(next)}return importedRows.length;}
+ if(path.startsWith('course_2ac_roster_students')){
+  if(init.method==='POST'){const next=JSON.parse(init.body);if(!members.some(m=>m.registration_key===next.registration_key))members.push({id:crypto.randomUUID(),active:true,...next});return null;}
+  return members.filter(m=>(!q.has('id')||q.get('id')==='eq.'+m.id)&&(!q.has('class_name')||q.get('class_name')==='eq.'+m.class_name)&&(!q.has('name_normalized')||q.get('name_normalized')==='eq.'+m.name_normalized)&&(!q.has('registration_key')||q.get('registration_key')==='eq.'+m.registration_key)&&(!q.has('active')||m.active));
+ }
+ if(path.startsWith('course_2ac_participants')){
+  if(init.method==='POST'){const next=JSON.parse(init.body);if(!people.some(p=>p.identity_key===next.identity_key))people.push(next);return null;}
+  return people.filter(p=>(!q.has('identity_key')||q.get('identity_key')==='eq.'+p.identity_key)&&(!q.has('id')||q.get('id')==='eq.'+p.id));
+ }
+ throw Error('Unexpected registry request '+path);
+};
+const registration=serviceModule.createLearningService({database:registry,secret:async()=>'ISOLATED REGISTRATION SECRET'}),identity={action:'register',studentOne:'NOM DE DÉMONSTRATION A',className:'2/1',groupName:'1',isPair:false};
+const registered=(await registration.publicAction(identity)).body.participant,again=(await registration.publicAction(identity)).body.participant;eq(registered.id,again.id,'same name, class and group resumes the canonical dossier');eq(people.length,1,'no duplicate dossier on re-identification');
+const pair={...identity,isPair:true,studentTwo:'NOM DE DÉMONSTRATION B'};const paired=(await registration.publicAction(pair)).body.participant,reversed=(await registration.publicAction({...pair,studentOne:pair.studentTwo,studentTwo:pair.studentOne})).body.participant;eq(paired.id,reversed.id,'member order does not duplicate a pair');
+const archived=members[0];await registration.adminAction({action:'update_roster',id:archived.id,changes:{active:false}});eq(importedRows[0].source,'registration','archive keeps the verification status');eq(importedRows[0].registration_key,archived.registration_key,'archive keeps the registration alias');let archiveRejected=false;try{await registration.publicAction(identity)}catch(e){archiveRejected=e.status===400}ok(archiveRejected,'typing an archived name cannot recreate an active duplicate');
 console.log(JSON.stringify({passed:true,assertions}));})().catch(e=>{console.error(e);process.exitCode=1});
