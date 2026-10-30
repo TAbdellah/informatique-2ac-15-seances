@@ -60,6 +60,12 @@ export function createLearningService({database,secret}:Dependencies){
    const byMassar=new Map(existing.map((r:Row)=>[r.massar_code,r.id]));for(const r of rows){if(r.massar_code&&byMassar.has(r.massar_code)){if(body.students[rows.indexOf(r)].id&&byMassar.get(r.massar_code)!==r.id)fail('Le code Massar correspond à une autre fiche.');r.id=byMassar.get(r.massar_code) as string;}}
    if(new Set(rows.map((r:Row)=>r.id)).size!==rows.length||new Set(rows.filter((r:Row)=>r.massar_code).map((r:Row)=>r.massar_code)).size!==rows.filter((r:Row)=>r.massar_code).length)fail('La liste contient des doublons.');const saved=await database('rpc/course_2ac_import_roster',{method:'POST',body:JSON.stringify({p_rows:rows})});return {saved};
   }
+  if(body.action==='set_roster_active'){
+   if(!Array.isArray(body.ids)||!body.ids.length||body.ids.length>1000||body.ids.some((id:unknown)=>typeof id!=='string'||!uuid.test(id))||typeof body.active!=='boolean')fail('Sélection invalide : choisis entre 1 et 1 000 comptes.');
+   const ids=[...new Set<string>(body.ids)];
+   const updated=await database('rpc/course_2ac_set_roster_active',{method:'POST',body:JSON.stringify({p_ids:ids,p_active:body.active})});
+   return {updated:updated.length,ids:updated.map((r:Row)=>r.id),active:body.active};
+  }
   if(body.action==='update_roster'){if(!uuid.test(body.id))fail('Identifiant invalide.');const rows=await database(`course_2ac_roster_students?select=*&id=eq.${body.id}&limit=1`);if(!rows[0])fail('Élève introuvable.',404);const next=validateRoster({...student(rows[0]),...body.changes,id:body.id});next.source=['manual','import'].includes(body.changes?.source)?body.changes.source:rows[0].source;next.registration_key=next.full_name===rows[0].full_name&&next.class_name===rows[0].class_name&&next.group_name===rows[0].group_name?rows[0].registration_key:null;await database('rpc/course_2ac_import_roster',{method:'POST',body:JSON.stringify({p_rows:[next]})});return {saved:true};}
   return null;
  }

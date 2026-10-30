@@ -118,6 +118,7 @@ export function saveLearningState(resumeToken:string,checkpoint:import("./learni
 export function teacherLearningAnalytics(token=teacherToken()){return call<LearningAnalytics>({action:"learning_analytics",token})}
 export function teacherImportRoster(students:Array<Partial<RosterStudent>&{fullName:string;className:string}>,token=teacherToken()){return call<{saved:number}>({action:"import_roster",token,students})}
 export function teacherUpdateRoster(id:string,changes:Partial<RosterStudent>,token=teacherToken()){return call<{saved:true}>({action:"update_roster",token,id,changes})}
+export function teacherSetRosterActive(ids:string[],active:boolean,token=teacherToken()){return call<{updated:number;ids:string[];active:boolean}>({action:"set_roster_active",token,ids,active})}
 
 export async function teacherUpdateSessionAccess(sessionId: number, isUnlocked: boolean, token = teacherToken()) {
   const data = await call<{ sessions: SessionAccess[] }>({

@@ -19,6 +19,12 @@ Colonnes : `Nom complet`, `Classe`, `Groupe`, `Massar` (facultatif), `ID` (facul
 
 L’identification propose uniquement le nom et un identifiant opaque, pour la classe et le groupe choisis. Les codes Massar et les résultats restent dans l’espace professeur.
 
+## Archivage rapide des comptes créés par erreur
+
+Dans « Listes de classe », filtrer la classe ou activer « Saisies invalides ». Cocher les comptes concernés, ou utiliser « Tout sélectionner » pour les comptes affichés uniquement, puis « Archiver la sélection ». L’action est immédiate, sans confirmation supplémentaire, car elle est réversible. Le bouton « Annuler l’archivage » rétablit la dernière sélection. Le mode « Voir les archives » permet aussi une réactivation individuelle ou en lot.
+
+La sélection est réinitialisée lorsqu’un filtre change. Les noms, identifiants, origines, réponses et notes sont conservés. L’archivage en lot est réservé au professeur et utilise une seule opération atomique, limitée à 1 000 comptes par demande. Aucun compte n’est sélectionné ni archivé automatiquement par le filtre de saisies invalides.
+
 ## Lecture du suivi
 
 Une ligne représente une fiche d’apprenant. Ses dossiers historiques sont regroupés par identifiant de fiche ; les résultats en binôme sont signalés comme partagés. Une activité répétée ne compte qu’une fois dans la progression.
