@@ -1,3 +1,4 @@
+import { isSuggestibleStudentName } from "./student-names.ts";
 // Private rosters, stable learner identities and device-bound resumable drafts.
 type Row = Record<string, any>;
 type Dependencies = {database:(path:string,init?:RequestInit)=>Promise<any>;secret:()=>Promise<string>};
@@ -19,7 +20,7 @@ export function createLearningService({database,secret}:Dependencies){
  async function participant(id:unknown){if(typeof id!=='string'||!uuid.test(id))fail('Identification invalide.');const rows=await database(`course_2ac_participants?select=*&id=eq.${id}&limit=1`);if(!rows[0])fail('Dossier introuvable. Identifie-toi à nouveau.',404);return rows[0] as Row}
  async function resolveMember(id:unknown,name:unknown,cls:string,group:string){
   if(typeof id==='string'&&uuid.test(id)){const rows=await database(`course_2ac_roster_students?select=*&id=eq.${id}&class_name=eq.${encodeURIComponent(cls)}&active=eq.true&or=(group_name.eq.${group},group_name.is.null)&limit=1`);if(!rows[0])fail('Choisis un nom de ta classe et de ton groupe.');return rows[0] as Row}
-  const fullName=text(name);if(fullName.length<2||fullName.length>100)fail('Le nom complet est obligatoire.');
+  const fullName=text(name);if(!isSuggestibleStudentName(fullName))fail('Saisis un nom complet valide, sans chiffres ni symboles. / اكتب اسما كاملا صحيحا دون أرقام أو رموز.');
   const matches=await database(`course_2ac_roster_students?select=*&class_name=eq.${encodeURIComponent(cls)}&name_normalized=eq.${encodeURIComponent(normal(name))}&or=(group_name.eq.${group},group_name.is.null)&limit=3`);
   const active=matches.filter((r:Row)=>r.active);if(active.length===1)return active[0] as Row;if(active.length>1)fail('Plusieurs noms identiques : choisis ton nom dans la liste.');if(matches.length)fail('Ce nom a été archivé. Contacte ton professeur.');
   const key=`${cls}|${group}|${normal(name)}`;
@@ -36,7 +37,7 @@ export function createLearningService({database,secret}:Dependencies){
   q+=p.is_pair?`&or=(and(student_one_id.eq.${p.student_one_id},student_two_id.eq.${p.student_two_id}),and(student_one_id.eq.${p.student_two_id},student_two_id.eq.${p.student_one_id}))`:`&student_one_id=eq.${p.student_one_id}`;return (await database(q)).map((r:Row)=>r.id) as string[];
  }
  async function publicAction(body:Row):Promise<{body:unknown;status:number}|null>{
-  if(body.action==='roster_suggestions'){const cls=text(body.className),group=text(body.groupName);if(!/^2\/[1-9]$/.test(cls)||!['1','2'].includes(group))fail('Classe ou groupe invalide.');const rows=await database(`course_2ac_roster_students?select=id,full_name&active=eq.true&class_name=eq.${encodeURIComponent(cls)}&or=(group_name.eq.${group},group_name.is.null)&order=full_name&limit=200`);return {body:{students:rows.map((r:Row)=>({id:r.id,fullName:r.full_name}))},status:200};}
+  if(body.action==='roster_suggestions'){const cls=text(body.className),group=text(body.groupName);if(!/^2\/[1-9]$/.test(cls)||!['1','2'].includes(group))fail('Classe ou groupe invalide.');const rows=await database(`course_2ac_roster_students?select=id,full_name&active=eq.true&class_name=eq.${encodeURIComponent(cls)}&or=(group_name.eq.${group},group_name.is.null)&order=full_name&limit=1000`);return {body:{students:rows.filter((r:Row)=>isSuggestibleStudentName(r.full_name)).map((r:Row)=>({id:r.id,fullName:r.full_name}))},status:200};}
   if(body.action==='register')return {body:await register(body),status:200};
   if(body.action==='learning_session'){const p=await participant(body.participantId);return {body:{participant:{...profile(p),resumeToken:await tokenFor(p.id,body.resumeToken)}},status:200};}
   if(!['learning_state','save_learning_state'].includes(body.action))return null;
