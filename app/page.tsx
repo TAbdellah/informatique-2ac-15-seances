@@ -65,6 +65,7 @@ import {forgetActiveProfile,lastLearningView,resumeOverview,readSnapshot,remembe
 import {StudentIdentification,ResumeStudent} from "./student-identification";
 import { teacherDemoProfile, useTeacherCourse } from "../lib/teacher-course-context";
 import { TeacherExerciseNavigator } from "./teacher-exercise-navigator";
+import { Session3WorkshopSummary } from "./session3-workshop-summary";
 import {
   getSessionAccess,
   registerParticipant,
@@ -94,6 +95,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type ExerciseDraft = {
   savedAt?:number;
+  exerciseRevision?:number;
   choice: number | null;
   multi: number[];
   matches: Record<number, number>;
@@ -1204,6 +1206,8 @@ function ExercisePlayer({
         <div className="exercise-prompt">
           <span className="instruction-label">Consigne / التعليمة</span>
           <BilingualText value={exercise.prompt} />
+          {exercise.tasks && <ol className="exercise-task-list">{exercise.tasks.map((task, index) => <li key={index}><BilingualText value={task} /></li>)}</ol>}
+          {exercise.instructionImage && <figure className="exercise-instruction-image"><img src={publicAsset(exercise.instructionImage.src)} alt={bilingualAria(exercise.instructionImage.alt)} /><figcaption><BilingualText value={exercise.instructionImage.caption} /></figcaption></figure>}
         </div>
       </div>
 
@@ -1671,15 +1675,17 @@ function Unit1Workshop({
   participantId,
   onRecordSubmission,
   onGoToTrace,
+  onGoToEvaluation,
 }: {
   session: CourseSession;
   lang: Lang;
   participantId: string;
   onRecordSubmission: (submission: SubmissionInput) => void;
   onGoToTrace: () => void;
+  onGoToEvaluation: () => void;
 }) {
   const lab = unit1Labs[session.id as 1 | 2 | 3];
-  type WorkshopState={version:1;exerciseId?:string;completedIds:string[];drafts:Record<string,ExerciseDraft>};
+  type WorkshopState={version:1;exerciseId?:string;showSummary?:boolean;completedIds:string[];drafts:Record<string,ExerciseDraft>};
   const initial=useMemo<WorkshopState>(()=>{let ids:string[]=[];try{const parsed=JSON.parse(localStorage.getItem(`lab2ac-unit1-session-${session.id}-${participantId}`)??"[]");if(Array.isArray(parsed))ids=parsed.filter(id=>lab.exercises.some(ex=>ex.id===id));}catch{}return {version:1,completedIds:ids,drafts:{}}},[session.id,participantId,lab]);
   const durable=useDurableLessonState<WorkshopState>({participantId,sessionId:session.id,kind:"workshop",initial,validate:(v):v is WorkshopState=>learningRecord(v)&&v.version===1&&Array.isArray(v.completedIds)&&(!v.drafts||learningRecord(v.drafts))});
   const {value:work,setValue:setWork,ready:progressLoaded}=durable;
@@ -1692,18 +1698,21 @@ function Unit1Workshop({
   const exerciseAnchorRef=useRef<HTMLDivElement>(null);
   const currentResult=completedExercises.has(exercise.id)?true:(drafts[exercise.id]?.result??null);
   const keepDraft=useCallback((draft:ExerciseDraft)=>setWork(current=>{
+    const revisedDraft = {...draft, exerciseRevision: exercise.revision ?? 0};
     const previous=current.drafts?.[exercise.id];
-    if(previous){const {savedAt,...content}=previous;void savedAt;if(JSON.stringify(content)===JSON.stringify(draft))return current;}
-    return {...current,exerciseId:exercise.id,drafts:{...current.drafts,[exercise.id]:{...draft,savedAt:Date.now()}}};
-  }),[exercise.id,setWork]);
-  useEffect(()=>{const timer=window.setTimeout(()=>exerciseAnchorRef.current?.scrollIntoView({behavior:"auto",block:"start"}),120);return()=>window.clearTimeout(timer)},[exerciseIndex]);
-  function goExercise(index:number){setWork(current=>({...current,exerciseId:lab.exercises[Math.max(0,Math.min(lab.exercises.length-1,index))].id}));}
+    if(previous){const {savedAt,...content}=previous;void savedAt;if(JSON.stringify(content)===JSON.stringify(revisedDraft))return current;}
+    return {...current,exerciseId:exercise.id,drafts:{...current.drafts,[exercise.id]:{...revisedDraft,savedAt:Date.now()}}};
+  }),[exercise.id,exercise.revision,setWork]);
+  useEffect(()=>{const timer=window.setTimeout(()=>exerciseAnchorRef.current?.scrollIntoView({behavior:"auto",block:"start"}),120);return()=>window.clearTimeout(timer)},[exerciseIndex,work.showSummary]);
+  function goExercise(index:number){setWork(current=>index===lab.exercises.length&&session.id===3?{...current,showSummary:true}:{...current,showSummary:false,exerciseId:lab.exercises[Math.max(0,Math.min(lab.exercises.length-1,index))].id});}
   function markCompleted(id:string){setWork(current=>{const ids=[...new Set([...current.completedIds,id])];try{localStorage.setItem(`lab2ac-unit1-session-${session.id}-${participantId}`,JSON.stringify(ids));}catch{}return {...current,completedIds:ids};});}
   if(!progressLoaded)return <div className="learning-loading"><LoaderCircle size={19} className="spin"/> Recherche de ton travail sauvegardé… / البحث عن عملك المحفوظ…</div>;
+  const navigationTitles = [...lab.exercises.map(item => txt(item.title, lang)), ...(session.id === 3 ? [lang === "fr" ? "Bilan de la séance" : "حصيلة الحصة"] : [])];
+  if (session.id === 3 && work.showSummary) return <div className="tab-content unit1-lab page-enter" ref={exerciseAnchorRef}><TeacherExerciseNavigator index={lab.exercises.length} titles={navigationTitles} onGo={goExercise} /><Session3WorkshopSummary completedIds={[...completedExercises]} onBack={() => goExercise(lab.exercises.length - 1)} onResume={goExercise} onTrace={onGoToTrace} onEvaluate={onGoToEvaluation} /></div>;
 
   return (
     <div className="tab-content unit1-lab page-enter">
-      <TeacherExerciseNavigator index={exerciseIndex} titles={lab.exercises.map(item => txt(item.title, lang))} onGo={goExercise} />
+      <TeacherExerciseNavigator index={exerciseIndex} titles={navigationTitles} onGo={goExercise} />
       {durable.restored&&completedExercises.size>0&&<p className="learning-resumed-note"><HistoryMark/>{completedExercises.size} exercice(s) déjà réussi(s) : tu reprends ton parcours ici. / تستأنف مسارك من هنا.</p>}
       {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exercise.stage === "recall"
         ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
@@ -1718,7 +1727,7 @@ function Unit1Workshop({
         key={exercise.id}
         exercise={exercise}
         lang={lang}
-        draft={drafts[exercise.id]}
+        draft={!exercise.revision || drafts[exercise.id]?.exerciseRevision === exercise.revision ? drafts[exercise.id] : undefined}
         onDraftChange={keepDraft}
         alreadyCompleted={completedExercises.has(exercise.id)}
         onComplete={() => markCompleted(exercise.id)}
@@ -1737,8 +1746,8 @@ function Unit1Workshop({
         done={lab.exercises.filter((item) => completedExercises.has(item.id)).length}
         lang={lang}
         onPrevious={() => goExercise(exerciseIndex-1)}
-        onNext={() => exerciseIndex === lab.exercises.length - 1 ? onGoToTrace() : goExercise(exerciseIndex+1)}
-        nextLabel={exerciseIndex === lab.exercises.length - 1 ? { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
+        onNext={() => exerciseIndex === lab.exercises.length - 1 && session.id !== 3 ? onGoToTrace() : goExercise(exerciseIndex+1)}
+        nextLabel={exerciseIndex === lab.exercises.length - 1 ? session.id === 3 ? { fr: "Bilan de la séance", ar: "حصيلة الحصة" } : { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
         nextDisabled={currentResult !== true}
         resultStatus={currentResult}
       />
@@ -1902,15 +1911,17 @@ function WorkshopView({
   participantId,
   onRecordSubmission,
   onGoToTrace,
+  onGoToEvaluation,
 }: {
   session: CourseSession;
   lang: Lang;
   participantId: string;
   onRecordSubmission: (submission: SubmissionInput) => void;
   onGoToTrace: () => void;
+  onGoToEvaluation: () => void;
 }) {
   if (session.unit === 1) {
-    return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
+    return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} onGoToEvaluation={onGoToEvaluation} />;
   }
   return <StandardWorkshopView session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
 }
@@ -2887,6 +2898,7 @@ function SessionPage({
           participantId={participantId}
           onRecordSubmission={onRecordSubmission}
           onGoToTrace={goToTrace}
+          onGoToEvaluation={() => showTab("quiz")}
         />
         </section>
       )}

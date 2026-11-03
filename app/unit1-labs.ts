@@ -13,10 +13,13 @@ type ExerciseImage = {
 
 type ExerciseBase = {
   id: string;
+  revision?: number;
   level: ExerciseLevel;
   minutes?: number;
   title: LocalizedText;
   prompt: LocalizedText;
+  tasks?: LocalizedText[];
+  instructionImage?: ExerciseImage;
   hint?: LocalizedText;
   feedback: LocalizedText;
   image?: ExerciseImage;

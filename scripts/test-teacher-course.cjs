@@ -43,4 +43,24 @@ equal(/<option value="24" selected="">25 · Exercice 25<\/option>/.test(teacher)
 equal(teacher.includes('aucune réponse requise'), true);
 equal(scope.teacherDemoProfile.id.startsWith('00000000-0000-4000-8000-'), true, 'dedicated local demonstration identity');
 equal('resumeToken' in scope.teacherDemoProfile, false, 'demo identity cannot sync student records');
+const lab = compile(fs.readFileSync(path.join(root, 'app/session3-lab-data.ts'), 'utf8'));
+const {Session3WorkshopSummary} = compile(fs.readFileSync(path.join(root, 'app/session3-workshop-summary.tsx'), 'utf8'), {
+  './session3-lab-data': lab,
+  '../lib/teacher-course-context': scope,
+  './session3-translation': {Session3Text: ({value}) => React.createElement('span', null, value.fr)},
+  './session3-revision.css': {},
+});
+const callbacks = {onBack() {}, onResume() {}, onTrace() {}, onEvaluate() {}};
+const allIds = lab.session3Lab.exercises.map(exercise => exercise.id);
+student = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: [...allIds, allIds[0], 'obsolete-id']}), false);
+equal(student.includes('<strong>25 / 25</strong>'), true, 'summary counts actual exercises without duplicate or obsolete completions');
+equal(student.includes('Il reste des exercices'), false, 'completed workshop has no false remediation warning');
+equal(student.includes('Passer à l’évaluation'), true, 'assessment follows the workshop summary');
+equal(student.includes('Lire la trace écrite'), true, 'summary retains the lesson notes route');
+student = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: allIds.slice(0,24)}), false);
+equal(student.includes('<strong>24 / 25</strong>'), true, 'saved partial progress remains visible');
+equal(student.includes('reprendre à l’exercice 25'), true, 'resume points to the unfinished task');
+teacher = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: []}), true);
+equal(teacher.includes('s3-workshop-summary-progress'), false, 'teacher synthesis never invents learner progress');
+equal(teacher.includes('Il reste des exercices'), false, 'teacher remains free to demonstrate');
 console.log(JSON.stringify({passed: true, assertions}));

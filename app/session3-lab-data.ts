@@ -30,49 +30,41 @@ export const session3Lab: Unit1Lab = {
     },
     {
       "id": "s3-v5-traitement",
-      "type": "sequence",
+      "revision": 1,
+      "type": "choice",
       "stage": "recall",
       "level": "start",
-      "minutes": 3,
+      "minutes": 2,
       "title": {
-        "fr": "La moyenne de Sara, vue par l’ordinateur",
-        "ar": "معدل سارة كما ينجزه الحاسوب"
+        "fr": "Que fait la calculatrice ?",
+        "ar": "ماذا تنجز الحاسبة؟"
       },
       "prompt": {
-        "fr": "Clique sur les trois cartes proposées dans l’ordre où l’ordinateur doit les utiliser. Le premier clic remplit la case 1.",
-        "ar": "انقر البطاقات الثلاث المقترحة وفق ترتيب استعمال الحاسوب لها. يملأ النقر الأول الخانة 1."
+        "fr": "Tu tapes 7 + 5 dans la calculatrice. Clique sur le traitement effectué.",
+        "ar": "تدخل 7 + 5 في الحاسبة. انقر المعالجة المنجزة."
       },
-      "feedback": {
-        "fr": "L’ordinateur reçoit les notes, calcule leur moyenne, puis affiche 14/20. Tu as reconstitué une chaîne de traitement de l’information.",
-        "ar": "يتوصل الحاسوب بالنقط ثم يحسب معدلها ويعرض 14/20. أعدت بناء سلسلة معالجة المعلومات."
-      },
-      "steps": [
+      "choices": [
         {
-          "fr": "Sara saisit ses trois notes : 12/20, 14/20 et 16/20. L’ordinateur reçoit ces données et les garde en mémoire pour pouvoir calculer.",
-          "ar": "تدخل سارة نقطها الثلاث: 12/20 و14/20 و16/20. يتوصل الحاسوب بهذه المعطيات ويحتفظ بها في الذاكرة حتى يتمكن من الحساب."
+          "fr": "Recevoir les nombres 7 et 5.",
+          "ar": "استقبال العددين 7 و5."
         },
         {
-          "fr": "L’ordinateur applique la règle de la moyenne : il additionne 12 + 14 + 16, puis divise la somme 42 par le nombre de notes, 3.",
-          "ar": "يطبق الحاسوب قاعدة المعدل: يجمع 12 + 14 + 16 ثم يقسم المجموع 42 على عدد النقط وهو 3."
+          "fr": "Calculer la somme de 7 et 5.",
+          "ar": "حساب مجموع 7 و5."
         },
         {
-          "fr": "L’écran affiche le résultat : « Ta moyenne est 14/20. » Sara peut maintenant lire cette nouvelle information obtenue après le traitement.",
-          "ar": "تعرض الشاشة النتيجة: « معدلك هو 14/20 ». تستطيع سارة الآن قراءة هذه المعلومة الجديدة الناتجة عن المعالجة."
+          "fr": "Afficher le résultat 12.",
+          "ar": "عرض النتيجة 12."
         }
       ],
-      "stepImages": [
-        "session3/visuels/traitement-donnees.svg",
-        "session3/visuels/traitement-calcul.svg",
-        "session3/visuels/traitement-resultat.svg"
-      ],
-      "shuffled": [
-        2,
-        0,
-        1
-      ],
+      "answer": 1,
       "hint": {
-        "fr": "Demande-toi ce qui doit être connu avant de calculer et ce qui sera affiché après le calcul.",
-        "ar": "اسأل نفسك عما يجب معرفته قبل الحساب وما سيعرض بعده."
+        "fr": "Le traitement est l’opération réalisée sur les nombres.",
+        "ar": "المعالجة هي العملية المنجزة على الأعداد."
+      },
+      "feedback": {
+        "fr": "Le traitement est le calcul de 7 + 5. Saisir les nombres est l’entrée ; afficher 12 est la sortie.",
+        "ar": "المعالجة هي حساب 7 + 5. إدخال الأعداد هو الإدخال، وعرض 12 هو الإخراج."
       }
     },
     {
@@ -99,8 +91,8 @@ export const session3Lab: Unit1Lab = {
         "ar": "حول الوحدة المركزية"
       },
       "prompt": {
-        "fr": "Observe les quatre photos et sélectionne les trois périphériques. Ne sélectionne pas l’unité centrale.",
-        "ar": "لاحظ الصور الأربع وحدد الملحقات الثلاثة دون تحديد الوحدة المركزية."
+        "fr": "Coche les 3 périphériques.",
+        "ar": "حدد الملحقات الثلاثة."
       },
       "feedback": {
         "fr": "Le clavier, la souris et l’écran sont des périphériques. Le boîtier est l’unité centrale.",
@@ -156,12 +148,12 @@ export const session3Lab: Unit1Lab = {
       "level": "start",
       "minutes": 5,
       "title": {
-        "fr": "Le club change d’unité",
-        "ar": "النادي يغير وحدة القياس"
+        "fr": "À toi de convertir !",
+        "ar": "دورك لتحويل الوحدات!"
       },
       "prompt": {
-        "fr": "Explore l’exemple, puis écris les trois nombres manquants pour préparer les fichiers du club.",
-        "ar": "استكشف المثال ثم اكتب الأعداد الثلاثة الناقصة لإعداد ملفات النادي."
+        "fr": "Observe le tableau, puis complète les 3 conversions. Écris seulement les nombres.",
+        "ar": "لاحظ الجدول ثم أكمل التحويلات الثلاثة. اكتب الأعداد فقط."
       },
       "feedback": {
         "fr": "2 Go = 2 000 Mo ; 3 500 Mo = 3,5 Go ; 16 bits = 2 octets. Chaque déplacement d’unité applique le facteur adapté.",
@@ -169,21 +161,21 @@ export const session3Lab: Unit1Lab = {
       },
       "rows": [
         {
-          "before": "La vidéo : 2 Go =",
+          "before": "2 Go =",
           "after": "Mo",
           "accepted": [
             "2000"
           ]
         },
         {
-          "before": "Les photos : 3 500 Mo =",
+          "before": "3 500 Mo =",
           "after": "Go",
           "accepted": [
             "3.5"
           ]
         },
         {
-          "before": "Un code : 16 bits =",
+          "before": "16 bits =",
           "after": "octets",
           "accepted": [
             "2"
@@ -193,80 +185,72 @@ export const session3Lab: Unit1Lab = {
       "hint": {
         "fr": "Vers une unité plus petite, multiplie. Vers une plus grande, divise. Le facteur bit/octet est 8 ; les autres valent 1 000.",
         "ar": "اضرب نحو الوحدة الأصغر واقسم نحو الأكبر. عامل البت والأوكتات 8، وبقية العوامل 1000."
+      },
+      "instructionImage": {
+        "src": "session3/ressources/conversion-unites-v2.png",
+        "alt": {
+          "fr": "Échelle bit, octet, Ko, Mo, Go, To : multiplier en remontant vers le bit, diviser en descendant vers le To. Facteur 8 entre bit et octet et 1000 entre les autres unités.",
+          "ar": "سلم البت والأوكتات وKo وMo وGo وTo: نضرب صعودا نحو البت ونقسم نزولا نحو To. العامل 8 بين البت والأوكتات و1000 بين الوحدات الأخرى."
+        },
+        "caption": {
+          "fr": "Aide : suis les flèches du tableau. 1 octet = 8 bits ; 1 Ko = 1 000 octets.",
+          "ar": "للمساعدة: اتبع أسهم الجدول. 1 أوكتات = 8 بت، و1 Ko = 1000 أوكتات."
+        }
       }
     },
     {
       "id": "s3-v5-diagnostic-systeme",
-      "type": "diagnostic",
+      "revision": 1,
+      "type": "choice",
       "stage": "discover",
       "level": "train",
-      "minutes": 4,
+      "minutes": 3,
       "title": {
-        "fr": "Le poste s’allume, mais Sara ne peut rien faire",
-        "ar": "يشتغل الجهاز لكن سارة لا تستطيع استعماله"
+        "fr": "Quel logiciel manque à ce PC ?",
+        "ar": "ما البرنامج الذي ينقص هذا الحاسوب؟"
       },
       "prompt": {
-        "fr": "Lis le constat, puis choisis le problème et l’action adaptée. Il faut une réponse dans chacune des deux étapes.",
-        "ar": "اقرأ الملاحظة ثم اختر المشكلة والعملية المناسبة. يجب اختيار جواب في كل مرحلة."
-      },
-      "feedback": {
-        "fr": "Le matériel est branché, mais il manque le logiciel de base. Installer un système d’exploitation compatible permet ensuite de lancer les applications.",
-        "ar": "المعدات موصولة لكن البرنامج الأساسي غير موجود. يتيح تثبيت نظام تشغيل مناسب تشغيل التطبيقات بعده."
-      },
-      "scenario": {
-        "fr": "L’unité centrale est neuve. L’écran, le clavier et la souris sont branchés. Aucun système n’a encore été installé sur le disque : le poste affiche « Aucun système d’exploitation trouvé ».",
-        "ar": "الوحدة المركزية جديدة والشاشة ولوحة المفاتيح والفأرة موصولة. لم يثبت أي نظام على القرص بعد، ويعرض الحاسوب عدم العثور على نظام تشغيل."
+        "fr": "Ce PC s’allume, mais aucun système d’exploitation n’est installé. Clique sur le logiciel à installer.",
+        "ar": "يشتغل هذا الحاسوب لكن لا يوجد عليه نظام تشغيل. انقر البرنامج الذي يجب تثبيته."
       },
       "image": {
-        "src": "session3/visuels/ecran-sans-systeme.svg",
+        "src": "session2/items/unite-centrale-lenovo.jpg",
         "alt": {
-          "fr": "Message : aucun système d’exploitation trouvé",
-          "ar": "رسالة عدم العثور على نظام تشغيل"
+          "fr": "Photographie de l’unité centrale Lenovo du poste de Sara.",
+          "ar": "صورة حقيقية للوحدة المركزية Lenovo الخاصة بحاسوب سارة."
         },
         "caption": {
-          "fr": "Le poste fonctionne électriquement ; le disque n’a pas encore de système.",
-          "ar": "يشتغل الجهاز كهربائيا لكن لم يثبت نظام على القرص بعد."
+          "fr": "Le poste de Sara a besoin d’un système d’exploitation.",
+          "ar": "يحتاج حاسوب سارة إلى نظام تشغيل."
         }
       },
-      "components": [
+      "choices": [
         {
-          "label": {
-            "fr": "Le logiciel de base manque",
-            "ar": "البرنامج الأساسي غير موجود"
-          }
+          "fr": "Windows 11",
+          "ar": "Windows 11"
         },
         {
-          "label": {
-            "fr": "Le clavier est absent",
-            "ar": "لوحة المفاتيح غير موجودة"
-          }
+          "fr": "Calculatrice",
+          "ar": "الحاسبة"
         },
         {
-          "label": {
-            "fr": "La souris est débranchée",
-            "ar": "الفأرة غير موصولة"
-          }
+          "fr": "Navigateur Web",
+          "ar": "متصفح الويب"
         }
       ],
-      "componentAnswer": 0,
-      "repairs": [
-        {
-          "fr": "Installer un système d’exploitation compatible",
-          "ar": "تثبيت نظام تشغيل مناسب"
-        },
-        {
-          "fr": "Installer seulement un navigateur Web",
-          "ar": "تثبيت متصفح ويب وحده"
-        },
-        {
-          "fr": "Remplacer la souris par une autre",
-          "ar": "تغيير الفأرة بأخرى"
-        }
+      "choiceImages": [
+        "session3/visuels/logo-windows.svg",
+        "session3/visuels/app-calculatrice.svg",
+        "session3/visuels/app-navigateur.svg"
       ],
-      "repairAnswer": 0,
+      "answer": 0,
       "hint": {
-        "fr": "Un navigateur est une application. Quel logiciel doit rendre le poste utilisable avant les applications ?",
-        "ar": "المتصفح تطبيق. ما البرنامج الذي يتيح استعمال الحاسوب قبل التطبيقات؟"
+        "fr": "Choisis un système d’exploitation pour ce PC.",
+        "ar": "اختر نظام تشغيل لهذا الحاسوب."
+      },
+      "feedback": {
+        "fr": "Windows 11 est un système d’exploitation : il rend le PC utilisable et permet d’ouvrir les applications. La Calculatrice et le navigateur sont des applications.",
+        "ar": "Windows 11 نظام تشغيل يتيح استعمال الحاسوب وفتح التطبيقات. الحاسبة والمتصفح تطبيقان."
       }
     },
     {
@@ -355,31 +339,28 @@ export const session3Lab: Unit1Lab = {
     },
     {
       "id": "s3-v5-logiciels-familles",
+      "revision": 1,
       "type": "match",
+      "interaction": "select",
       "stage": "discover",
       "level": "train",
-      "minutes": 4,
+      "minutes": 3,
       "title": {
-        "fr": "Chaque logiciel a son métier",
-        "ar": "لكل برنامج وظيفة"
+        "fr": "Système ou application ?",
+        "ar": "نظام تشغيل أم تطبيق؟"
       },
       "prompt": {
-        "fr": "Sara a préparé huit étiquettes. Sépare les logiciels de base et les applications pour expliquer ce qui rend l’appareil utilisable et ce qui sert à une tâche précise.",
-        "ar": "أعدت سارة ثماني بطاقات. ميز البرمجيات الأساسية عن التطبيقات لتفسير ما يتيح استعمال الجهاز وما ينجز مهمة محددة."
+        "fr": "Pour chaque image, choisis « Système d’exploitation » ou « Application ».",
+        "ar": "اختر لكل صورة «نظام تشغيل» أو «تطبيق»."
       },
-      "feedback": {
-        "fr": "Windows, Android, Linux et macOS sont des systèmes d’exploitation. Word, Excel, VLC et Firefox sont des applications pour écrire, calculer, lire des médias ou naviguer.",
-        "ar": "Windows وAndroid وLinux وmacOS أنظمة تشغيل. Word وExcel وVLC وFirefox تطبيقات للكتابة والحساب وقراءة الوسائط والتصفح."
-      },
-      "interaction": "drag",
       "categories": [
         {
-          "fr": "Logiciel de base · système d’exploitation",
-          "ar": "برنامج أساسي · نظام تشغيل"
+          "fr": "Système d’exploitation",
+          "ar": "نظام تشغيل"
         },
         {
-          "fr": "Logiciel d’application",
-          "ar": "برنامج تطبيقي"
+          "fr": "Application",
+          "ar": "تطبيق"
         }
       ],
       "rows": [
@@ -388,6 +369,7 @@ export const session3Lab: Unit1Lab = {
             "fr": "Windows",
             "ar": "Windows"
           },
+          "image": "session3/visuels/logo-windows.svg",
           "answer": 0
         },
         {
@@ -395,54 +377,33 @@ export const session3Lab: Unit1Lab = {
             "fr": "Android",
             "ar": "Android"
           },
+          "image": "session3/visuels/logo-android.svg",
           "answer": 0
         },
         {
           "label": {
-            "fr": "Linux / Ubuntu",
-            "ar": "Linux / Ubuntu"
+            "fr": "Calculatrice",
+            "ar": "الحاسبة"
           },
-          "answer": 0
-        },
-        {
-          "label": {
-            "fr": "macOS",
-            "ar": "macOS"
-          },
-          "answer": 0
-        },
-        {
-          "label": {
-            "fr": "Word · écrire un texte",
-            "ar": "Word · كتابة نص"
-          },
+          "image": "session3/visuels/app-calculatrice.svg",
           "answer": 1
         },
         {
           "label": {
-            "fr": "Excel · travailler sur des tableaux",
-            "ar": "Excel · العمل على الجداول"
+            "fr": "Navigateur Web",
+            "ar": "متصفح الويب"
           },
-          "answer": 1
-        },
-        {
-          "label": {
-            "fr": "VLC · lire un son ou une vidéo",
-            "ar": "VLC · قراءة صوت أو فيديو"
-          },
-          "answer": 1
-        },
-        {
-          "label": {
-            "fr": "Firefox · naviguer sur le Web",
-            "ar": "Firefox · تصفح الويب"
-          },
+          "image": "session3/visuels/app-navigateur.svg",
           "answer": 1
         }
       ],
       "hint": {
-        "fr": "Un système gère l’appareil et les applications. Une application sert à un besoin particulier.",
-        "ar": "يدير النظام الجهاز والتطبيقات. يستعمل التطبيق لتلبية حاجة محددة."
+        "fr": "Le système fait fonctionner l’appareil ; une application permet de réaliser une tâche.",
+        "ar": "يشغل النظام الجهاز، ويساعد التطبيق على إنجاز مهمة."
+      },
+      "feedback": {
+        "fr": "Windows et Android sont des systèmes d’exploitation. La Calculatrice et le navigateur Web sont des applications.",
+        "ar": "Windows وAndroid نظاما تشغيل، والحاسبة ومتصفح الويب تطبيقان."
       }
     },
     {
@@ -636,8 +597,8 @@ export const session3Lab: Unit1Lab = {
         "ar": "رسالة الإذاعة جاهزة"
       },
       "prompt": {
-        "fr": "Déplace audio001.wav de Téléchargements vers Documents / Radio. Renomme-le Message_club.wav sans changer son format. Il ne doit plus rester dans Téléchargements.",
-        "ar": "انقل audio001.wav من Téléchargements إلى Documents / Radio ثم سمه Message_club.wav دون تغيير صيغته. يجب ألا يبقى داخل Téléchargements."
+        "fr": "Range et renomme le fichier sonore.",
+        "ar": "رتب الملف الصوتي وأعد تسميته."
       },
       "feedback": {
         "fr": "Tu as déplacé le son et choisi un nom utile. Le fichier .wav garde son contenu sonore.",
@@ -647,7 +608,21 @@ export const session3Lab: Unit1Lab = {
       "hint": {
         "fr": "Couper puis Coller change l’emplacement. Renommer change le nom ; conserve .wav.",
         "ar": "يغير القص ثم اللصق الموضع وتغير إعادة التسمية الاسم. حافظ على .wav."
-      }
+      },
+      "tasks": [
+        {
+          "fr": "Ouvre Téléchargements.",
+          "ar": "افتح Téléchargements."
+        },
+        {
+          "fr": "Déplace audio001.wav dans Documents → Radio.",
+          "ar": "انقل audio001.wav إلى Documents ← Radio."
+        },
+        {
+          "fr": "Renomme ce fichier Message_club.wav.",
+          "ar": "أعد تسمية هذا الملف Message_club.wav."
+        }
+      ]
     },
     {
       id:"s3-v4-reduire",type:"hotspot",stage:"practice",level:"train",minutes:2,
@@ -687,8 +662,8 @@ export const session3Lab: Unit1Lab = {
         "ar": "استعد تعليمات الأستاذ"
       },
       "prompt": {
-        "fr": "consignes.txt a été supprimé par erreur. Ouvre la Corbeille et remets ce document à sa place dans Documents.",
-        "ar": "حذف consignes.txt بالخطأ. افتح سلة المحذوفات وأعد الوثيقة إلى مكانها داخل Documents."
+        "fr": "Récupère le fichier supprimé par erreur.",
+        "ar": "استعد الملف المحذوف بالخطأ."
       },
       "feedback": {
         "fr": "La restauration a remis le document dans Documents. Tu peux à nouveau l’ouvrir et lire les consignes.",
@@ -698,7 +673,21 @@ export const session3Lab: Unit1Lab = {
       "hint": {
         "fr": "Dans la Corbeille, sélectionne le document puis utilise Restaurer. Reviens dans Documents pour vérifier.",
         "ar": "حدد الوثيقة داخل السلة ثم استعمل استعادة. عد إلى Documents للتحقق."
-      }
+      },
+      "tasks": [
+        {
+          "fr": "Ouvre la Corbeille.",
+          "ar": "افتح سلة المحذوفات."
+        },
+        {
+          "fr": "Sélectionne consignes.txt, puis clique sur Restaurer.",
+          "ar": "حدد consignes.txt ثم انقر استعادة."
+        },
+        {
+          "fr": "Ouvre Documents et vérifie que consignes.txt est revenu.",
+          "ar": "افتح Documents وتحقق من عودة consignes.txt."
+        }
+      ]
     },
     {
       "id": "s3-v5-nommage-pratique",
@@ -735,8 +724,8 @@ export const session3Lab: Unit1Lab = {
         "ar": "مجلد معرض النادي"
       },
       "prompt": {
-        "fr": "Dans Documents, crée Expo_club avec deux sous-dossiers : Photos et Textes. Déplace Photo_club.jpg de Téléchargements vers Photos. Copie Invitation.txt de Documents vers Textes, en gardant l’original.",
-        "ar": "أنشئ داخل Documents مجلد Expo_club بمجلدين فرعيين Photos وTextes. انقل الصورة من Téléchargements إلى Photos وانسخ Invitation.txt من Documents إلى Textes مع إبقاء الأصل."
+        "fr": "Prépare le dossier de l’exposition. Réalise ces 4 tâches.",
+        "ar": "أعد مجلد المعرض بإنجاز المهام الأربع."
       },
       "feedback": {
         "fr": "Ton dossier contient des fichiers rangés selon leur contenu. Tu as créé une arborescence, déplacé une photo et copié un texte sans perdre l’original.",
@@ -746,7 +735,25 @@ export const session3Lab: Unit1Lab = {
       "hint": {
         "fr": "Les noms et les emplacements du dossier final comptent. Tu peux utiliser la barre d’outils, le clic droit ou les raccourcis.",
         "ar": "تحتسب أسماء عناصر المجلد النهائي ومواضعها. يمكنك استعمال شريط الأدوات أو الزر الأيمن أو الاختصارات."
-      }
+      },
+      "tasks": [
+        {
+          "fr": "Dans Documents, crée le dossier Expo_club.",
+          "ar": "أنشئ المجلد Expo_club داخل Documents."
+        },
+        {
+          "fr": "Dans Expo_club, crée les dossiers Photos et Textes.",
+          "ar": "أنشئ المجلدين Photos وTextes داخل Expo_club."
+        },
+        {
+          "fr": "Déplace Photo_club.jpg de Téléchargements vers Expo_club → Photos.",
+          "ar": "انقل Photo_club.jpg من Téléchargements إلى Photos داخل Expo_club."
+        },
+        {
+          "fr": "Copie Invitation.txt de Documents vers Expo_club → Textes. Garde l’original.",
+          "ar": "انسخ Invitation.txt من Documents إلى Textes داخل Expo_club، واحتفظ بالأصل."
+        }
+      ]
     },
   ],
 };
