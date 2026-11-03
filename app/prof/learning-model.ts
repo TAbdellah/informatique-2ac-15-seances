@@ -1,5 +1,6 @@
 import {sessions} from '../course-data';
 import {unit1Labs} from '../unit1-labs';
+import {session4Activities} from '../session4-data';
 import type {ActivityProgress,LearningAnalytics,RosterStudent} from '@/lib/supabase-api';
 export type Mastery='acquired'|'developing'|'not-acquired'|'unassessed';
 export const masteryLabels:Record<Mastery,string>={acquired:'Acquis',developing:'En cours d’acquisition','not-acquired':'Non acquis',unassessed:'Non évalué'};
@@ -10,6 +11,7 @@ const groups:Record<number,Array<[string,number[]]>>={
  3:[['Reconnaître l’information et son traitement',[1,2]],['Mobiliser les connaissances sur le matériel',[3,4,5]],['Convertir les capacités de stockage',[6]],['Distinguer matériel, systèmes et applications',[7,8,9]],['Utiliser le bureau et les fenêtres Windows',[10,11,12,13,20,21]],['Comprendre les fichiers et leurs contenus',[14,15,16,22]],['Organiser, copier, déplacer et restaurer',[17,18,19,23,24,25]]],
 };
 export function targetsFor(sessionId:number):Target[]{
+ if(sessionId===4)return session4Activities.filter(a=>a.kind!=='practice').map(a=>({id:a.id,title:a.title.fr,type:'workshop',objective:a.objective}));
  if(sessionId<=3){const lab=unit1Labs[sessionId as 1|2|3];return lab.exercises.map((e,i)=>({id:e.id,title:e.title.fr,type:'unit1_exercise',objective:groups[sessionId].find(([,ns])=>ns.includes(i+1))?.[0]||'Mettre en pratique'}))}
  const s=sessions.find(s=>s.id===sessionId);return s?s.workshops.map(w=>({id:`session-${s.id}-workshop-${w.label}`,title:w.text.fr,objective:w.text.fr,type:'workshop'})):[];
 }
@@ -26,7 +28,8 @@ export function learnerProgress(data:LearningAnalytics,student:RosterStudent,ses
  const passed=targets.filter(t=>t.passed).length,observed=targets.filter(t=>t.observed).length;
  const best=(id:string)=>activities.filter(a=>a.activityId===id&&a.bestScore!==null&&a.maxScore!==null&&a.maxScore>0).sort((a,b)=>(b.bestScore!/b.maxScore!)-(a.bestScore!/a.maxScore!))[0];
  let grade:number|null=null,gradeLabel='Évaluation non remise';
- if(sessionId===3){const a=best('session-3-bilan-situations-v5');if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='Bilan en trois situations'}}
+ if(sessionId===4){const a=best('session-4-reseau-evaluation-v1');if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='Réseau local · 4 situations /20'}}
+ else if(sessionId===3){const a=best('session-3-bilan-situations-v5');if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='Bilan en trois situations'}}
  else if(sessionId===2){const q=best('session-2-quiz'),a=best('s2-evaluation-assembler'),r=best('s2-evaluation-depanner');if(q&&a&&r){grade=20*(q.bestScore!+a.bestScore!+r.bestScore!)/(q.maxScore!+a.maxScore!+r.maxScore!);gradeLabel='Assembler + dépanner + QCM'}else if(q||a||r)gradeLabel='Évaluation en partie remise'}
  else{const a=best(`session-${sessionId}-quiz`);if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='QCM · meilleure note'}}
  return {student,targets,objectives,status:mastery(passed,observed,targets.length),passed,observed,total:targets.length,percent:targets.length?Math.round(100*passed/targets.length):0,grade:grade===null?null:Math.round(grade*10)/10,gradeLabel,lastAt:activities.map(a=>a.lastAt).sort().at(-1)??null,pair:activities.some(a=>pairs.has(a.participantId)),activities};

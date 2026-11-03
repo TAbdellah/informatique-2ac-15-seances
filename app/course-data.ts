@@ -1,3 +1,4 @@
+import { session4 } from "./session4-data";
 import { session3 } from "./session3-data";
 
 export type Lang = "fr" | "ar";
@@ -398,33 +399,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   session3,
-  {
-    id: 4,
-    unit: 2,
-    title: t("Le réseau local", "الشبكة المحلية"),
-    subtitle: t("Partager et communiquer avec BeeBEEP", "المشاركة والتواصل باستعمال BeeBEEP"),
-    mission: t("Faire circuler un message et un fichier entre deux postes sans utiliser Internet.", "تمرير رسالة وملف بين حاسوبين دون استعمال الإنترنت."),
-    situation: t("Le professeur doit envoyer une consigne aux 15 postes alors que la connexion Internet est coupée.", "يجب على الأستاذ إرسال تعليمة إلى 15 حاسوبا رغم انقطاع الإنترنت."),
-    objectives: [
-      t("Reconnaître les éléments d’un réseau local.", "التعرف على عناصر الشبكة المحلية."),
-      t("Distinguer Internet et réseau du laboratoire.", "التمييز بين الإنترنت وشبكة المختبر."),
-      t("Échanger un message et un fichier avec BeeBEEP.", "تبادل رسالة وملف باستعمال BeeBEEP."),
-    ],
-    workshops: [
-      { label: "A", duration: 25, text: t("Observer le réseau de la salle et dessiner sa topologie simplifiée.", "ملاحظة شبكة القاعة ورسم بنيتها المبسطة.") },
-      { label: "B", duration: 35, text: t("Créer un profil BeeBEEP, envoyer un message puis transférer un fichier témoin.", "إنشاء ملف BeeBEEP وإرسال رسالة ثم نقل ملف تجريبي.") },
-    ],
-    deliverable: t("Capture de l’échange + schéma du réseau annoté.", "لقطة للتبادل + رسم معنْون للشبكة."),
-    trace: [
-      t("Un réseau local relie des appareils dans un espace limité.", "تربط الشبكة المحلية أجهزة داخل فضاء محدود."),
-      t("BeeBEEP permet de communiquer sur le réseau local sans serveur Internet.", "يسمح BeeBEEP بالتواصل داخل الشبكة المحلية دون خادم إنترنت."),
-    ],
-    vocabulary: [t("Réseau local", "شبكة محلية"), t("Commutateur", "مبدّل"), t("Adresse IP", "عنوان IP")],
-    quiz: [
-      { question: t("Le réseau de la salle est un…", "شبكة القاعة هي…"), choices: [t("LAN", "LAN"), t("site web", "موقع ويب"), t("fichier", "ملف")], answer: 0 },
-      { question: t("BeeBEEP peut fonctionner…", "يمكن لـBeeBEEP العمل…"), choices: [t("uniquement en ligne", "فقط عبر الإنترنت"), t("sur le réseau local", "عبر الشبكة المحلية"), t("sans aucun réseau", "دون أي شبكة")], answer: 1 },
-    ],
-  },
+  session4,
   {
     id: 5,
     unit: 3,

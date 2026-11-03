@@ -66,6 +66,7 @@ import {StudentIdentification,ResumeStudent} from "./student-identification";
 import { teacherDemoProfile, useTeacherCourse } from "../lib/teacher-course-context";
 import { TeacherExerciseNavigator } from "./teacher-exercise-navigator";
 import { Session3WorkshopSummary } from "./session3-workshop-summary";
+import Session4Lesson from "./session4-lesson";
 import {
   getSessionAccess,
   registerParticipant,
@@ -2867,6 +2868,7 @@ function SessionPage({
   function goToTrace() {
     showTab("trace");
   }
+  if (session.id === 4) return <Session4Lesson student={student} activeTab={activeTab} onTab={onTab} onBack={onBack} onChangeStudent={onChangeStudent} onRecordSubmission={onRecordSubmission} />;
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
       <div className="session-student-identity">

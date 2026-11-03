@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LearningTeacherPortal, {TeacherNavigation, type TeacherSection} from "./learning-dashboard";
 import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-api";
 import { session3Lab } from "../session3-lab-data";
+import { session4Activities } from "../session4-data";
+import Session4TeacherReport from "./session4-report";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
   BookOpen,
@@ -229,6 +231,10 @@ const pedagogicalSessions = {
 } as const;
 
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
+  if (attempt.activityId === "session-4-reseau-evaluation-v1") return "Séance 4 · Réseau local · Évaluation /20";
+  if (attempt.activityId === "session-4-tp-messagerie") return "Séance 4 · Échange réel BeeBEEP · déclaré";
+  const session4Activity=session4Activities.find(a=>a.id===attempt.activityId);
+  if(session4Activity)return `Séance 4 · ${session4Activity.title.fr}${session4Activity.kind==="practice"?" · déclaré":""}`;
   if (attempt.activityId === "session-3-bilan-situations-v5") return "Séance 3 · Bilan en trois situations / 20";
   return session1ActivityLabels[attempt.activityId] ?? session2ActivityLabels[attempt.activityId] ?? session3Lab.exercises.find(exercise => exercise.id === attempt.activityId)?.title.fr ?? activityLabels[attempt.activityType] ?? attempt.activityType;
 }
@@ -1477,6 +1483,7 @@ export default function ProfessorDashboard() {
                   <SessionLearningReport attempts={learnerAttempts} sessionId={1} />
                   <SessionLearningReport attempts={learnerAttempts} sessionId={2} />
                   <SessionLearningReport attempts={learnerAttempts} sessionId={3} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(3);setSelectedAttemptId(attempt.id)}} />
+                  <Session4TeacherReport attempts={learnerAttempts} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(4);setSelectedAttemptId(attempt.id)}} />
                   {!learnerAttempts.some((attempt) => [1,2,3].includes(attempt.sessionId)) && (
                     <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1, 2 ou 3.</p></div>
                   )}
