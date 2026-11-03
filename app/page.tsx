@@ -61,6 +61,8 @@ import "./session3-theme.css";
 import {LearningProvider,LearningSaveBadge,useDurableLessonState} from "../lib/learning-context";
 import {forgetActiveProfile,lastLearningView,resumeOverview,readSnapshot,rememberedActiveProfile,rememberProfile,saveSnapshot} from "../lib/learning-storage";
 import {StudentIdentification,ResumeStudent} from "./student-identification";
+import { teacherDemoProfile, useTeacherCourse } from "../lib/teacher-course-context";
+import { TeacherExerciseNavigator } from "./teacher-exercise-navigator";
 import {
   getSessionAccess,
   registerParticipant,
@@ -476,6 +478,8 @@ function StudentIdentityBadge({
   student: StudentProfile;
   onChangeStudent: () => void;
 }) {
+  const teacherMode = useTeacherCourse();
+  if (teacherMode) return <span className="student-chip solo"><BookOpen size={18} /><strong>Professeur · démonstration</strong></span>;
   const studentLabel = student.isPair && student.studentTwo
     ? `${student.studentOne} + ${student.studentTwo}`
     : student.studentOne;
@@ -730,6 +734,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
   onBack: () => void;
   onStartPractice: () => void;
 }) {
+  const teacherMode = useTeacherCourse();
   const labels = ui[lang];
   const unit = getUnit(session.unit);
   const situationParts = lang === "fr"
@@ -762,10 +767,10 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
           <h1>{session.id === 3 ? <BilingualText value={session.title} /> : txt(session.title, lang)}</h1>
           <p>{session.id === 3 ? <BilingualText value={session.subtitle} /> : txt(session.subtitle, lang)}</p>
         </div>
-        <button className={`complete-button ${completed ? "done" : ""}`} onClick={onToggleCompleted}>
+        {!teacherMode && <button className={`complete-button ${completed ? "done" : ""}`} onClick={onToggleCompleted}>
           {completed ? <CheckCircle2 size={19} /> : <Circle size={19} />}
           {session.id === 3 ? <BilingualText value={{ fr: completed ? ui.fr.completed : ui.fr.complete, ar: completed ? ui.ar.completed : ui.ar.complete }} /> : completed ? labels.completed : labels.complete}
-        </button>
+        </button>}
         <div className="session-hero-pattern" aria-hidden="true"><span /><span /><span /><span /></div>
       </section>
       {session.id === 2 ? (
@@ -949,6 +954,7 @@ function ExerciseNavigation({ index, total, done, lang, onPrevious, onNext, next
   progressLabel?: LocalizedText;
   resultStatus?: boolean | null;
 }) {
+  const teacherMode = useTeacherCourse();
   const percent = total ? Math.round(done / total * 100) : 0;
   return (
     <nav className="exercise-navigation simple-exercise-navigation" aria-label="Navigation des exercices / التنقل بين التمارين">
@@ -958,11 +964,11 @@ function ExerciseNavigation({ index, total, done, lang, onPrevious, onNext, next
       </button>
       <div className="exercise-progress-summary" aria-live="polite">
         <strong>{lang === "fr" ? "Exercice" : "التمرين"} {index + 1} / {total}</strong>
-        <div className="exercise-progress-track" role="progressbar" aria-label="Progression / التقدم" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+        {!teacherMode && <div className="exercise-progress-track" role="progressbar" aria-label="Progression / التقدم" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
           <span style={{ width: `${percent}%` }} />
-        </div>
-        <small>{done}/{total} {txt(progressLabel ?? { fr: "réussis", ar: "ناجحة" }, lang)} · {percent}%</small>
-        {resultStatus !== undefined && resultStatus !== null && (
+        </div>}
+        {teacherMode ? <small>Mode professeur · navigation libre</small> : <small>{done}/{total} {txt(progressLabel ?? { fr: "réussis", ar: "ناجحة" }, lang)} · {percent}%</small>}
+        {!teacherMode && resultStatus !== undefined && resultStatus !== null && (
           <div className={`exercise-current-status ${resultStatus === true ? "success" : resultStatus === false ? "retry" : "waiting"}`} role="status" aria-live="polite">
             {resultStatus === true ? <CheckCircle2 size={16} /> : resultStatus === false ? <AlertTriangle size={16} /> : <LockKeyhole size={16} />}
             <BilingualText value={resultStatus === true
@@ -971,7 +977,7 @@ function ExerciseNavigation({ index, total, done, lang, onPrevious, onNext, next
           </div>
         )}
       </div>
-      <button type="button" className="exercise-next-button" disabled={nextDisabled} onClick={onNext}>
+      <button type="button" className="exercise-next-button" disabled={!teacherMode && nextDisabled} onClick={onNext}>
         <BilingualText value={nextLabel ?? { fr: "Exercice suivant", ar: "التمرين التالي" }} />
         <ArrowRight size={18} />
       </button>
@@ -1695,6 +1701,7 @@ function Unit1Workshop({
 
   return (
     <div className="tab-content unit1-lab page-enter">
+      <TeacherExerciseNavigator index={exerciseIndex} titles={lab.exercises.map(item => txt(item.title, lang))} onGo={goExercise} />
       {durable.restored&&completedExercises.size>0&&<p className="learning-resumed-note"><HistoryMark/>{completedExercises.size} exercice(s) déjà réussi(s) : tu reprends ton parcours ici. / تستأنف مسارك من هنا.</p>}
       {session.id === 3 && <div className="s3-phase-banner"><BilingualText value={exercise.stage === "recall"
         ? { fr: "Étape 1 · Je réactive les séances 1 et 2 — 25 min", ar: "المرحلة 1 · أستحضر الحصتين 1 و2 — 25 دقيقة" }
@@ -1774,6 +1781,7 @@ function StandardWorkshopView({
   if(!persistent.ready)return <div className="learning-loading">Recherche de ton atelier sauvegardé…</div>;
   return (
     <div className="tab-content standard-workshop simple-workshop page-enter">
+      <TeacherExerciseNavigator index={exerciseIndex} titles={[txt(challenge.prompt, lang), ...session.workshops.map(item => txt(item.text, lang))]} onGo={setExerciseIndex} />
       <div className="exercise-counter" ref={exerciseAnchorRef}>
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
@@ -2150,6 +2158,7 @@ function Session2AssemblyEvaluation({
   onComplete: (result: EvaluationAssemblyResult) => void;
   onContinue: () => void;
 }) {
+  const teacherMode = useTeacherCourse();
   type AssemblyState={version:1;section:"internal"|"peripherals";placements:Record<string,string>;errors:number;shuffleAttempt:string};
   const persistent=useDurableLessonState<AssemblyState>({participantId,sessionId:2,kind:"assembly",initial:{version:1,section:"internal",placements:{},errors:0,shuffleAttempt:"initial"},validate:(v):v is AssemblyState=>learningRecord(v)&&v.version===1&&["internal","peripherals"].includes(String(v.section))&&learningRecord(v.placements)&&Number.isInteger(v.errors)&&typeof v.shuffleAttempt==="string"});
   const {section,placements,errors,shuffleAttempt}=persistent.value;
@@ -2236,8 +2245,8 @@ function Session2AssemblyEvaluation({
         <button type="button" role="tab" aria-selected={section === "internal"} onClick={() => setSection("internal")}>
           <span>1</span><BilingualText value={{ fr: "Dans l’unité centrale", ar: "داخل الوحدة المركزية" }} /><small>{evaluationInternalItems.filter((item) => placements[item.id]).length}/8</small>
         </button>
-        <button type="button" role="tab" aria-selected={section === "peripherals"} disabled={!internalDone} onClick={() => setSection("peripherals")}>
-          <span>{internalDone ? <Check size={16} /> : <LockKeyhole size={14} />}</span><BilingualText value={{ fr: "Autour de l’unité centrale", ar: "حول الوحدة المركزية" }} /><small>{evaluationPeripheralItems.filter((item) => placements[item.id]).length}/15</small>
+        <button type="button" role="tab" aria-selected={section === "peripherals"} disabled={!teacherMode && !internalDone} onClick={() => setSection("peripherals")}>
+          <span>{internalDone ? <Check size={16} /> : teacherMode ? "2" : <LockKeyhole size={14} />}</span><BilingualText value={{ fr: "Autour de l’unité centrale", ar: "حول الوحدة المركزية" }} /><small>{evaluationPeripheralItems.filter((item) => placements[item.id]).length}/15</small>
         </button>
       </div>
 
@@ -2335,6 +2344,7 @@ function Session2RepairEvaluation({
   participantId:string;
   onComplete: (result: EvaluationRepairResult) => void;
 }) {
+  const teacherMode = useTeacherCourse();
   type RepairState={version:1;caseIndex:number;componentSolved:Record<number,boolean>;repairSolved:Record<number,boolean>;wrongComponents:Record<number,string[]>;wrongRepairs:Record<number,string[]>;reports:Array<{componentAttempts:LocalizedText[];repairAttempts:LocalizedText[]}>;errors:number};
   const persistent=useDurableLessonState<RepairState>({participantId,sessionId:2,kind:"repair",initial:{version:1,caseIndex:0,componentSolved:{},repairSolved:{},wrongComponents:{},wrongRepairs:{},reports:evaluationRepairCases.map(()=>({componentAttempts:[],repairAttempts:[]})),errors:0},validate:(v):v is RepairState=>learningRecord(v)&&v.version===1&&Number.isInteger(v.caseIndex)&&Number(v.caseIndex)>=0&&Number(v.caseIndex)<evaluationRepairCases.length&&learningRecord(v.componentSolved)&&learningRecord(v.repairSolved)&&learningRecord(v.wrongComponents)&&learningRecord(v.wrongRepairs)&&Array.isArray(v.reports)&&v.reports.length===evaluationRepairCases.length&&Number.isInteger(v.errors)});
   const {caseIndex,componentSolved,repairSolved,wrongComponents,wrongRepairs,reports,errors}=persistent.value;
@@ -2418,7 +2428,7 @@ function Session2RepairEvaluation({
 
       <div className="repair-case-progress" aria-label="Progression des pannes">
         {evaluationRepairCases.map((item, index) => (
-          <button type="button" key={item.id} disabled={index > completedCases} className={`${index === caseIndex ? "active" : ""} ${repairSolved[index] ? "done" : ""}`} onClick={() => index <= completedCases && setCaseIndex(index)}>
+          <button type="button" key={item.id} disabled={!teacherMode && index > completedCases} className={`${index === caseIndex ? "active" : ""} ${repairSolved[index] ? "done" : ""}`} onClick={() => (teacherMode || index <= completedCases) && setCaseIndex(index)}>
             {repairSolved[index] ? <Check size={15} /> : index + 1}
           </button>
         ))}
@@ -2486,6 +2496,7 @@ function QuizView({
   participantId:string;
   onRecordSubmission: (submission: SubmissionInput) => void;
 }) {
+  const teacherMode = useTeacherCourse();
   const labels = ui[lang];
   const isBilingual = true;
   type QuizState={version:1;evaluationStage:Session2EvaluationStage;questionIndex:number;answers:Record<number,number>;justifications:Record<number,number>;submitted:boolean;shuffleRound:number;practicalResults:{assembly?:EvaluationAssemblyResult;repair?:EvaluationRepairResult}};
@@ -2621,8 +2632,8 @@ function QuizView({
           <button type="button" role="tab" aria-selected={evaluationStage === "assembly"} onClick={() => setEvaluationStage("assembly")}>
             <MonitorCog size={18} /><span className="evaluation-stage-number">2</span><BilingualText value={{ fr: "Assembler", ar: "تركيب" }} />
           </button>
-          <button type="button" role="tab" aria-selected={evaluationStage === "repair"} disabled={!practicalResults.assembly} onClick={() => setEvaluationStage("repair")}>
-            {practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
+          <button type="button" role="tab" aria-selected={evaluationStage === "repair"} disabled={!teacherMode && !practicalResults.assembly} onClick={() => setEvaluationStage("repair")}>
+            {teacherMode || practicalResults.assembly ? <AlertTriangle size={18} /> : <LockKeyhole size={17} />}<span className="evaluation-stage-number">3</span><BilingualText value={{ fr: "Dépanner", ar: "إصلاح" }} />
           </button>
         </div>
       )}
@@ -2667,6 +2678,7 @@ function QuizView({
       )}
 
       <div className="evaluation-quiz-content" hidden={session.id === 2}>
+      <TeacherExerciseNavigator index={questionIndex} titles={session.quiz.map(item => txt(item.question, lang))} onGo={setQuestionIndex} label="Aller à la question" />
       <div className="exercise-counter" ref={questionAnchorRef}>
         <span>{lang === "fr" ? "QUESTION" : "السؤال"} {padTime(questionIndex + 1)}</span>
       </div>
@@ -2828,6 +2840,7 @@ function SessionPage({
   onRecordSubmission: (submission: SubmissionInput) => void;
   saveStatus: SaveStatus;
 }) {
+  const teacherMode = useTeacherCourse();
   const [visitedTabs, setVisitedTabs] = useState<ViewTab[]>([activeTab]);
 
   function showTab(tab: ViewTab) {
@@ -2848,7 +2861,7 @@ function SessionPage({
         <StudentIdentityBadge lang={lang} student={student} onChangeStudent={onChangeStudent} />
       </div>
       {session.id === 3 && <p className="s3-translation-help"><Languages size={17} aria-hidden="true" /><BilingualText value={{ fr: "Survole une phrase pour lire sa traduction arabe. Éloigne le pointeur pour la masquer.", ar: "مرر المؤشر فوق عبارة لقراءة ترجمتها العربية كاملة، وأبعده لإخفائها." }} /></p>}
-      <LearningSaveBadge/>
+      {!teacherMode && <LearningSaveBadge/>}
       <nav className="tab-nav" aria-label="Contenu de la séance">
         {tabItems.map(({ id, icon: Icon }) => (
           <button className={activeTab === id ? "active" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => showTab(id)} key={id}>
@@ -2899,6 +2912,7 @@ function SessionPage({
 }
 
 export default function HomePage() {
+  const teacherMode = useTeacherCourse();
   const [lang, setLang] = useState<Lang>("fr");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<ViewTab>("mission");
@@ -2921,6 +2935,13 @@ export default function HomePage() {
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
+      if (teacherMode) {
+        setStudentProfile(teacherDemoProfile);
+        setSessionAccess(sessions.map(session => ({ sessionId: session.id, isUnlocked: true, updatedAt: "" })));
+        setSessionAccessLoaded(true);
+        setIdentityLoaded(true);
+        return;
+      }
       const preview3Tab = session3PreviewTab();
       const previewTab = preview3Tab ?? session2PreviewTab();
       const previewSessionId = preview3Tab ? 3 : 2;
@@ -2951,7 +2972,7 @@ export default function HomePage() {
       setIdentityLoaded(true);
     }, 0);
     return () => window.clearTimeout(hydration);
-  }, []);
+  }, [teacherMode]);
 
   useEffect(() => {
     if (!studentProfile) {
@@ -2987,6 +3008,7 @@ export default function HomePage() {
   const selected = useMemo(() => sessions.find((session) => session.id === selectedId) ?? null, [selectedId]);
 
   async function flushPendingSubmissions() {
+    if (teacherMode) return;
     if (submissionFlushRef.current) return;
     const queue = readSubmissionQueue();
     if (queue.length === 0) {
@@ -3021,15 +3043,20 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (!studentProfile || previewMode) return;
+    if (!studentProfile || previewMode || teacherMode) return;
     void flushPendingSubmissions();
     const retry=()=>void flushPendingSubmissions();
     window.addEventListener("online",retry);
     const timer=window.setInterval(retry,15000);
     return()=>{window.removeEventListener("online",retry);window.clearInterval(timer)};
-  }, [previewMode, studentProfile]);
+  }, [previewMode, studentProfile, teacherMode]);
 
   useEffect(() => {
+    if (teacherMode) {
+      setSessionAccess(sessions.map(session => ({ sessionId: session.id, isUnlocked: true, updatedAt: "" })));
+      setSessionAccessLoaded(true);
+      return;
+    }
     if (!studentProfile) {
       setSessionAccess([]);
       setSessionAccessLoaded(false);
@@ -3064,7 +3091,7 @@ export default function HomePage() {
       cancelled = true;
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
     };
-  }, [previewMode, studentProfile, previewSessionId]);
+  }, [previewMode, studentProfile, previewSessionId, teacherMode]);
 
   const unlockedSessions = useMemo(
     () => new Set(sessionAccess.filter((session) => session.isUnlocked).map((session) => session.sessionId)),
@@ -3093,7 +3120,7 @@ export default function HomePage() {
   }, [selectedId, sessionAccessLoaded, unlockedSessions]);
 
   function recordSubmission(submission: SubmissionInput) {
-    if (!studentProfile) return;
+    if (!studentProfile || teacherMode) return;
     if (previewMode) {
       const previewAttempt = {
         ...submission,
@@ -3134,11 +3161,13 @@ export default function HomePage() {
   }
 
   function handleIdentityReady(profile: StudentProfile) {
+    if (teacherMode) return;
     rememberProfile(profile);setResumeCandidate(null);setStudentProfile(profile);
   }
   const refreshIdentity=useCallback((profile:StudentProfile)=>setStudentProfile(profile),[]);
 
   function changeStudent() {
+    if (teacherMode) return;
     forgetActiveProfile();setResumeCandidate(null);
     setStudentProfile(null);
     setSelectedId(null);
@@ -3178,7 +3207,7 @@ export default function HomePage() {
   }
 
   function toggleComplete() {
-    if (!selected || !studentProfile) return;
+    if (!selected || !studentProfile || teacherMode) return;
     const willComplete = !completed.has(selected.id);
     setCompleted((current) => {
       const next = new Set(current);
@@ -3214,7 +3243,7 @@ export default function HomePage() {
   }
 
   return (
-    <LearningProvider profile={studentProfile} disabled={previewMode} onProfileUpdate={refreshIdentity}>
+    <LearningProvider profile={studentProfile} disabled={previewMode || teacherMode} onProfileUpdate={refreshIdentity}>
     <Session3TranslationScope enabled={selected?.id === 3} scopeKey={`${selectedId}-${activeTab}`}>
     <div className={`app-shell ${selected ? "session-focus" : ""} ${selected?.id === 3 ? "session3-theme" : ""}`} dir={selected?.id === 3 ? "ltr" : lang === "ar" ? "rtl" : "ltr"}>
       <Sidebar

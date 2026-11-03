@@ -88,6 +88,10 @@ export function teacherLogout() {
   if (typeof window !== "undefined") window.localStorage.removeItem(teacherSessionKey);
 }
 
+export function teacherCourseAccess(token = teacherToken()) {
+  return call<{ role: "teacher"; sessionIds: number[]; expiresAt: string }>({ action: "teacher_course", token });
+}
+
 export function teacherDashboard<T>(filters: ProfessorFilters, page: number, token = teacherToken()) {
   return call<T>({ action: "dashboard", token, filters, page });
 }

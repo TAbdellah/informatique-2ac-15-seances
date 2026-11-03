@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint . --ignore-pattern out --ignore-pattern .next",
-    "test:learning": "node scripts/test-learning-resume.cjs && node scripts/test-session3-backend.cjs && node scripts/test-professor-reports.cjs"
+    "test:learning": "node scripts/test-learning-resume.cjs && node scripts/test-session3-backend.cjs && node scripts/test-professor-reports.cjs && node scripts/test-teacher-course.cjs"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

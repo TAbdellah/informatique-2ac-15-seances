@@ -6,6 +6,7 @@ import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-a
 import { session3Lab } from "../session3-lab-data";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
+  BookOpen,
   Activity,
   ArrowLeft,
   CheckCircle2,
@@ -1295,7 +1296,7 @@ export default function ProfessorDashboard() {
               {loading ? <LoaderCircle className="spin" size={18} /> : <ShieldCheck size={18} />}
               Ouvrir le tableau de bord
             </button>
-            <a href="../"><ArrowLeft size={16} /> Retour au cours</a>
+            <a href="../enseignant/cours/"><BookOpen size={16} /> Cours professeur</a><a href="../"><ArrowLeft size={16} /> Retour au cours</a>
           </form>
         </section>
       </main>
@@ -1312,6 +1313,7 @@ export default function ProfessorDashboard() {
           <span><strong>LAB·2AC</strong><small>ESPACE PROFESSEUR</small></span>
         </div>
         <div className="prof-header-actions">
+          <a href="../enseignant/cours/"><BookOpen size={16} /> Cours professeur</a>
           <a href="../"><ArrowLeft size={16} /> Cours élève</a>
           <button onClick={() => void logout()}><LogOut size={16} /> Déconnexion</button>
         </div>
