@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: githubBasePath,
   assetPrefix: githubBasePath,
+  env: { NEXT_PUBLIC_COURSE_BASE_PATH: githubBasePath },
   images: { unoptimized: true },
 };
 

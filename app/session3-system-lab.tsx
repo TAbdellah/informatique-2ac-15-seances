@@ -1,5 +1,7 @@
 "use client";
 
+import { publicAsset } from "../lib/public-assets";
+
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Calculator, Check, Copy, FileText, Folder, FolderPlus, ImageIcon, Minus, Monitor, Pencil, RotateCcw, Scissors, Search, Trash2, X } from "lucide-react";
 import type { LocalizedText } from "./course-data";
@@ -218,7 +220,7 @@ export function Session3SystemLab({ mode, initialState, onStateChange, onValidat
       <strong>{nextMission === -1 ? <Check size={20} /> : `${nextMission + 1} / ${tasks.length}`}</strong>
       <CopyText value={nextMission === -1 ? t("Toutes les missions sont réalisées. Vérifie ton travail.", "أنجزت جميع المهام. تحقق من عملك.") : tasks[nextMission]} />
     </div>
-    {mode === "files" && nextMission === 0 && <figure className="s3-folder-model"><img src="session3/visuels/arborescence.svg" alt="2AC_G01 / Informatique / Travaux, avec les sous-dossiers Images et Documents" /></figure>}
+    {mode === "files" && nextMission === 0 && <figure className="s3-folder-model"><img src={publicAsset("session3/visuels/arborescence.svg")} alt="2AC_G01 / Informatique / Travaux, avec les sous-dossiers Images et Documents" /></figure>}
     <details className="s3-missions-details"><summary><CopyText value={t("Voir les 6 missions", "عرض المهام الست")} /></summary><ol className="s3-task-list">{tasks.map((task, i) => <li className={checks[i] ? "done" : ""} key={task.fr}><span>{checks[i] ? <Check size={16} /> : i + 1}</span><CopyText value={task} /></li>)}</ol></details>
     {mode === "files" ? explorer : <div className="s3-desktop">
       <div className="s3-desktop-label"><Monitor size={24} /><span><CopyText value={t("Bureau", "سطح المكتب")} /></span></div>

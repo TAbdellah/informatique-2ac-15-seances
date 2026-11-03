@@ -1,5 +1,7 @@
 "use client";
 
+import { publicAsset } from "../lib/public-assets";
+
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, FileText, Folder, FolderPlus, Scissors } from "lucide-react";
 import type { LocalizedText } from "./course-data";
@@ -57,7 +59,7 @@ export function Session3GuidedFiles({ initialState, onStateChange, onValidate }:
   return <section className="s3-system-lab s3-guided-files">
     <div className="s3-guided-goal">
       <strong><Copy value={t("But : mettre la photo dans le dossier Photos.", "الهدف: وضع الصورة داخل المجلد Photos.")} /></strong>
-      <div className="s3-guided-goal-picture" aria-hidden="true"><div><img src="session2/items/unite-centrale-lenovo.jpg" alt="" /><span>photo.jpg</span></div><ArrowRight size={30} /><div><Folder size={54} /><span>Photos</span></div></div>
+      <div className="s3-guided-goal-picture" aria-hidden="true"><div><img src={publicAsset("session2/items/unite-centrale-lenovo.jpg")} alt="" /><span>photo.jpg</span></div><ArrowRight size={30} /><div><Folder size={54} /><span>Photos</span></div></div>
     </div>
     <div className={`s3-current-mission ${complete ? "done" : ""}`} role="status" aria-live="polite">
       <strong>{complete ? <Check size={20} /> : `${step + 1} / 6`}</strong>
@@ -77,7 +79,7 @@ export function Session3GuidedFiles({ initialState, onStateChange, onValidate }:
         setError(false);
       }}><label><Copy value={t("Nom du dossier", "اسم المجلد")} /><input autoFocus value={name} onChange={(event) => { setName(event.target.value); setError(false); }} placeholder="Photos" autoComplete="off" /></label><button type="submit"><Copy value={t("Créer", "إنشاء")} /></button>{error && <p role="alert"><Copy value={t("Écris le nom Photos.", "اكتب الاسم Photos.")} /></p>}</form>}
       <div className="s3-guided-items">
-        {photoVisible && <button type="button" className={`s3-guided-photo ${state.selection === "photo" ? "selected" : ""} ${state.clipboard?.cut ? "cut" : ""} ${step === 2 ? "next-action" : ""}`} disabled={step !== 2} aria-pressed={state.selection === "photo"} onClick={() => setState((s) => ({ ...s, selection: "photo", flags: flag(s.flags, "guided-select") }))}><img src="session2/items/unite-centrale-lenovo.jpg" alt="" /><strong>photo.jpg</strong>{state.selection === "photo" && <small><Copy value={t("Photo sélectionnée", "الصورة محددة")} /></small>}</button>}
+        {photoVisible && <button type="button" className={`s3-guided-photo ${state.selection === "photo" ? "selected" : ""} ${state.clipboard?.cut ? "cut" : ""} ${step === 2 ? "next-action" : ""}`} disabled={step !== 2} aria-pressed={state.selection === "photo"} onClick={() => setState((s) => ({ ...s, selection: "photo", flags: flag(s.flags, "guided-select") }))}><img src={publicAsset("session2/items/unite-centrale-lenovo.jpg")} alt="" /><strong>photo.jpg</strong>{state.selection === "photo" && <small><Copy value={t("Photo sélectionnée", "الصورة محددة")} /></small>}</button>}
         {folder && state.folder === "root" && <div className="s3-guided-folder"><Folder size={67} /><strong>Photos</strong><button type="button" className={step === 4 ? "next-action" : ""} disabled={step !== 4} onClick={() => setState((s) => ({ ...s, folder: "photos", selection: null, flags: flag(s.flags, "guided-open") }))}><Copy value={t("Ouvrir", "فتح")} /></button></div>}
         {step === 5 && <p className="s3-guided-empty"><Copy value={t("Photos est vide. La photo est prête à être collée ici.", "المجلد Photos فارغ. الصورة جاهزة للصق هنا.")} /></p>}
       </div>

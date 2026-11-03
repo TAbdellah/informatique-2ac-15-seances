@@ -1,5 +1,7 @@
 "use client";
 
+import { publicAsset } from "../lib/public-assets";
+
 import {
   AlertTriangle,
   ArrowLeft,
@@ -900,7 +902,7 @@ function MissionView({ session, lang, completed, onToggleCompleted, onBack, onSt
               { src: "session2/mission-composants.png", fr: "3 · Que trouve-t-on dans l’unité centrale ?", ar: "3 · ماذا نجد داخل الوحدة المركزية؟" },
             ].map((visual) => (
           <figure key={visual.src}>
-            <img src={visual.src} alt={lang === "fr" ? visual.fr : visual.ar} loading="lazy" />
+            <img src={publicAsset(visual.src)} alt={lang === "fr" ? visual.fr : visual.ar} loading="lazy" />
             <figcaption>
               <BilingualText value={{ fr: visual.fr, ar: visual.ar }} />
               <a href={visual.src} target="_blank" rel="noreferrer">
@@ -1208,7 +1210,7 @@ function ExercisePlayer({
       {exercise.id.startsWith("s3-") && <Session3ExerciseGuide id={exercise.id} />}
       {exercise.image && exercise.type !== "hotspot" && (
         <figure className="exercise-image">
-          <img src={exercise.image.src} alt={bilingualAria(exercise.image.alt)} loading="lazy" referrerPolicy="no-referrer" />
+          <img src={publicAsset(exercise.image.src)} alt={bilingualAria(exercise.image.alt)} loading="lazy" referrerPolicy="no-referrer" />
           <figcaption><ImageIcon size={14} />{txt(exercise.image.caption, lang)}</figcaption>
         </figure>
       )}
@@ -1216,7 +1218,7 @@ function ExercisePlayer({
       {exercise.type === "hotspot" && (
         <figure className="s3-hotspot-figure">
           <div className="s3-hotspot-canvas">
-            <img src={exercise.image.src} alt={bilingualAria(exercise.image.alt)} />
+            <img src={publicAsset(exercise.image.src)} alt={bilingualAria(exercise.image.alt)} />
             {exercise.regions.map((region, index) => <button
               type="button"
               key={index}
@@ -1242,7 +1244,7 @@ function ExercisePlayer({
               onClick={() => { setChoice(originalIndex); setResult(null); }}
             >
               <span className="option-marker">{String.fromCharCode(65 + displayIndex)}</span>
-              {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={exercise.choiceImages[originalIndex] ?? ""} alt="" loading="lazy" />}
+              {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={publicAsset(exercise.choiceImages[originalIndex] ?? "")} alt="" loading="lazy" />}
               <BilingualText value={item} />
             </button>
             );
@@ -1269,7 +1271,7 @@ function ExercisePlayer({
                 }}
               >
                 <span className="option-marker">{selected ? <Check size={14} /> : <Circle size={14} />}</span>
-                {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={exercise.choiceImages[originalIndex] ?? ""} alt="" loading="lazy" />}
+                {exercise.choiceImages?.[originalIndex] && <img className="option-image" src={publicAsset(exercise.choiceImages[originalIndex] ?? "")} alt="" loading="lazy" />}
                 <BilingualText value={item} />
               </button>
             );
@@ -1298,7 +1300,7 @@ function ExercisePlayer({
                   }}
                   onClick={() => setDragSelection((current) => current === rowIndex ? null : rowIndex)}
                 >
-                  {row.image && <img src={row.image} alt="" loading="lazy" />}
+                  {row.image && <img src={publicAsset(row.image)} alt="" loading="lazy" />}
                   <strong><BilingualText value={row.label} /></strong>
                 </button>
               ) : null)}
@@ -1358,7 +1360,7 @@ function ExercisePlayer({
                         }}
                         title={lang === "fr" ? "Toucher pour déplacer" : "المس لنقل البطاقة"}
                       >
-                        {row.image && <img src={row.image} alt="" loading="lazy" />}
+                        {row.image && <img src={publicAsset(row.image)} alt="" loading="lazy" />}
                         <strong><BilingualText value={row.label} /></strong>
                       </button>
                     ))}
@@ -1387,9 +1389,9 @@ function ExercisePlayer({
             >
               <div className="match-item">
                 {row.content && <div className="s3-text-document"><BilingualText value={row.content} /></div>}
-                {row.image && !row.video && <img src={row.image} alt="" loading="lazy" />}
-                {row.audio && <audio src={row.audio} controls preload="metadata" aria-label={bilingualAria(row.label)} />}
-                {row.video && <video src={row.video} poster={row.image} controls playsInline preload="metadata" aria-label={bilingualAria(row.label)} />}
+                {row.image && !row.video && <img src={publicAsset(row.image)} alt="" loading="lazy" />}
+                {row.audio && <audio src={publicAsset(row.audio)} controls preload="metadata" aria-label={bilingualAria(row.label)} />}
+                {row.video && <video src={publicAsset(row.video)} poster={publicAsset(row.image)} controls playsInline preload="metadata" aria-label={bilingualAria(row.label)} />}
                 <strong><BilingualText value={row.label} /></strong>
               </div>
               <div className="match-answers">
@@ -1417,7 +1419,7 @@ function ExercisePlayer({
                     className={`${matches[rowIndex] === categoryIndex ? "selected" : ""} ${exercise.categoryImages?.[categoryIndex] ? "visual-answer" : ""}`}
                     onClick={() => { setMatches((current) => ({ ...current, [rowIndex]: categoryIndex })); setResult(null); }}
                   >
-                    {exercise.categoryImages?.[categoryIndex] && <img src={exercise.categoryImages[categoryIndex] ?? ""} alt="" loading="lazy" />}
+                    {exercise.categoryImages?.[categoryIndex] && <img src={publicAsset(exercise.categoryImages[categoryIndex] ?? "")} alt="" loading="lazy" />}
                     <BilingualText value={category} />
                   </button>
                   );
@@ -1443,7 +1445,7 @@ function ExercisePlayer({
                 <div className={selectedIndex === undefined ? "empty" : "filled"} key={index}>
                   <span>{index + 1}</span>
                   <p>
-                    {selectedIndex !== undefined && exercise.stepImages?.[selectedIndex] && <img src={exercise.stepImages[selectedIndex]} alt="" />}
+                    {selectedIndex !== undefined && exercise.stepImages?.[selectedIndex] && <img src={publicAsset(exercise.stepImages[selectedIndex])} alt="" />}
                     <BilingualText
                       value={selectedIndex === undefined
                         ? { fr: "Choisir une étape", ar: "اختر مرحلة" }
@@ -1461,7 +1463,7 @@ function ExercisePlayer({
                 disabled={sequence.includes(stepIndex)}
                 onClick={() => { setSequence((current) => [...current, stepIndex]); setResult(null); }}
               >
-                {exercise.stepImages?.[stepIndex] && <img src={exercise.stepImages[stepIndex]} alt="" />}
+                {exercise.stepImages?.[stepIndex] && <img src={publicAsset(exercise.stepImages[stepIndex])} alt="" />}
                 <BilingualText value={exercise.steps[stepIndex]} />
               </button>
             ))}
@@ -1527,7 +1529,7 @@ function ExercisePlayer({
                     key={component.label.fr}
                     onClick={() => { setDiagnosticComponent(originalIndex); setResult(null); }}
                   >
-                    {component.image && <img src={component.image} alt="" loading="lazy" />}
+                    {component.image && <img src={publicAsset(component.image)} alt="" loading="lazy" />}
                     <BilingualText value={component.label} />
                   </button>
                 );
@@ -1788,7 +1790,7 @@ function StandardWorkshopView({
       {exerciseIndex === 0 && (
       <article className="photo-challenge">
         <div className="photo-frame">
-          <img src={challenge.image.src} alt={txt(challenge.image.alt, lang)} loading="lazy" referrerPolicy="no-referrer" />
+          <img src={publicAsset(challenge.image.src)} alt={txt(challenge.image.alt, lang)} loading="lazy" referrerPolicy="no-referrer" />
           <a href={challenge.image.source} target="_blank" rel="noreferrer">{challenge.image.credit}</a>
           <span><ImageIcon size={15} /> {labels.realPhoto}</span>
         </div>
@@ -1942,13 +1944,13 @@ function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
             {session.traceSections!.map((section) => (
               <section className={`trace-section ${section.cards?.length || section.wide ? "trace-section-with-cards" : ""}`} key={section.title.fr}>
                 <h3>{txt(section.title, lang)}</h3>
-                {section.image && <img className={`trace-section-image trace-section-image-${section.image.size ?? "full"}`} src={section.image.src} alt={bilingualAria(section.image.alt)} loading="lazy" />}
+                {section.image && <img className={`trace-section-image trace-section-image-${section.image.size ?? "full"}`} src={publicAsset(section.image.src)} alt={bilingualAria(section.image.alt)} loading="lazy" />}
                 {section.cards?.length ? (
                   <div className="trace-component-grid">
                     {section.cards.map((card) => (
                       <article className="trace-component-card" key={card.title.fr}>
                         {card.image
-                          ? <img src={card.image} alt={bilingualAria(card.title)} loading="lazy" />
+                          ? <img src={publicAsset(card.image)} alt={bilingualAria(card.title)} loading="lazy" />
                           : <span className="trace-component-symbol" aria-hidden="true">{card.icon ?? "•"}</span>}
                         <strong>{txt(card.title, lang)}</strong>
                         <p>{txt(card.text, lang)}</p>
@@ -2273,7 +2275,7 @@ function Session2AssemblyEvaluation({
                   event.dataTransfer.effectAllowed = "move";
                 }}
               >
-                <img src={item.image} alt={bilingualAria(item.label)} />
+                <img src={publicAsset(item.image)} alt={bilingualAria(item.label)} />
                 <BilingualText value={item.label} />
               </button>
             ))}
@@ -2308,7 +2310,7 @@ function Session2AssemblyEvaluation({
                 <header><strong><BilingualText value={zone.label} /></strong><small><BilingualText value={zone.hint} /></small></header>
                 <div className="assembly-zone-content">
                   {zoneItems.length === 0 ? <span className="assembly-drop-label">{lang === "fr" ? "Déposer ici" : "ضع هنا"}</span> : zoneItems.map((item) => (
-                    <span className="assembly-placed-item" key={item.id}><img src={item.image} alt="" /><BilingualText value={item.label} /><CheckCircle2 size={15} /></span>
+                    <span className="assembly-placed-item" key={item.id}><img src={publicAsset(item.image)} alt="" /><BilingualText value={item.label} /><CheckCircle2 size={15} /></span>
                   ))}
                 </div>
               </div>
@@ -2447,7 +2449,7 @@ function Session2RepairEvaluation({
             const isWrong = (wrongComponents[caseIndex] ?? []).includes(component.id);
             return (
               <button type="button" key={component.id} disabled={componentSolved[caseIndex]} className={`${isCorrect ? "correct" : ""} ${isWrong ? "wrong" : ""}`} onClick={() => chooseComponent(component.id)}>
-                <img src={component.image} alt={bilingualAria(component.label)} />
+                <img src={publicAsset(component.image)} alt={bilingualAria(component.label)} />
                 <BilingualText value={component.label} />
                 {isCorrect && <CheckCircle2 size={18} />}
               </button>
@@ -2699,7 +2701,7 @@ function QuizView({
                 <span>{padTime(questionIndex + 1)}</span>
                 <div><small>Question / السؤال</small><h3><BilingualText value={question.question} /></h3></div>
               </div>
-              {question.image && <figure className="s3-quiz-visual"><img src={question.image.src} alt={bilingualAria(question.image.alt)} loading="lazy" /></figure>}
+              {question.image && <figure className="s3-quiz-visual"><img src={publicAsset(question.image.src)} alt={bilingualAria(question.image.alt)} loading="lazy" /></figure>}
               <div className="choices">
                 {quizChoiceOrders[questionIndex].map((originalIndex, displayIndex) => {
                   const choice = question.choices[originalIndex];
