@@ -1,3 +1,5 @@
+import type { SavedWorkshopEvidence, WorkshopAttempt, WorkshopEvidence } from "./workshop-progress";
+
 const endpoint = process.env.NEXT_PUBLIC_COURSE_API_ENDPOINT
   || "https://xrwtcyliibooudyoovqo.supabase.co/functions/v1/informatique-2ac-api";
 const publishableKey = "sb_publishable_3eVvxtKaHPzZfI4nSMrU-A_iPHGJUWt";
@@ -28,7 +30,7 @@ export type SessionAccess = {
   updatedAt: string;
 };
 
-async function call<T>(body: Record<string, unknown>): Promise<T> {
+async function call<T>(body: Record<string, unknown>, keepalive = false): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), (["learning_session", "learning_state", "save_learning_state", "roster_suggestions"].includes(String(body.action)) ? 8_000 : 20_000));
 
@@ -41,6 +43,7 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
       },
       body: JSON.stringify(body),
       signal: controller.signal,
+      keepalive,
     });
     const data = (await response.json().catch(() => ({}))) as { error?: string };
     if (!response.ok) {
@@ -118,7 +121,13 @@ export type LearningAnalytics={students:RosterStudent[];participants:Array<Stude
 export function rosterSuggestions(className:string,groupName:string){return call<{students:Array<{id:string;fullName:string}>}>({action:"roster_suggestions",className,groupName})}
 export async function openLearnerSession(profile:StudentProfile){const data=await call<{participant:StudentProfile}>({action:"learning_session",participantId:profile.id,resumeToken:profile.resumeToken});return data.participant}
 export function loadLearningState(resumeToken:string){return call<{checkpoints:import("./learning-storage").LearningSnapshot[];progress:Array<{sessionId:number;completedIds:string[]}>}>({action:"learning_state",resumeToken})}
-export function saveLearningState(resumeToken:string,checkpoint:import("./learning-storage").LearningSnapshot){return call<{saved:true;revision:number}>({action:"save_learning_state",resumeToken,checkpoint})}
+export function saveLearningState(resumeToken:string,checkpoint:import("./learning-storage").LearningSnapshot,keepalive=false){return call<{saved:true;revision:number}>({action:"save_learning_state",resumeToken,checkpoint},keepalive)}
+export function learnerWorkshop(resumeToken: string, sessionId: number) {
+  return call<{ attempts: WorkshopAttempt[]; drafts: WorkshopEvidence[]; truncated: boolean }>({ action: "learner_workshop", resumeToken, sessionId });
+}
+export function teacherWorkshop(sessionId: number, token = teacherToken()) {
+  return call<{ drafts: SavedWorkshopEvidence[]; truncated: boolean }>({ action: "teacher_workshop", token, sessionId });
+}
 export function teacherLearningAnalytics(token=teacherToken()){return call<LearningAnalytics>({action:"learning_analytics",token})}
 export function teacherImportRoster(students:Array<Partial<RosterStudent>&{fullName:string;className:string}>,token=teacherToken()){return call<{saved:number}>({action:"import_roster",token,students})}
 export function teacherUpdateRoster(id:string,changes:Partial<RosterStudent>,token=teacherToken()){return call<{saved:true}>({action:"update_roster",token,id,changes})}

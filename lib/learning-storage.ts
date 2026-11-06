@@ -31,7 +31,8 @@ export function mergeSnapshotData(kind:LearningKind,older:unknown,newer:unknown)
     const drafts=Object.fromEntries(Object.entries(object(older.drafts)?older.drafts:{}));
     for(const [key,value]of Object.entries(object(newer.drafts)?newer.drafts:{})){const previous=drafts[key];if(!object(previous)||!object(value)||Number(value.savedAt??0)>=Number(previous.savedAt??0))drafts[key]=value;}
     const checked=Array.isArray(older.checked)&&Array.isArray(newer.checked)?Array.from({length:Math.max(older.checked.length,newer.checked.length)},(_,i)=>Boolean((older.checked as unknown[])[i]||(newer.checked as unknown[])[i])):newer.checked;
-    return {...older,...newer,drafts,completedIds:[...new Set([...safeIds(older.completedIds),...safeIds(newer.completedIds)])],...(checked?{checked}:{})};
+    const declaredProgress={...(object(older.declaredProgress)?older.declaredProgress:{}),...(object(newer.declaredProgress)?newer.declaredProgress:{})};
+    return {...older,...newer,drafts,...(Object.keys(declaredProgress).length?{declaredProgress}:{}),completedIds:[...new Set([...safeIds(older.completedIds),...safeIds(newer.completedIds)])],...(checked?{checked}:{})};
   }
   if(kind==="assembly")return {...older,...newer,placements:{...(object(older.placements)?older.placements:{}),...(object(newer.placements)?newer.placements:{})},errors:Math.max(Number(older.errors)||0,Number(newer.errors)||0)};
   if(kind==="repair")return {...older,...newer,componentSolved:{...(object(older.componentSolved)?older.componentSolved:{}),...(object(newer.componentSolved)?newer.componentSolved:{})},repairSolved:{...(object(older.repairSolved)?older.repairSolved:{}),...(object(newer.repairSolved)?newer.repairSolved:{})},errors:Math.max(Number(older.errors)||0,Number(newer.errors)||0)};

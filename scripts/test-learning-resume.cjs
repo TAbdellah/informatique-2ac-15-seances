@@ -29,19 +29,64 @@ data.activities=[at(ids[0],true),at(ids[0],true),at(ids[1],false)];p=model.progr
 data.activities=ids.map(id=>at(id,false));p=model.progressRows(data,3)[0];eq(p.status,'not-acquired','all attempted, few successful');
 data.activities=ids.map(id=>at(id,true));p=model.progressRows(data,3)[0];eq(p.status,'acquired');eq(p.objectives.every(o=>o.status==='acquired'),true);eq(model.successTimeline([p]).at(-1).value,25);
 data.activities.push({...at('session-3-bilan-situations-v5',false),activityType:'practical_evaluation',bestScore:0,maxScore:20});p=model.progressRows(data,3)[0];eq(p.grade,0,'a real zero remains visible');eq(p.status,'acquired','training mastery and exam grade remain separate');
+const scoring=load('lib/workshop-progress.ts'),labs=load('app/unit1-labs.ts').unit1Labs;
+for(let sessionId=1;sessionId<=15;sessionId++){
+ const exercises=scoring.workshopExercises(sessionId);
+ ok(exercises.length>0,`session ${sessionId} has a complete workshop catalogue`);
+ eq(new Set(exercises.map(e=>e.id)).size,exercises.length,'exercise IDs are unique');
+}
+const conversionExercise=labs[3].exercises.find(e=>e.type==='conversions');
+const unfinished={version:1,completedIds:[],drafts:{[conversionExercise.id]:{exerciseRevision:conversionExercise.revision,conversionValues:{0:conversionExercise.rows[0].accepted[0]}}}};
+const partial=scoring.workshopEvidence(3,unfinished);
+eq(partial,[{activityId:conversionExercise.id,percent:33,confirmed:false}],'one correct conversion is counted before the first validation');
+data.activities=[];
+p=model.progressRows(data,3,partial.map(e=>({...e,participantId:pid,updatedAt:'2026-11-06T10:00:00Z'})))[0];
+eq(p.percent,1,'partial work is visible in the full workshop percentage');
+eq(p.workshopGrade,.3,'unfinished work earns an indicative mark');
+eq(p.grade,null,'the official assessment is separate');
+eq(p.status,'developing');eq(p.graded,0);
+const definition=scoring.workshopExercises(3).filter(e=>e.id===conversionExercise.id);
+const attempts=[{id:'initial',activityId:conversionExercise.id,score:33,maxScore:100,isCorrect:false},{id:'retry',activityId:conversionExercise.id,score:100,maxScore:100,isCorrect:true}];
+const attemptCache=load('lib/workshop-attempt-cache.ts');
+const key=attemptCache.workshopAttemptKey(pid,3);
+attemptCache.rememberWorkshopAttempts(key,attempts.slice(0,1));
+eq(attemptCache.rememberWorkshopAttempts(key,attempts).length,2,'queued attempt and synced attempt deduplicate by ID');
+let totals=scoring.workshopTotals(scoring.workshopRows(definition,partial,scoring.attemptTotals(attemptCache.readWorkshopAttempts(key))));
+eq(totals.percent,100,'retry retains the best result');eq(totals.successRate,50,'both corrections count in the success rate');
+const declaration=scoring.workshopExercises(5).find(e=>e.declared);
+const practice=scoring.workshopEvidence(5,{version:1,checked:[],photoAnswer:null,declaredProgress:{[declaration.id]:50}});
+eq(practice,[{activityId:declaration.id,percent:50,confirmed:false}],'progress declared before completion is preserved');
+eq(scoring.workshopEvidence(4,{version:1,drafts:{'session-4-workshop-TP':{checks:['source','receive'],ip:'192.168.10.21'}}})[0].percent,43,'practical draft receives partial credit for known criteria');
 let imp=roster.prepareRosterImport([{'Nom complet':'NOM DÉMONSTRATION',Classe:'2/1',Groupe:'1',Massar:'A12345'}],[{...student,massarCode:'A12345'}]);eq(imp.errors,[]);eq(imp.rows[0].id,sid,'Massar, not spelling, links imported lists');
 imp=roster.prepareRosterImport([{'Nom complet':student.fullName,Classe:'2/1',Groupe:'1'}],[student]);ok(imp.rows[0].id!==sid,'names alone do not silently merge two people');
 imp=roster.prepareRosterImport([{'Nom complet':'EXEMPLE',Classe:'2/1',Groupe:'1',Massar:'A12345',ID:crypto.randomUUID()}],[{...student,massarCode:'A12345'}]);ok(imp.errors.length>0,'conflicting explicit identity rejected');
 // Service tests use the real signing/CAS logic, with an isolated in-memory DB.
 const serviceModule=load('supabase/functions/informatique-2ac-api/learning-service.ts'),checkpoints=new Map();
 const row={id:pid,student_one:profile.studentOne,student_two:null,student_one_id:sid,student_two_id:null,class_name:'2/1',group_name:'1',is_pair:false};
-const db=async(p,init={})=>{if(p.startsWith('course_2ac_participants'))return [row];if(p.startsWith('course_2ac_roster_students'))return [{id:sid,full_name:student.fullName}];if(p.startsWith('course_2ac_activity_progress'))return [{session_id:3,activity_id:ids[0],activity_type:'unit1_exercise',successful:true}];if(p.startsWith('course_2ac_learning_checkpoints')){const u=new URL('https://test/'+p);return [...checkpoints.values()].filter(s=>'eq.'+s.device_id===u.searchParams.get('device_id'))}if(p==='rpc/course_2ac_store_checkpoint'){const v=JSON.parse(init.body),key=[v.p_participant_id,v.p_device_id,v.p_session_id,v.p_kind].join('|'),old=checkpoints.get(key);if((old?.revision||0)!==v.p_expected_revision)return {saved:false,checkpoint:old};const next={participant_id:v.p_participant_id,device_id:v.p_device_id,session_id:v.p_session_id,kind:v.p_kind,revision:(old?.revision||0)+1,snapshot:v.p_snapshot};checkpoints.set(key,next);return {saved:true,checkpoint:next}}throw Error('Unexpected DB request '+p)};
+const db=async(p,init={})=>{if(p.startsWith('course_2ac_participants'))return [row];if(p.startsWith('course_2ac_roster_students'))return [{id:sid,full_name:student.fullName}];if(p.startsWith('course_2ac_activity_progress'))return [{session_id:3,activity_id:ids[0],activity_type:'unit1_exercise',successful:true}];if(p.startsWith('course_2ac_learning_checkpoints')){
+ const q=new URL('https://test/'+p).searchParams;
+ if(q.has('device_id'))return [...checkpoints.values()].filter(s=>'eq.'+s.device_id===q.get('device_id'));
+ const legacy=q.get('snapshot->workshopProgress')==='is.null';
+ return [...checkpoints.values()].filter(s=>'eq.'+s.session_id===q.get('session_id')&&Boolean(s.snapshot.workshopProgress)!==legacy)
+  .map(s=>({participant_id:s.participant_id,updated_at:'2026-11-06T10:00:00Z',progress:s.snapshot.workshopProgress,work:s.snapshot.data}));
+}if(p.startsWith('course_2ac_submissions'))return [{id:'one',activity_id:conversionExercise.id,activity_type:'unit1_exercise',score:33,max_score:100,is_correct:false}];if(p==='rpc/course_2ac_store_checkpoint'){const v=JSON.parse(init.body),key=[v.p_participant_id,v.p_device_id,v.p_session_id,v.p_kind].join('|'),old=checkpoints.get(key);if((old?.revision||0)!==v.p_expected_revision)return {saved:false,checkpoint:old};const next={participant_id:v.p_participant_id,device_id:v.p_device_id,session_id:v.p_session_id,kind:v.p_kind,revision:(old?.revision||0)+1,snapshot:v.p_snapshot};checkpoints.set(key,next);return {saved:true,checkpoint:next}}throw Error('Unexpected DB request '+p)};
 (async()=>{const api=serviceModule.createLearningService({database:db,secret:async()=>'ISOLATED TEST SECRET'});const invoke=async body=>api.publicAction(body);let r=await invoke({action:'learning_session',participantId:pid});const token=r.body.participant.resumeToken;ok(token);r=await invoke({action:'roster_suggestions',className:'2/1',groupName:'1'});eq(Object.keys(r.body.students[0]).sort(),['fullName','id'],'public suggestions expose neither Massar nor dossier IDs');const noisy=serviceModule.createLearningService({database:async()=>[{id:'invalid',full_name:'596252'},{id:'symbols',full_name:';;'},{id:'trial',full_name:'aaaaa aaa'},{id:sid,full_name:'Sara Idrissi'}],secret:async()=>'ISOLATED FILTER SECRET'});const filtered=await noisy.publicAction({action:'roster_suggestions',className:'2/1',groupName:'1'});eq(filtered.body.students,[{id:sid,fullName:'Sara Idrissi'}],'public API filters historical invalid entries without deleting them');
 
 const snapshot={version:1,participantId:pid,sessionId:3,kind:'workshop',revision:0,changedAt:Date.now(),dirty:true,data:{version:1,exerciseId:ids[24],completedIds:ids.slice(0,24)}};
 r=await invoke({action:'save_learning_state',resumeToken:token,checkpoint:snapshot});eq(r.status,200);eq(r.body.revision,1);r=await invoke({action:'save_learning_state',resumeToken:token,checkpoint:snapshot});eq(r.status,409,'stale tab cannot overwrite a newer save');eq(r.body.checkpoint.revision,1);
 r=await invoke({action:'learning_state',resumeToken:token});eq(r.body.checkpoints.length,1);eq(r.body.checkpoints[0].data.exerciseId,ids[24]);eq(r.body.progress[0].completedIds,[ids[0]]);
 const device2=(await invoke({action:'learning_session',participantId:pid})).body.participant.resumeToken;r=await invoke({action:'learning_state',resumeToken:device2});eq(r.body.checkpoints.length,0,'another device cannot retrieve this device’s answers');eq(r.body.progress.length,1,'verified completions may resume across devices');
+const prior={participant_id:pid,device_id:crypto.randomUUID(),session_id:3,kind:'workshop',revision:1,snapshot:{version:1,changedAt:Date.now(),data:unfinished}};
+checkpoints.set('historical-ungraded',prior);
+const teacherProgress=await api.adminAction({action:'teacher_workshop',sessionId:3});
+eq(teacherProgress.drafts.find(d=>d.activityId===conversionExercise.id).percent,100,'keep best evidence across devices');
+const historicalEvidence=teacherProgress.drafts.filter(d=>d.activityId===conversionExercise.id);
+eq(historicalEvidence.length,1,'merge equivalent work from several devices');
+const learnerHistory=(await invoke({action:'learner_workshop',resumeToken:token,sessionId:3})).body;
+eq(learnerHistory.attempts[0].score,33,'learner sees saved attempt points');
+eq(Object.keys(learnerHistory.drafts[0]).sort(),['activityId','confirmed','percent'],'only compact learner progress leaves the API');
+delete [...checkpoints.values()].find(c=>c.snapshot.workshopProgress).snapshot.workshopProgress;
+eq((await api.adminAction({action:'teacher_workshop',sessionId:3})).drafts.length,24,'checkpoints stored before upgrade are also included');
 const refreshed=(await invoke({action:'learning_session',participantId:pid,resumeToken:token})).body.participant.resumeToken;r=await invoke({action:'learning_state',resumeToken:refreshed});eq(r.body.checkpoints.length,1,'refresh preserves the device binding');
 for(const body of [{action:'learning_state',resumeToken:token+'x'},{action:'save_learning_state',resumeToken:token,checkpoint:{...snapshot,participantId:crypto.randomUUID()}}]){let rejected=false;try{await invoke(body)}catch(e){rejected=e.status>=400&&e.status<500}ok(rejected,'tampered token or mismatched learner rejected')}
 // Registration must reuse the canonical dossier; archiving must not validate an unverified name.

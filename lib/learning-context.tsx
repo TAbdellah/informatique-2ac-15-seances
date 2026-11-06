@@ -4,7 +4,7 @@ import {CheckCircle2,Cloud,CloudOff,LoaderCircle,AlertTriangle} from "lucide-rea
 import {openLearnerSession,loadLearningState,saveLearningState,type StudentProfile} from "./supabase-api";
 import {acceptRemote,learningChangedEvent,learningRestoredEvent,markSnapshotSynced,readSnapshot,rememberProfile,restoreVerifiedProgress,saveSnapshot,snapshotsFor,type LearningKind,type LearningSnapshot} from "./learning-storage";
 type Status="local"|"syncing"|"saved"|"pending"|"storage-error";
-const Context=createContext({ready:true,status:"local" as Status});
+const Context=createContext({ready:true,status:"local" as Status,resumeToken:undefined as string|undefined});
 
 export function LearningProvider({profile,disabled=false,onProfileUpdate,children}:{profile:StudentProfile;disabled?:boolean;onProfileUpdate:(p:StudentProfile)=>void;children:ReactNode}){
  const [ready,setReady]=useState(disabled),[status,setStatus]=useState<Status>("local");
@@ -14,20 +14,22 @@ export function LearningProvider({profile,disabled=false,onProfileUpdate,childre
   if(disabled){setReady(true);return;}
   const updateStatus=(s:Status)=>{if(alive)setStatus(s)};
   async function connect(){if(connecting||!alive)return;connecting=true;try{updateStatus("syncing");if(navigator.onLine===false)throw new Error("offline");const authenticated=profileRef.current.resumeToken?profileRef.current:await openLearnerSession(profileRef.current);if(!alive)return;profileRef.current=authenticated;rememberProfile(authenticated);callbackRef.current(authenticated);const restored=await loadLearningState(authenticated.resumeToken!);if(!alive)return;for(const checkpoint of restored.checkpoints)acceptRemote(checkpoint);for(const progress of restored.progress)restoreVerifiedProgress(profile.id,progress.sessionId,progress.completedIds);connected=true;updateStatus("saved");}catch(error){connected=false;if((error as Error&{status?:number}).status===401)profileRef.current={...profileRef.current,resumeToken:undefined};updateStatus("pending");}finally{connecting=false;if(alive){setReady(true);schedule(connected?0:10000);}}}
-  async function flush(){if(busy||!alive)return;if(!connected){await connect();return;}const token=profileRef.current.resumeToken;if(!token){connected=false;await connect();return;}busy=true;
-   try{const queue=snapshotsFor(profile.id).filter(s=>s.dirty);if(queue.length)updateStatus("syncing");for(const snapshot of queue){if(!alive)break;try{const result=await saveLearningState(token,snapshot);markSnapshotSynced(snapshot,result.revision);}catch(error){const conflict=(error as Error&{data?:{checkpoint?:LearningSnapshot}}).data?.checkpoint;if(conflict){acceptRemote(conflict);continue;}throw error;}}if(alive)updateStatus(snapshotsFor(profile.id).some(s=>s.dirty)?"pending":"saved");}
+  async function flush(keepalive=false){if(busy||!alive)return;if(!connected){await connect();return;}const token=profileRef.current.resumeToken;if(!token){connected=false;await connect();return;}busy=true;
+   try{const queue=snapshotsFor(profile.id).filter(s=>s.dirty).sort((a,b)=>b.changedAt-a.changedAt);if(queue.length)updateStatus("syncing");for(const snapshot of queue){if(!alive)break;try{const result=await saveLearningState(token,snapshot,keepalive&&new TextEncoder().encode(JSON.stringify(snapshot)).length<60000);markSnapshotSynced(snapshot,result.revision);}catch(error){const conflict=(error as Error&{data?:{checkpoint?:LearningSnapshot}}).data?.checkpoint;if(conflict){acceptRemote(conflict);continue;}throw error;}}if(alive)updateStatus(snapshotsFor(profile.id).some(s=>s.dirty)?"pending":"saved");}
    catch(error){if((error as Error&{status?:number}).status===401)connected=false;updateStatus("pending");}finally{busy=false;if(alive&&snapshotsFor(profile.id).some(s=>s.dirty))schedule(5000);}
   }
   function schedule(delay=900){if(timer)clearTimeout(timer);timer=setTimeout(()=>void flush(),delay);}
   function changed(event:Event){const detail=(event as CustomEvent).detail;if(detail?.storageError){updateStatus("storage-error");return;}if(detail?.participantId===profile.id)schedule();}
   function online(){schedule(0)}
-  function hidden(){if(document.visibilityState==="hidden")void flush()}
+  function hidden(){if(document.visibilityState==="hidden")void flush(true)}
   window.addEventListener(learningChangedEvent,changed);window.addEventListener("online",online);document.addEventListener("visibilitychange",hidden);
   void connect();
   return()=>{alive=false;if(timer)clearTimeout(timer);window.removeEventListener(learningChangedEvent,changed);window.removeEventListener("online",online);document.removeEventListener("visibilitychange",hidden)};
  },[profile.id,disabled]);
- return <Context.Provider value={{ready,status}}>{children}</Context.Provider>;
+ return <Context.Provider value={{ready,status,resumeToken:disabled?undefined:profile.resumeToken}}>{children}</Context.Provider>;
 }
+
+export function useLearnerResumeToken(){return useContext(Context).resumeToken;}
 
 /** Every user change reaches localStorage synchronously, before a tab can be closed. */
 export function useDurableLessonState<T extends object>({participantId,sessionId,kind,initial,validate}:{participantId:string;sessionId:number;kind:LearningKind;initial:T;validate:(value:unknown)=>value is T}){

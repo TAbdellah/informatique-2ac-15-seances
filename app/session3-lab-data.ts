@@ -1,5 +1,5 @@
-import type { LocalizedText } from "./course-data";
-import type { Unit1Lab } from "./unit1-labs";
+import type { LocalizedText } from "./course-data.ts";
+import type { Unit1Lab } from "./unit1-labs.ts";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 const visual = (name: string) => `session3/visuels/${name}.svg`;

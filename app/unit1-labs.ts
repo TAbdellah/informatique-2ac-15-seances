@@ -1,5 +1,5 @@
-import type { Lang, LocalizedText } from "./course-data";
-import { session3Lab } from "./session3-lab-data";
+import type { Lang, LocalizedText } from "./course-data.ts";
+import { session3Lab } from "./session3-lab-data.ts";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 

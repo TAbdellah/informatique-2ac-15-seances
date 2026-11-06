@@ -6,10 +6,10 @@ const ts = require('typescript');
 const React = require('react');
 const {renderToStaticMarkup} = require('react-dom/server');
 const root = path.resolve(__dirname, '..');
-function compile(source, imports = {}) {
+function compile(source, imports = {}, fallback = require) {
   const module = {exports: {}};
   const code = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX}}).outputText;
-  vm.runInNewContext(code, {module, exports: module.exports, require: name => imports[name] ?? require(name)});
+  vm.runInNewContext(code, {module, exports: module.exports, require: name => imports[name] ?? fallback(name)});
   return module.exports;
 }
 const scope = compile(fs.readFileSync(path.join(root, 'lib/teacher-course-context.tsx'), 'utf8'));
@@ -44,23 +44,31 @@ equal(teacher.includes('aucune réponse requise'), true);
 equal(scope.teacherDemoProfile.id.startsWith('00000000-0000-4000-8000-'), true, 'dedicated local demonstration identity');
 equal('resumeToken' in scope.teacherDemoProfile, false, 'demo identity cannot sync student records');
 const lab = compile(fs.readFileSync(path.join(root, 'app/session3-lab-data.ts'), 'utf8'));
-const {Session3WorkshopSummary} = compile(fs.readFileSync(path.join(root, 'app/session3-workshop-summary.tsx'), 'utf8'), {
-  './session3-lab-data': lab,
+function loadModel(file) {
+  return compile(fs.readFileSync(file, 'utf8'), {}, name => loadModel(path.resolve(path.dirname(file), name)));
+}
+const progress = loadModel(path.join(root, 'lib/workshop-progress.ts'));
+const {WorkshopSummary} = compile(fs.readFileSync(path.join(root, 'app/workshop-summary.tsx'), 'utf8'), {
+  '../lib/workshop-progress': progress,
   '../lib/teacher-course-context': scope,
-  './session3-translation': {Session3Text: ({value}) => React.createElement('span', null, value.fr)},
-  './session3-revision.css': {},
+  '../lib/learning-context': {useLearnerResumeToken: () => undefined},
+  '../lib/supabase-api': {},
+  '../lib/workshop-attempt-cache': {workshopAttemptKey: () => 'test'},
+  './session3-translation': {useSession3Translation: () => true, Session3Text: ({value}) => React.createElement('span', null, value.fr)},
+  './workshop-summary.css': {},
 });
 const callbacks = {onBack() {}, onResume() {}, onTrace() {}, onEvaluate() {}};
 const allIds = lab.session3Lab.exercises.map(exercise => exercise.id);
-student = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: [...allIds, allIds[0], 'obsolete-id']}), false);
-equal(student.includes('<strong>25 / 25</strong>'), true, 'summary counts actual exercises without duplicate or obsolete completions');
-equal(student.includes('Il reste des exercices'), false, 'completed workshop has no false remediation warning');
+const summary = ids => React.createElement(WorkshopSummary, {...callbacks, participantId: 'test', sessionId: 3, state: {version: 1, completedIds: ids}});
+student = render(summary([...allIds, allIds[0], 'obsolete-id']), false);
+equal(student.includes('<strong>100 %</strong>'), true, 'duplicate or obsolete completions do not inflate the result');
+equal(student.includes('Reprendre à l’exercice'), false, 'completed workshop has no false remediation warning');
 equal(student.includes('Passer à l’évaluation'), true, 'assessment follows the workshop summary');
 equal(student.includes('Lire la trace écrite'), true, 'summary retains the lesson notes route');
-student = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: allIds.slice(0,24)}), false);
-equal(student.includes('<strong>24 / 25</strong>'), true, 'saved partial progress remains visible');
-equal(student.includes('reprendre à l’exercice 25'), true, 'resume points to the unfinished task');
-teacher = render(React.createElement(Session3WorkshopSummary, {...callbacks, completedIds: []}), true);
-equal(teacher.includes('s3-workshop-summary-progress'), false, 'teacher synthesis never invents learner progress');
-equal(teacher.includes('Il reste des exercices'), false, 'teacher remains free to demonstrate');
+student = render(summary(allIds.slice(0,24)), false);
+equal(student.includes('<strong>96 %</strong>'), true, 'saved partial progress remains visible');
+equal(student.includes('Reprendre à l’exercice 25'), true, 'resume points to the unfinished task');
+teacher = render(summary([]), true);
+equal(teacher.includes('workshop-summary-metrics'), false, 'teacher synthesis never invents learner progress');
+equal(teacher.includes('Reprendre à l’exercice'), false, 'teacher remains free to demonstrate');
 console.log(JSON.stringify({passed: true, assertions}));

@@ -5,7 +5,7 @@ import { publicAsset } from "../lib/public-assets";
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, FileText, Folder, FolderPlus, Scissors } from "lucide-react";
 import type { LocalizedText } from "./course-data";
-import { initialSystemLabState, type SystemLabState } from "./session3-system-lab";
+import { guidedFileChecks, initialSystemLabState, type SystemLabState } from "./session3-system-model";
 import { Session3Text } from "./session3-translation";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
@@ -15,19 +15,6 @@ function Copy({ value }: { value: LocalizedText }) {
 
 export function initialGuidedFilesState(): SystemLabState {
   return { ...initialSystemLabState(), files: [{ id: "photo", parent: "root", name: "photo.jpg", kind: "image" }] };
-}
-
-export function guidedFileChecks(state: SystemLabState): boolean[] {
-  const folder = state.files.find((file) => file.id === "photos" && file.kind === "folder" && file.name === "Photos" && !file.deleted);
-  const flags = new Set(state.flags);
-  return [
-    flags.has("guided-create"),
-    Boolean(folder),
-    flags.has("guided-select"),
-    flags.has("guided-cut"),
-    flags.has("guided-open"),
-    Boolean(folder && state.files.some((file) => file.id === "photo" && file.parent === folder.id && !file.deleted)),
-  ];
 }
 
 const steps = [

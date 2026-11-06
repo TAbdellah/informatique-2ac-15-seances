@@ -1,4 +1,4 @@
-import type { LocalizedText } from "./course-data";
+import type { LocalizedText } from "./course-data.ts";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 

@@ -1,5 +1,5 @@
-import { session4 } from "./session4-data";
-import { session3 } from "./session3-data";
+import { session4 } from "./session4-data.ts";
+import { session3 } from "./session3-data.ts";
 
 export type Lang = "fr" | "ar";
 

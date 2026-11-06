@@ -1,4 +1,4 @@
-import type { CourseSession, LocalizedText } from "./course-data";
+import type { CourseSession, LocalizedText } from "./course-data.ts";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
 

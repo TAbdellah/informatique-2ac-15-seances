@@ -1,4 +1,4 @@
-import type { CourseSession, LocalizedText } from "./course-data";
+import type { CourseSession, LocalizedText } from "./course-data.ts";
 export const s4t = (fr: string, ar: string): LocalizedText => ({fr, ar});
 export type Session4Kind = "lan" | "cables" | "equipment" | "topology" | "identity" | "ping" | "sharing" | "practice" | "messenger" | "repair";
 export type Session4Activity = {id: string; label: string; kind: Session4Kind; minutes: number; title: LocalizedText; prompt: LocalizedText; tasks: LocalizedText[]; objective: string};

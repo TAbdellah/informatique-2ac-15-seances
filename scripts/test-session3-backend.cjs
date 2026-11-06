@@ -2,7 +2,18 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const project=require('node:path').resolve(__dirname,'..');
 const ts=require(project+'/node_modules/typescript');
 const compile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-const load=(relative,imports={})=>{const exports={};vm.runInNewContext(compile(fs.readFileSync(project+'/'+relative,'utf8')),{exports,require:name=>{if(!imports[name])throw Error('Unexpected import '+name);return imports[name]},TextEncoder,TextDecoder,crypto:crypto.webcrypto,btoa,atob});return exports};
+const path=require('node:path');
+const load=(relative,imports={})=>{
+ const exports={};
+ const requireSource=name=>{
+  if(imports[name])return imports[name];
+  if(!name.startsWith('.'))throw Error('Unexpected import '+name);
+  const target=path.join(path.dirname(relative),name);
+  return load(path.extname(target)?target:target+'.ts');
+ };
+ vm.runInNewContext(compile(fs.readFileSync(project+'/'+relative,'utf8')),{exports,require:requireSource,TextEncoder,TextDecoder,crypto:crypto.webcrypto,btoa,atob});
+ return exports;
+};
 const m=load('app/session3-windows-model.ts');
 const a=load('app/session3-assessment-data.ts',{'./session3-windows-model':m});
 const exportsGrader=load('supabase/functions/informatique-2ac-api/session3-evaluation.ts');
@@ -44,7 +55,7 @@ const payload={action:'submit',id:crypto.randomUUID(),participantId:learner.id,s
  r=await request({...payload,id:crypto.randomUUID(),score:19});equal(r.status,400,'reject forged note');equal(rows.length,1);
  r=await request({...payload,id:crypto.randomUUID(),answer:empty,score:0,isCorrect:false});equal(r.status,201,'empty result saved for remediation');
  unlocked=false;r=await request({...payload,id:crypto.randomUUID()});equal(r.status,423,'lesson access still enforced');unlocked=true;missing=true;r=await request({...payload,id:crypto.randomUUID()});equal(r.status,404,'known learner required');missing=false;
- r=await request({action:'dashboard'});equal(r.status,401,'teacher results still private');r=await request({action:'set_roster_active',ids:[learner.id],active:false});equal(r.status,401,'bulk archive requires teacher authentication');r=await request(payload,'https://unapproved.example');equal(r.status,403,'origin restriction preserved');
+ r=await request({action:'dashboard'});equal(r.status,401,'teacher results still private');r=await request({action:'set_roster_active',ids:[learner.id],active:false});equal(r.status,401,'bulk archive requires teacher authentication');r=await request({action:'teacher_workshop',sessionId:3});equal(r.status,401,'draft indicators require teacher authentication');r=await request({action:'learner_workshop',sessionId:3});equal(r.status,401,'learner history requires a signed learner token');r=await request(payload,'https://unapproved.example');equal(r.status,403,'origin restriction preserved');
  for(const old of [{activityId:'s2-evaluation-assembler',answer:{completed:true,errors:0,total:23,placements:Array(23).fill({})},score:23,maxScore:23},{activityId:'s2-evaluation-depanner',answer:{completed:true,errors:0,cases:Array(6).fill({}),score:12,maxScore:12},score:12,maxScore:12}]){r=await request({...payload,...old,id:crypto.randomUUID(),sessionId:2});equal(r.status,201,'existing lesson-2 evaluation compatible');}
  r=await request({action:'login',password});equal(r.status,200);const token=r.body.token;r=await request({action:'dashboard',token,filters:{className:'2/1',groupName:'1',sessionId:'3'},page:1});equal(r.status,200,'teacher dashboard accepts current auth');equal(r.body.attempts.length,2,'lesson-3 attempts in dashboard');equal(r.body.attempts.some(at=>at.activityId===payload.activityId&&at.score===20&&JSON.parse(at.responseJson).answers.length===15),true,'teacher receives detail and score');
  const beforeWrites=databaseWrites;

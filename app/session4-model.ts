@@ -1,8 +1,8 @@
-import {session4Activities,session4Equipment,session4Repairs,type Session4Activity} from "./session4-data";
-import {session4SimulatorPassed,type Session4SimulatorState} from './session4-simulation-contract';
+import {session4Activities,session4Equipment,type Session4Activity} from "./session4-data.ts";
+import {isSession4SimulatorState,session4SimulatorSteps,type Session4SimulatorMode,type Session4SimulatorState} from './session4-simulation-contract.ts';
 export const session4SourceIP="192.168.10.21",session4PeerIP="192.168.10.22";
 export const session4SharePath=String.raw`\\192.168.10.21\Club_reseau`;
-export type Session4Draft={selections:Record<string,string>;links:string[];internet:boolean;tested:boolean;delivered:boolean;connected:boolean;commands:string[];command:string;output:string;ip:string;host:string;shared:boolean;permission:string;path:string;opened:boolean;recipient:string;message:string;attached:boolean;checks:string[];peerIP:string;proof:string;practicalConfirmed:boolean;result:boolean|null;simulator:Session4SimulatorState|null};
+export type Session4Draft={savedAt?:number;selections:Record<string,string>;links:string[];internet:boolean;tested:boolean;delivered:boolean;connected:boolean;commands:string[];command:string;output:string;ip:string;host:string;shared:boolean;permission:string;path:string;opened:boolean;recipient:string;message:string;attached:boolean;checks:string[];peerIP:string;proof:string;practicalConfirmed:boolean;result:boolean|null;simulator:Session4SimulatorState|null};
 export type Session4WorkshopState={version:1;activityIndex:number;completedIds:string[];drafts:Record<string,Session4Draft>;summary:boolean};
 export const freshSession4Draft=():Session4Draft=>({selections:{},links:[],internet:true,tested:false,delivered:false,connected:false,commands:[],command:"",output:"Microsoft Windows [Entraînement]\nTape ipconfig, hostname ou ping 192.168.10.22.",ip:"",host:"",shared:false,permission:"",path:"",opened:false,recipient:"",message:"",attached:false,checks:[],peerIP:"",proof:"",practicalConfirmed:false,result:null,simulator:null});
 // Keep the full two-PC disk in the checkpoint, and only the useful evidence in the teacher's answer.
@@ -17,17 +17,46 @@ export function runSession4Command(command:string,connected:boolean){const c=com
  if(c===`ping ${session4PeerIP}`)return connected?`Envoi d’une requête 'Ping' sur ${session4PeerIP} :\n${Array(4).fill(`Réponse de ${session4PeerIP} : octets=32 temps<1ms TTL=128`).join("\n")}\nPaquets : envoyés = 4, reçus = 4, perdus = 0 (perte 0 %).`:`Envoi d’une requête 'Ping' sur ${session4PeerIP} :\nDélai d’attente de la demande dépassé.\nPaquets : envoyés = 4, reçus = 0, perdus = 4 (perte 100 %).`;
  return "Commande non prévue dans cet entraînement. Essaie ipconfig, hostname ou ping 192.168.10.22.";
 }
-export function session4ActivityCorrect(activity:Session4Activity,d:Session4Draft):boolean{
- switch(activity.kind){
-  case "lan":return !d.internet&&d.delivered&&d.selections.lan==="local";
-  case "cables":return ["PC-21","PC-22","PC-23","Imprimante","Portable","Mac","TV"].every(pc=>d.links.includes(pc))&&d.tested&&['router','switch','ap'].every(id=>d.selections[id]===id);
-  case "equipment":return session4Equipment.every(e=>d.selections[e.id]===e.answer);
-  case "topology":return d.selections.star==="star"&&d.selections.bus==="bus"&&d.selections.ring==="ring";
-  case "identity":return session4SimulatorPassed(d.simulator,'identity')&&d.ip.trim()===session4SourceIP&&d.host.trim().toUpperCase()==="PC-21";
-  case "ping":return session4SimulatorPassed(d.simulator,'ping');
-  case "sharing":return session4SimulatorPassed(d.simulator,'sharing');
-  case "practice":return ["source","receive","reverse","return"].every(id=>d.checks.includes(id))&&isPrivateIPv4(d.ip)&&isPrivateIPv4(d.peerIP)&&d.ip.trim()!==d.peerIP.trim()&&d.proof.trim().length>=3;
-  case "messenger":return session4SimulatorPassed(d.simulator,'messenger');
-  case "repair":return session4SimulatorPassed(d.simulator,'repair');
- }
+function simulatorChecks(value: unknown, mode: Session4SimulatorMode): boolean[] {
+  return isSession4SimulatorState(value, mode) ? value.checks : Array<boolean>(session4SimulatorSteps[mode]).fill(false);
+}
+
+export function session4ActivityChecks(activity: Session4Activity, draft: Session4Draft): boolean[] {
+  const selected = draft.selections;
+  switch (activity.kind) {
+    case "lan":
+      return [!draft.internet, draft.delivered, selected.lan === "local"];
+    case "cables":
+      return [
+        ...["PC-21", "PC-22", "PC-23", "Imprimante", "Portable", "Mac", "TV"].map(pc => draft.links.includes(pc)),
+        draft.tested,
+        ...["router", "switch", "ap"].map(id => selected[id] === id),
+      ];
+    case "equipment":
+      return session4Equipment.map(item => selected[item.id] === item.answer);
+    case "topology":
+      return ["star", "bus", "ring"].map(id => selected[id] === id);
+    case "identity":
+      return [
+        ...simulatorChecks(draft.simulator, "identity"),
+        draft.ip.trim() === session4SourceIP,
+        draft.host.trim().toUpperCase() === "PC-21",
+      ];
+    case "practice":
+      return [
+        ...["source", "receive", "reverse", "return"].map(id => draft.checks.includes(id)),
+        isPrivateIPv4(draft.ip),
+        isPrivateIPv4(draft.peerIP) && draft.ip.trim() !== draft.peerIP.trim(),
+        draft.proof.trim().length >= 3,
+      ];
+    case "ping":
+    case "sharing":
+    case "messenger":
+    case "repair":
+      return simulatorChecks(draft.simulator, activity.kind);
+  }
+}
+
+export function session4ActivityCorrect(activity: Session4Activity, draft: Session4Draft): boolean {
+  return session4ActivityChecks(activity, draft).every(Boolean);
 }

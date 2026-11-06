@@ -7,6 +7,7 @@ import { ArrowLeft, Calculator, Check, Copy, FileText, Folder, FolderPlus, Image
 import type { LocalizedText } from "./course-data";
 import { session3, session3Schedule } from "./session3-data";
 import { Session3Text } from "./session3-translation";
+import { initialSystemLabState, systemLabChecks, type LabFile, type SystemLabState } from "./session3-system-model";
 import "./session3.css";
 
 const t = (fr: string, ar: string): LocalizedText => ({ fr, ar });
@@ -35,60 +36,6 @@ export function Session3Overview() {
     </section>
     <aside className="s3-native-note"><Monitor size={22} /><CopyText value={t("Je m’entraîne dans la simulation, puis je refais les gestes sur Windows. Avec mon binôme, j’échange les rôles : chacun manipule et explique.", "أتدرب في المحاكاة ثم أعيد الحركات في Windows. أتبادل الأدوار مع زميلي: يستعمل كل واحد الحاسوب ويشرح.")} /></aside>
   </div>;
-}
-
-type LabFile = { id: string; parent: string; name: string; kind: "folder" | "text" | "image"; deleted?: boolean };
-export type SystemLabState = {
-  flags: string[];
-  apps: { calculator: boolean; explorer: boolean };
-  active: "calculator" | "explorer" | null;
-  minimized: boolean;
-  position: { x: number; y: number };
-  files: LabFile[];
-  folder: string;
-  selection: string | null;
-  clipboard: { id: string; cut: boolean } | null;
-  search: string;
-};
-
-export function initialSystemLabState(): SystemLabState {
-  return {
-    flags: [], apps: { calculator: false, explorer: false }, active: null, minimized: false,
-    position: { x: 40, y: 35 }, folder: "root", selection: null, clipboard: null, search: "",
-    files: [
-      { id: "photo", parent: "root", name: "image001.jpg", kind: "image" },
-      { id: "text", parent: "root", name: "texte001.txt", kind: "text" },
-      { id: "draft", parent: "root", name: "brouillon.txt", kind: "text" },
-    ],
-  };
-}
-
-function folderByPath(files: LabFile[], names: string[]) {
-  let parent = "root";
-  for (const name of names) {
-    const next = files.find((f) => !f.deleted && f.kind === "folder" && f.parent === parent && f.name === name);
-    if (!next) return null;
-    parent = next.id;
-  }
-  return parent;
-}
-
-export function systemLabChecks(mode: "windows" | "files", state: SystemLabState): boolean[] {
-  const flags = new Set(state.flags);
-  if (mode === "windows") return ["opened-calculator", "moved", "minimized", "restored", "opened-explorer", "switched"].map((f) => flags.has(f));
-  const work = folderByPath(state.files, ["2AC_G01", "Informatique", "Travaux"]);
-  const images = folderByPath(state.files, ["2AC_G01", "Informatique", "Travaux", "Images"]);
-  const documents = folderByPath(state.files, ["2AC_G01", "Informatique", "Travaux", "Documents"]);
-  const photo = state.files.find((f) => f.id === "photo" && !f.deleted);
-  const text = state.files.find((f) => f.id === "text" && !f.deleted);
-  return [
-    Boolean(work && images && documents),
-    Boolean(images && photo?.parent === images && photo.name === "Photo_club.jpg"),
-    Boolean(documents && text?.parent === documents && text.name === "Compte_rendu.txt"),
-    Boolean(work && documents && text?.parent === documents && state.files.some((f) => !f.deleted && f.id !== "text" && f.kind === "text" && f.parent === work && f.name === "Compte_rendu.txt")),
-    flags.has("searched-photo"),
-    flags.has("deleted-draft") && flags.has("restored-draft") && state.files.some((f) => f.id === "draft" && !f.deleted && f.parent === "root"),
-  ];
 }
 
 const windowTasks = [

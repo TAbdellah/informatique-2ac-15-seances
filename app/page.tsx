@@ -51,7 +51,8 @@ import {
   unit1Labs,
   type Unit1Exercise,
 } from "./unit1-labs";
-import { Session3Overview, Session3SystemLab, type SystemLabState } from "./session3-system-lab";
+import { Session3Overview, Session3SystemLab } from "./session3-system-lab";
+import type { SystemLabState } from "./session3-system-model";
 import { Session3GuidedFiles } from "./session3-guided-files";
 import { Session3Trace } from "./session3-trace";
 import { Session3ExerciseGuide } from "./session3-exercise-guides";
@@ -65,7 +66,10 @@ import {forgetActiveProfile,lastLearningView,resumeOverview,readSnapshot,remembe
 import {StudentIdentification,ResumeStudent} from "./student-identification";
 import { teacherDemoProfile, useTeacherCourse } from "../lib/teacher-course-context";
 import { TeacherExerciseNavigator } from "./teacher-exercise-navigator";
-import { Session3WorkshopSummary } from "./session3-workshop-summary";
+import { Session3WorkshopRecap } from "./session3-workshop-summary";
+import { WorkshopSummary, WorkshopSummaryLink, workshopSummaryTitle } from "./workshop-summary";
+import { normalizeAnswer, unit1DraftPercent } from "../lib/workshop-progress";
+import { rememberWorkshopAttempts, workshopAttemptKey } from "../lib/workshop-attempt-cache";
 import Session4Lesson from "./session4-lesson";
 import {
   getSessionAccess,
@@ -969,10 +973,10 @@ function ExerciseNavigation({ index, total, done, lang, onPrevious, onNext, next
       </button>
       <div className="exercise-progress-summary" aria-live="polite">
         <strong>{lang === "fr" ? "Exercice" : "التمرين"} {index + 1} / {total}</strong>
-        {!teacherMode && <div className="exercise-progress-track" role="progressbar" aria-label="Progression / التقدم" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+        {!teacherMode && <div className="exercise-progress-track" role="progressbar" aria-label="Exercices réussis / التمارين الناجحة" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
           <span style={{ width: `${percent}%` }} />
         </div>}
-        {teacherMode ? <small>Mode professeur · navigation libre</small> : <small>{done}/{total} {txt(progressLabel ?? { fr: "réussis", ar: "ناجحة" }, lang)} · {percent}%</small>}
+        {teacherMode ? <small>Mode professeur · navigation libre</small> : <small>{done}/{total} {txt(progressLabel ?? { fr: "réussis", ar: "ناجحة" }, lang)}</small>}
         {!teacherMode && resultStatus !== undefined && resultStatus !== null && (
           <div className={`exercise-current-status ${resultStatus === true ? "success" : resultStatus === false ? "retry" : "waiting"}`} role="status" aria-live="polite">
             {resultStatus === true ? <CheckCircle2 size={16} /> : resultStatus === false ? <AlertTriangle size={16} /> : <LockKeyhole size={16} />}
@@ -1009,15 +1013,6 @@ function shuffledIndices(length: number, seed: string) {
   return indices;
 }
 
-function normalizeAnswer(value: string) {
-  return value
-    .trim()
-    .toLocaleLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
-
 function ExercisePlayer({
   exercise,
   lang,
@@ -1031,7 +1026,7 @@ function ExercisePlayer({
   lang: Lang;
   alreadyCompleted: boolean;
   onComplete: () => void;
-  onResult: (answer: unknown, correct: boolean) => void;
+  onResult: (answer: unknown, correct: boolean, score: number) => void;
   draft?: ExerciseDraft;
   onDraftChange: (draft: ExerciseDraft) => void;
 }) {
@@ -1087,7 +1082,8 @@ function ExercisePlayer({
 
   function recordResult(correct: boolean, answer: unknown) {
     setResult(correct);
-    onResult(answer, correct);
+    const score = correct ? 100 : unit1DraftPercent(exercise, {...workingRef.current, multi: [...workingRef.current.multi]}) ?? 0;
+    onResult(answer, correct, score);
     if (correct) onComplete();
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1189,11 +1185,11 @@ function ExercisePlayer({
     (exercise.type === "hotspot" && choice !== null) ||
     (exercise.type === "choice" && choice !== null) ||
     (exercise.type === "multi" && multi.size > 0) ||
-    (exercise.type === "match" && Object.keys(matches).length === exercise.rows.length) ||
-    (exercise.type === "sequence" && sequence.length === exercise.steps.length) ||
+    (exercise.type === "match" && Object.keys(matches).length > 0) ||
+    (exercise.type === "sequence" && sequence.length > 0) ||
     (exercise.type === "text" && textValue.trim().length > 0) ||
-    (exercise.type === "conversions" && exercise.rows.every((_, index) => conversionValues[index]?.trim())) ||
-    (exercise.type === "diagnostic" && diagnosticComponent !== null && diagnosticRepair !== null);
+    (exercise.type === "conversions" && exercise.rows.some((_, index) => conversionValues[index]?.trim())) ||
+    (exercise.type === "diagnostic" && (diagnosticComponent !== null || diagnosticRepair !== null));
 
   return (
     <article data-exercise-id={exercise.id} className={`exercise-player level-${exercise.level} ${exercise.id.startsWith("s3-") ? "s3-visual-exercise" : ""}`}>
@@ -1705,11 +1701,17 @@ function Unit1Workshop({
     return {...current,exerciseId:exercise.id,drafts:{...current.drafts,[exercise.id]:{...revisedDraft,savedAt:Date.now()}}};
   }),[exercise.id,exercise.revision,setWork]);
   useEffect(()=>{const timer=window.setTimeout(()=>exerciseAnchorRef.current?.scrollIntoView({behavior:"auto",block:"start"}),120);return()=>window.clearTimeout(timer)},[exerciseIndex,work.showSummary]);
-  function goExercise(index:number){setWork(current=>index===lab.exercises.length&&session.id===3?{...current,showSummary:true}:{...current,showSummary:false,exerciseId:lab.exercises[Math.max(0,Math.min(lab.exercises.length-1,index))].id});}
+  function goExercise(index:number){setWork(current=>index===lab.exercises.length?{...current,showSummary:true}:{...current,showSummary:false,exerciseId:lab.exercises[Math.max(0,Math.min(lab.exercises.length-1,index))].id});}
   function markCompleted(id:string){setWork(current=>{const ids=[...new Set([...current.completedIds,id])];try{localStorage.setItem(`lab2ac-unit1-session-${session.id}-${participantId}`,JSON.stringify(ids));}catch{}return {...current,completedIds:ids};});}
   if(!progressLoaded)return <div className="learning-loading"><LoaderCircle size={19} className="spin"/> Recherche de ton travail sauvegardé… / البحث عن عملك المحفوظ…</div>;
-  const navigationTitles = [...lab.exercises.map(item => txt(item.title, lang)), ...(session.id === 3 ? [lang === "fr" ? "Bilan de la séance" : "حصيلة الحصة"] : [])];
-  if (session.id === 3 && work.showSummary) return <div className="tab-content unit1-lab page-enter" ref={exerciseAnchorRef}><TeacherExerciseNavigator index={lab.exercises.length} titles={navigationTitles} onGo={goExercise} /><Session3WorkshopSummary completedIds={[...completedExercises]} onBack={() => goExercise(lab.exercises.length - 1)} onResume={goExercise} onTrace={onGoToTrace} onEvaluate={onGoToEvaluation} /></div>;
+  const navigationTitles = [...lab.exercises.map(item => txt(item.title, lang)), txt(workshopSummaryTitle, lang)];
+  if (work.showSummary) return <div className="tab-content unit1-lab page-enter" ref={exerciseAnchorRef}>
+    <TeacherExerciseNavigator index={lab.exercises.length} titles={navigationTitles} onGo={goExercise} />
+    <WorkshopSummary sessionId={session.id} participantId={participantId} state={work}
+      onBack={() => goExercise(exerciseIndex)} onResume={goExercise} onTrace={onGoToTrace} onEvaluate={onGoToEvaluation}>
+      {session.id === 3 && <Session3WorkshopRecap />}
+    </WorkshopSummary>
+  </div>;
 
   return (
     <div className="tab-content unit1-lab page-enter">
@@ -1724,6 +1726,7 @@ function Unit1Workshop({
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
 
+      <div className="workshop-summary-entry"><WorkshopSummaryLink onClick={() => goExercise(lab.exercises.length)} /></div>
       <ExercisePlayer
         key={exercise.id}
         exercise={exercise}
@@ -1732,12 +1735,14 @@ function Unit1Workshop({
         onDraftChange={keepDraft}
         alreadyCompleted={completedExercises.has(exercise.id)}
         onComplete={() => markCompleted(exercise.id)}
-        onResult={(answer, correct) => onRecordSubmission({
+        onResult={(answer, correct, score) => onRecordSubmission({
           sessionId: session.id,
           activityType: "unit1_exercise",
           activityId: exercise.id,
           answer,
           isCorrect: correct,
+          score,
+          maxScore: 100,
         })}
       />
 
@@ -1747,8 +1752,8 @@ function Unit1Workshop({
         done={lab.exercises.filter((item) => completedExercises.has(item.id)).length}
         lang={lang}
         onPrevious={() => goExercise(exerciseIndex-1)}
-        onNext={() => exerciseIndex === lab.exercises.length - 1 && session.id !== 3 ? onGoToTrace() : goExercise(exerciseIndex+1)}
-        nextLabel={exerciseIndex === lab.exercises.length - 1 ? session.id === 3 ? { fr: "Bilan de la séance", ar: "حصيلة الحصة" } : { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
+        onNext={() => goExercise(exerciseIndex+1)}
+        nextLabel={exerciseIndex === lab.exercises.length - 1 ? workshopSummaryTitle : undefined}
         nextDisabled={currentResult !== true}
         resultStatus={currentResult}
       />
@@ -1762,18 +1767,20 @@ function StandardWorkshopView({
   participantId,
   onRecordSubmission,
   onGoToTrace,
+  onGoToEvaluation,
 }: {
   session: CourseSession;
   lang: Lang;
   participantId:string;
   onRecordSubmission: (submission: SubmissionInput) => void;
   onGoToTrace: () => void;
+  onGoToEvaluation: () => void;
 }) {
   const labels = ui[lang];
-  type StandardState={version:1;exerciseIndex:number;checked:boolean[];photoAnswer:number|null};
+  type StandardState={version:1;exerciseIndex:number;checked:boolean[];photoAnswer:number|null;showSummary?:boolean;declaredProgress?:Record<string,number>};
   const persistent=useDurableLessonState<StandardState>({participantId,sessionId:session.id,kind:"workshop",initial:{version:1,exerciseIndex:0,checked:session.workshops.map(()=>false),photoAnswer:null},validate:(v):v is StandardState=>learningRecord(v)&&v.version===1&&Number.isInteger(v.exerciseIndex)&&Number(v.exerciseIndex)>=0&&Number(v.exerciseIndex)<=session.workshops.length&&Array.isArray(v.checked)&&(v.photoAnswer===null||Number.isInteger(v.photoAnswer))});
-  const {exerciseIndex,checked,photoAnswer}=persistent.value;
-  const setExerciseIndex=useLearningField(persistent.setValue,"exerciseIndex"),setChecked=useLearningField(persistent.setValue,"checked"),setPhotoAnswer=useLearningField(persistent.setValue,"photoAnswer");
+  const {exerciseIndex,checked,photoAnswer,showSummary,declaredProgress}=persistent.value;
+  const setPhotoAnswer=useLearningField(persistent.setValue,"photoAnswer");
   const challenge = photoChallenges[session.id];
   const photoChoiceOrder = useMemo(
     () => shuffledIndices(challenge.choices.length, `session-${session.id}-photo`),
@@ -1781,6 +1788,12 @@ function StandardWorkshopView({
   );
   const photoCorrect = photoAnswer === challenge.answer;
   const total = session.workshops.length + 1;
+  const titles = [txt(challenge.prompt, lang), ...session.workshops.map(item => txt(item.text, lang)), txt(workshopSummaryTitle, lang)];
+  function go(index: number) {
+    persistent.setValue(state => index === total
+      ? {...state, showSummary: true}
+      : {...state, showSummary: false, exerciseIndex: Math.max(0, Math.min(total - 1, index))});
+  }
   const currentResult = exerciseIndex === 0
     ? photoAnswer === null ? null : photoCorrect
     : checked[exerciseIndex - 1] ? true : null;
@@ -1788,15 +1801,18 @@ function StandardWorkshopView({
 
   useEffect(() => {
     exerciseAnchorRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-  }, [exerciseIndex]);
+  }, [exerciseIndex, showSummary]);
 
   if(!persistent.ready)return <div className="learning-loading">Recherche de ton atelier sauvegardé…</div>;
   return (
     <div className="tab-content standard-workshop simple-workshop page-enter">
-      <TeacherExerciseNavigator index={exerciseIndex} titles={[txt(challenge.prompt, lang), ...session.workshops.map(item => txt(item.text, lang))]} onGo={setExerciseIndex} />
+      <TeacherExerciseNavigator index={showSummary ? total : exerciseIndex} titles={titles} onGo={go} />
+      {showSummary ? <div ref={exerciseAnchorRef}><WorkshopSummary sessionId={session.id} participantId={participantId} state={persistent.value}
+        onBack={() => go(exerciseIndex)} onResume={go} onTrace={onGoToTrace} onEvaluate={onGoToEvaluation} /></div> : <>
       <div className="exercise-counter" ref={exerciseAnchorRef}>
         <span>{lang === "fr" ? "EXERCICE" : "تمرين"} {padTime(exerciseIndex + 1)}</span>
       </div>
+      <div className="workshop-summary-entry"><WorkshopSummaryLink onClick={() => go(total)} /></div>
       {exerciseIndex === 0 && (
       <article className="photo-challenge">
         <div className="photo-frame">
@@ -1871,21 +1887,34 @@ function StandardWorkshopView({
               <span className="instruction-label">Consigne / التعليمة</span>
               <BilingualText value={workshop.text} />
             </div>
-            <button onClick={() => setChecked((current) => {
-              const nextValue = !current[index];
-              if (nextValue) {
-                onRecordSubmission({
-                  sessionId: session.id,
-                  activityType: "workshop",
-                  activityId: `session-${session.id}-workshop-${workshop.label}`,
-                  answer: { completed: true, workshop: workshop.label },
-                  isCorrect: true,
-                });
-              }
-              return current.map((value, itemIndex) => itemIndex === index ? nextValue : value);
-            })}>
+            {!checked[index] && <label className="workshop-milestone">
+              <BilingualText value={{fr: "Déclare ton avancement", ar: "صرح بتقدمك"}} />
+              <select value={declaredProgress?.[`session-${session.id}-workshop-${workshop.label}`] ?? 0} onChange={event => {
+                const percent = Number(event.target.value);
+                const id = `session-${session.id}-workshop-${workshop.label}`;
+                persistent.setValue(state => ({...state, declaredProgress: {...state.declaredProgress, [id]: percent}}));
+              }}>
+                <option value={0}>À faire · لم يبدأ بعد</option>
+                <option value={25}>25 % · J’ai commencé · بدأت</option>
+                <option value={50}>50 % · J’ai fait la moitié · أنجزت النصف</option>
+                <option value={75}>75 % · Il me reste une étape · بقيت خطوة</option>
+              </select>
+            </label>}
+            <button type="button" disabled={checked[index]} onClick={() => {
+              persistent.setValue(state => ({...state, checked: state.checked.map((value, itemIndex) => itemIndex === index || value)}));
+              onRecordSubmission({
+                sessionId: session.id,
+                activityType: "workshop",
+                activityId: `session-${session.id}-workshop-${workshop.label}`,
+                answer: { completed: true, workshop: workshop.label, verification: "declaration-eleve" },
+                score: 100,
+                maxScore: 100,
+              });
+            }}>
               {checked[index] ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-              {labels.validate}
+              <BilingualText value={checked[index]
+                ? {fr: "Terminé · déclaré", ar: "تم التصريح بالإنجاز"}
+                : {fr: "Déclarer l’atelier terminé", ar: "التصريح بإتمام الورشة"}} />
             </button>
           </article>
         ))}
@@ -1896,12 +1925,13 @@ function StandardWorkshopView({
         total={total}
         done={checked.filter(Boolean).length + (photoCorrect ? 1 : 0)}
         lang={lang}
-        onPrevious={() => setExerciseIndex((current) => Math.max(0, current - 1))}
-        onNext={() => exerciseIndex === total - 1 ? onGoToTrace() : setExerciseIndex((current) => current + 1)}
-        nextLabel={exerciseIndex === total - 1 ? { fr: "Trace écrite", ar: "خلاصة الدرس" } : undefined}
+        onPrevious={() => go(exerciseIndex - 1)}
+        onNext={() => go(exerciseIndex + 1)}
+        nextLabel={exerciseIndex === total - 1 ? workshopSummaryTitle : undefined}
         nextDisabled={currentResult !== true}
-        resultStatus={currentResult}
+        resultStatus={exerciseIndex === 0 ? currentResult : undefined}
       />
+      </>}
     </div>
   );
 }
@@ -1924,7 +1954,7 @@ function WorkshopView({
   if (session.unit === 1) {
     return <Unit1Workshop session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} onGoToEvaluation={onGoToEvaluation} />;
   }
-  return <StandardWorkshopView session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} />;
+  return <StandardWorkshopView session={session} lang={lang} participantId={participantId} onRecordSubmission={onRecordSubmission} onGoToTrace={onGoToTrace} onGoToEvaluation={onGoToEvaluation} />;
 }
 
 function TraceView({ session, lang }: { session: CourseSession; lang: Lang }) {
@@ -3172,6 +3202,12 @@ export default function HomePage() {
       id: createClientSubmissionId(),
       participantId: studentProfile.id,
     };
+    if (queued.activityType === "unit1_exercise" || queued.activityType === "photo_challenge" || queued.activityType === "workshop") {
+      rememberWorkshopAttempts(workshopAttemptKey(queued.participantId, queued.sessionId), [{
+        id: queued.id, activityId: queued.activityId, isCorrect: queued.isCorrect ?? null,
+        score: queued.score ?? null, maxScore: queued.maxScore ?? null,
+      }]);
+    }
     writeSubmissionQueue([...readSubmissionQueue(), queued]);
     void flushPendingSubmissions();
   }
