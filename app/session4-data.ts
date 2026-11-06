@@ -16,12 +16,12 @@ export const session4LegacyActivities: Session4LegacyActivity[] = [
  activity("B","messenger",10,s4t("Envoyer un fichier avec BeeBEEP","إرسال ملف بواسطة BeeBEEP"),s4t("Dans la messagerie simulée, envoie Bonjour.txt à PC-22. Ouvre le fichier reçu et confirme sa réception.","أرسل Bonjour.txt إلى PC-22 في المراسلة المحاكاة. افتح الملف وتأكد من التوصل به."),[],"Échanger par messagerie locale"),
  activity("I","repair",11,s4t("Corriger un droit de partage","تصحيح صلاحية المشاركة"),s4t("Sara doit déposer notes.txt dans le dossier Échange. Observe le refus, puis règle le droit de partage et réessaie.","على سارة وضع notes.txt داخل Échange. لاحظ الرفض ثم صحح صلاحية المشاركة وأعد المحاولة."),[],"Diagnostiquer un échange local"),
 ];
-export type Session4Kind = "inventory" | "media" | "plans" | "wired" | "folder" | "wireless" | "mixed" | "identity" | "diagnostic" | "practice";
+export type Session4Kind = "inventory" | "media" | "plans" | "wired" | "folder" | "wireless" | "mixed" | "identity" | "diagnostic" | "practice" | "names" | "roles" | "star" | "bus" | "ring" | "patch" | "exchange" | "loan";
 export type Session4Activity = ActivityCopy & {edition:2; kind:Session4Kind; zone:LocalizedText};
 const newActivity = (kind:Session4Kind,minutes:number,zone:LocalizedText,title:LocalizedText,prompt:LocalizedText,tasks:LocalizedText[],objective:string):Session4Activity =>
  ({id:`session-4-workshop-expo-${kind}`,label:kind,edition:2,kind,minutes,zone,title,prompt,tasks,objective});
 
-export const session4Activities = [
+const previousExpoActivities = [
  newActivity("inventory",8,s4t("Le stock","المخزن"),s4t("Inventaire avant l’ouverture","جرد المعدات قبل الافتتاح"),s4t("Les étiquettes des caisses sont tombées. Redonne à chaque photo le bon nom et la bonne fonction.","سقطت ملصقات الصناديق. أعد لكل صورة اسم الجهاز ووظيفته."),
   [s4t("Observe les ports, les antennes et les connecteurs.","لاحظ المنافذ والهوائيات والموصلات."),s4t("Associe un nom et une fonction à chaque équipement.","اربط كل جهاز باسمه ووظيفته.")],"Identifier les équipements et leur fonction"),
  newActivity("media",5,s4t("Le repérage","المعاينة"),s4t("Le bon lien pour chaque appareil","الاتصال المناسب لكل جهاز"),s4t("Lis la contrainte de chaque emplacement. Choisis comment relier l’appareil au réseau local.","اقرأ قيد كل مكان، ثم اختر طريقة ربط الجهاز بالشبكة المحلية."),
@@ -43,16 +43,41 @@ export const session4Activities = [
  newActivity("practice",15,s4t("Sur les vrais postes","على الحواسيب الحقيقية"),s4t("Livrer le dossier au binôme voisin","تسليم المجلد للثنائي المجاور"),s4t("Avec le binôme voisin, ouvrez chacun un fichier de l’autre poste sur le réseau de la salle. Notez la preuve de réception.","مع الثنائي المجاور، افتحوا ملفًا من الحاسوب الآخر عبر شبكة القاعة. سجلوا دليل التوصل."),
   [],"Réaliser un échange sur deux postes"),
 ];
-export const session4AllActivities = [...session4Activities,...session4LegacyActivities];
+export const session4Activities = [
+ newActivity("names",6,s4t("Le stock","المخزن"),s4t("Nommer le matériel réseau","تسمية معدات الشبكة"),s4t("Observe chaque photo et choisis le nom du matériel.","لاحظ كل صورة واختر اسم المعدة."),
+  [],"Reconnaître le matériel réseau"),
+ newActivity("roles",6,s4t("Le stock","المخزن"),s4t("À quoi sert ce matériel ?","ما وظيفة هذه المعدة؟"),s4t("Le nom est indiqué sous chaque photo. Associe le matériel à son rôle dans le réseau.","اسم المعدة مكتوب تحت كل صورة. اربط كل معدة بوظيفتها في الشبكة."),
+  [],"Associer le matériel réseau à sa fonction"),
+ newActivity("star",4,s4t("Plan A","المخطط A"),s4t("Le poste oublié","الحاسوب المنسي"),s4t("PC-4 attend son câble. Observe les trois liaisons déjà tracées, puis complète et nomme le plan.","ينتظر PC-4 كابله. لاحظ الوصلات الثلاث المرسومة ثم أكمل المخطط وسمِّ بنيته."),
+  [],"Reconnaître la topologie en étoile"),
+ newActivity("bus",4,s4t("Plan B","المخطط B"),s4t("La ligne commune","الخط المشترك"),s4t("PC-2 est isolé. Choisis le trait qui le relie à la même ligne que les autres postes, puis nomme la topologie.","الحاسوب PC-2 معزول. اختر الخط الذي يربطه بالخط المشترك لباقي الحواسيب، ثم سمِّ البنية."),
+  [],"Reconnaître la topologie en bus"),
+ newActivity("ring",4,s4t("Plan C","المخطط C"),s4t("Le dernier segment","الوصلة الأخيرة"),s4t("Complète la liaison pour que chaque poste ait exactement deux voisins et que la boucle soit fermée. Nomme ensuite la topologie.","أكمل الوصلة حتى يكون لكل حاسوب جاران وتغلق الحلقة. ثم سمِّ البنية."),
+  [],"Reconnaître la topologie en anneau"),
+ newActivity("patch",9,s4t("Le bureau","المكتب"),s4t("Brancher deux PC au commutateur","ربط حاسوبين بالمبدل"),s4t("Relie PC-21 et PC-22 au commutateur par des câbles RJ45. Envoie ensuite une fiche de test à PC-22.","اربط PC-21 وPC-22 بالمبدل بكابلي RJ45. ثم أرسل بطاقة اختبار إلى PC-22."),
+  [s4t("Clique sur la prise RJ45 d’un PC, puis sur un port libre du commutateur.","انقر منفذ RJ45 لأحد الحاسوبين ثم منفذًا شاغرًا في المبدل."),s4t("Branche le second PC sur un autre port. Teste l’envoi.","اربط الحاسوب الثاني بمنفذ آخر، ثم اختبر الإرسال.")],"Construire un réseau filaire"),
+ newActivity("exchange",10,s4t("Le bureau","المكتب"),s4t("Retrouver le code dans un dossier partagé","العثور على الرمز في مجلد مشترك"),s4t("PC-21 et PC-22 sont déjà reliés par câble. Prépare l’invitation sur PC-21, puis retrouve son code depuis PC-22.","الحاسوبان PC-21 وPC-22 متصلان بالكابل. جهز الدعوة على PC-21 ثم اعثر على رمزها من PC-22."),
+  [s4t("Crée Club_reseau et partage l’invitation en lecture depuis PC-21.","أنشئ Club_reseau وشارك الدعوة للقراءة من PC-21."),s4t("Sur PC-22, passe par Réseau, ouvre le dossier du bon poste et lis l’invitation.","على PC-22، افتح الشبكة ثم مجلد الحاسوب الصحيح واقرأ الدعوة.")],"Ouvrir un dossier partagé sur le réseau local"),
+ ...previousExpoActivities.filter(activity => ["wireless","mixed","identity","diagnostic"].includes(activity.kind)),
+ newActivity("loan",11,s4t("Dernière mission","المهمة الأخيرة"),s4t("Accueillir le portable de prêt","إضافة الحاسوب المحمول المعار"),s4t("Le portable de prêt doit recevoir l’invitation du club. Relève le nom sur son étiquette, choisis une IPv4 libre et connecte-le au Wi-Fi de l’équipe.","يجب أن يتوصل الحاسوب المحمول المعار بدعوة النادي. اقرأ اسمه من الملصق واختر عنوان IPv4 شاغرًا وأوصله بشبكة Wi-Fi للفريق."),
+  [s4t("Compare les adresses proposées avec la liste des postes déjà connectés.","قارن العناوين المقترحة بقائمة الحواسيب المتصلة."),s4t("Teste l’envoi de l’invitation au portable de prêt.","اختبر إرسال الدعوة إلى الحاسوب المحمول المعار.")],"Identifier et intégrer un poste au réseau local"),
+];
+export const session4EarlierActivities = [
+ ...previousExpoActivities.filter(previous => !session4Activities.some(current => current.id === previous.id)),
+ ...session4LegacyActivities,
+];
+export const session4AllActivities = [...session4Activities,...session4EarlierActivities];
 
 export const session4Equipment = [
- {id:"switch",name:s4t("Commutateur · switch","المبدل"),image:"session4/images/commutateur.webp",answer:"switch",role:s4t("Relie plusieurs appareils par câble dans le réseau local.","يربط عدة أجهزة بكابلات داخل الشبكة المحلية.")},
- {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Cet appareil est configuré pour accueillir les appareils Wi-Fi dans le réseau local.","ضبط هذا الجهاز لاستقبال أجهزة Wi-Fi داخل الشبكة المحلية.")},
- {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Relie notre réseau local à d’autres réseaux.","يربط شبكتنا المحلية بشبكات أخرى.")},
- {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Placée dans le PC, elle lui donne une interface de connexion Ethernet.","توضع داخل الحاسوب وتوفر له واجهة اتصال Ethernet.")},
- {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Relie le port Ethernet d’un appareil à celui d’un autre équipement.","يربط منفذ Ethernet لجهاز بمنفذ جهاز آخر.")},
+ {id:"switch",name:s4t("Commutateur · switch","المبدل"),image:"session4/images/commutateur.webp",answer:"switch",role:s4t("Relier plusieurs appareils par câble.","ربط عدة أجهزة بالكابل.")},
+ {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Connecter les appareils en Wi-Fi au réseau local.","ربط أجهزة Wi-Fi بالشبكة المحلية.")},
+ {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Relier des réseaux différents.","ربط شبكات مختلفة.")},
+ {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Donner au PC une interface Ethernet.","تزويد الحاسوب بواجهة Ethernet.")},
+ {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Relier deux prises RJ45.","ربط منفذي RJ45.")},
  {id:"printer",name:s4t("Imprimante réseau","طابعة شبكية"),image:"session4/images/imprimante.webp",answer:"printer",role:s4t("Peut recevoir des travaux d’impression depuis les PC du réseau.","يمكنها استقبال أوامر الطباعة من حواسيب الشبكة.")},
 ];
+// La photo de l’imprimante reste utile dans les maquettes. Le stock identifie les éléments de mise en réseau.
+export const session4NetworkEquipment = session4Equipment.filter(item => item.id !== "printer");
 export const session4Roles = [
  {id:"wired",label:s4t("Relier plusieurs appareils par câble dans le réseau local.","ربط عدة أجهزة بكابلات داخل الشبكة المحلية.")},
  {id:"wireless",label:s4t("Permettre aux appareils Wi-Fi de rejoindre le réseau local.","تمكين أجهزة Wi-Fi من الولوج إلى الشبكة المحلية.")},
@@ -67,9 +92,9 @@ export const session4Repairs = [
 export const session4: CourseSession = {
  id:4,unit:2,title:s4t("Réseau local et échange d’information","الشبكة المحلية وتبادل المعلومات"),subtitle:s4t("2 h · relier, identifier, partager et communiquer","ساعتان · الربط والتعرف والمشاركة والتواصل"),
  mission:s4t("Mettre en service les trois réseaux de l’exposition du club.","تشغيل الشبكات الثلاث الخاصة بمعرض النادي."),
- situation:s4t("L’exposition ouvre bientôt. Au bureau, on doit imprimer le plan. À la bibliothèque, deux portables doivent échanger sans câble. Dans le hall, une TV Wi-Fi doit recevoir l’affiche d’un PC filaire. Votre équipe prépare les trois zones et teste chaque trajet.","سيفتتح المعرض قريبًا. يجب طباعة المخطط في المكتب، وتبادل الملفات بين حاسوبين محمولين بلا كابل في المكتبة، وعرض إعلان حاسوب سلكي على تلفاز Wi-Fi في الردهة. جهزوا المناطق الثلاث واختبروا كل مسار."),
+ situation:s4t("L’exposition ouvre bientôt. Au bureau, deux PC câblés doivent partager une invitation. À la bibliothèque, deux portables doivent échanger sans câble. Dans le hall, une TV Wi-Fi doit recevoir l’affiche d’un PC filaire. Votre équipe prépare les trois zones et teste chaque trajet.","سيفتتح المعرض قريبًا. يجب أن يتشارك حاسوبان سلكيان دعوة في المكتب، وتبادل الملفات بين حاسوبين محمولين بلا كابل في المكتبة، وعرض إعلان حاسوب سلكي على تلفاز Wi-Fi في الردهة. جهزوا المناطق الثلاث واختبروا كل مسار."),
  objectives:[s4t("Reconnaître les équipements réseau et associer chacun à sa fonction.","التعرف على أجهزة الشبكة وربط كل جهاز بوظيفته."),s4t("Distinguer et construire des réseaux filaire, sans fil et mixte.","تمييز الشبكات السلكية واللاسلكية والمختلطة وإنشاؤها."),s4t("Reconnaître les topologies étoile, bus et anneau.","التعرف على البنيات النجمية والخطية والحلقية."),s4t("Relever une IPv4 et un nom de poste, puis tester une liaison.","قراءة عنوان IPv4 واسم الحاسوب ثم اختبار الاتصال."),s4t("Partager un dossier en lecture et vérifier la réception du fichier.","مشاركة مجلد للقراءة والتحقق من التوصل بالملف.")],
- workshops:session4Activities.map((a,index)=>({label:String(index+1),duration:a.minutes,text:a.title})),deliverable:s4t("Un réseau testé, un fichier reçu sur le poste voisin et un compte rendu d’échange.","شبكة مختبرة وملف متوصل به على الحاسوب المجاور وتقرير عن التبادل."),
+ workshops:session4Activities.map((a,index)=>({label:String(index+1),duration:a.minutes,text:a.title})),deliverable:s4t("Un réseau testé, un dossier partagé et une invitation reçue sur le portable.","شبكة مختبرة ومجلد مشترك ودعوة وصلت إلى الحاسوب المحمول."),
  trace:[s4t("Un réseau local relie des appareils dans un espace limité pour communiquer et partager des ressources.","تربط الشبكة المحلية أجهزة داخل فضاء محدود للتواصل وتقاسم الموارد."),s4t("Filaire : les appareils se relient par câble RJ45 au commutateur. Sans fil : les appareils rejoignent le même Wi-Fi. Mixte : le point d’accès est relié par câble au commutateur.","سلكي: تتصل الأجهزة بالمبدل بكابل RJ45. لاسلكي: تلتحق الأجهزة بشبكة Wi-Fi نفسها. مختلط: تتصل نقطة الولوج بالمبدل عبر كابل."),s4t("Dans une étoile, les postes sont reliés à un équipement central. Un bus utilise une ligne commune ; un anneau forme une boucle.","في البنية النجمية ترتبط الحواسيب بجهاز مركزي، والخطية تستعمل خطا مشتركا، والحلقية تشكل حلقة."),s4t("ipconfig affiche la configuration IP ; hostname affiche le nom du poste ; ping teste la réponse d’une destination.","يعرض ipconfig إعدادات IP، ويعرض hostname اسم الحاسوب، ويختبر ping استجابة جهاز مستهدف."),s4t("Un chemin réseau commence par deux antislashs, puis l’adresse ou le nom du poste et le nom du partage.","يبدأ المسار الشبكي بشرطتين مائلتين عكسيتين، ثم عنوان الحاسوب أو اسمه واسم المجلد المشترك."),s4t("Lecture permet de consulter ; Modification permet aussi de changer les fichiers. BeeBEEP échange messages et fichiers sur le réseau local.","تسمح القراءة بالاطلاع، ويسمح التعديل أيضا بتغيير الملفات. يتبادل BeeBEEP الرسائل والملفات عبر الشبكة المحلية.")],
  vocabulary:[s4t("LAN · réseau local","LAN · شبكة محلية"),s4t("IPv4","IPv4"),s4t("Commutateur","مبدل"),s4t("Partage et permissions","المشاركة والصلاحيات")],quiz:[],
 };

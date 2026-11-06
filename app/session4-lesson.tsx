@@ -39,17 +39,17 @@ export default function Session4Lesson({student,activeTab,onTab,onBack,onChangeS
 }
 
 function Mission({onStart}:{onStart:()=>void}){
- return <div className="s4-panel-enter"><section className="s4-mission-hero"><div><span className="s4-eyebrow"><Network size={16}/> MISSION DU CLUB · 120 MINUTES</span><h1><Text value={session4.title}/></h1><p className="s4-mission-lead"><Text value={session4.mission}/></p><div className="s4-mission-tags"><span><Users size={16}/> 2 élèves par PC</span><span><Monitor size={16}/> 2 PC partenaires</span><span><CloudOff size={16}/> LAN sans Internet</span></div></div><div className="s4-mission-visual"><div className="s4-mission-devices"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Un poste du réseau local"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau local"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Un autre poste du réseau local"/></div><span><Text value={t("Une salle. Plusieurs postes. Un même réseau.","قاعة واحدة وحواسيب متعددة وشبكة مشتركة.")}/></span></div></section>
+ return <div className="s4-panel-enter"><section className="s4-mission-hero"><div><span className="s4-eyebrow"><Network size={16}/> MISSION DU CLUB · 120 MINUTES</span><h1><Text value={session4.title}/></h1><p className="s4-mission-lead"><Text value={session4.mission}/></p><div className="s4-mission-tags"><span><Users size={16}/> 2 élèves par PC</span><span><Monitor size={16}/> 12 exercices</span><span><CloudOff size={16}/> LAN sans Internet</span></div></div><div className="s4-mission-visual"><div className="s4-mission-devices"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Un poste du réseau local"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau local"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Un autre poste du réseau local"/></div><span><Text value={t("Une salle. Plusieurs postes. Un même réseau.","قاعة واحدة وحواسيب متعددة وشبكة مشتركة.")}/></span></div></section>
   <section className="s4-situation"><span className="s4-eyebrow">LE DÉFI À RÉSOUDRE</span><h2><Text value={t("Trois zones à raccorder avant l’ouverture","ثلاث مناطق يجب ربطها قبل الافتتاح")}/></h2><p><Text value={session4.situation}/></p><div><Target size={24}/><strong><Text value={t("Le club veut voir un document arriver dans chaque zone.","يريد النادي رؤية مستند يصل إلى كل منطقة.")}/></strong></div></section>
   <div className="expo-zones">{[
-   {photo:"imprimante",place:t("Bureau","المكتب"),label:t("Filaire · imprimer le plan","سلكي · طباعة المخطط")},
+   {photo:"commutateur",place:t("Bureau","المكتب"),label:t("Filaire · échanger entre deux PC","سلكي · التبادل بين حاسوبين")},
    {photo:"portable-windows",place:t("Bibliothèque","المكتبة"),label:t("Sans fil · envoyer le programme","لاسلكي · إرسال البرنامج")},
    {photo:"smart-tv",place:t("Hall","الردهة"),label:t("Mixte · afficher l’annonce","مختلط · عرض الإعلان")},
   ].map(({photo,place,label},i)=><article key={photo}><span>ZONE 0{i+1}</span>
    <img src={publicAsset(`session4/images/${photo}.webp`)} alt=""/><h3><Text value={place}/></h3><p><Text value={label}/></p>
   </article>)}</div>
   <div className="s4-plan">{phases.map((p,i)=><article key={p.minutes}><span>0{i+1}</span><strong>{p.minutes} min</strong><Text value={p.title}/></article>)}</div>
-  <div className="s4-mission-columns"><section className="s4-card"><span className="s4-eyebrow">JE VAIS APPRENDRE À…</span><h2><Text value={t("Comprendre, relier, échanger","الفهم والربط والتبادل")}/></h2><ul>{session4.objectives.map(v=><li key={v.fr}><CheckCircle2 size={18}/><Text value={v}/></li>)}</ul></section><section className="s4-card s4-roles"><span className="s4-eyebrow">NOTRE ORGANISATION</span><h2><Text value={t("Deux rôles qui tournent","دوران نتبادلهما")}/></h2><article><span>P</span><div><strong><Text value={t("Pilote","المتحكم")}/></strong><p><Text value={t("Manipule la souris et le clavier ; lit les consignes avant d’agir.","يستعمل الفأرة ولوحة المفاتيح ويقرأ التعليمات قبل الإنجاز.")}/></p></div></article><article><span>C</span><div><strong><Text value={t("Copilote","المساعد")}/></strong><p><Text value={t("Observe, vérifie l’adresse et le destinataire, puis explique le résultat.","يلاحظ ويتحقق من العنوان والمستلم ثم يشرح النتيجة.")}/></p></div></article><p className="s4-help"><Text value={t("Inversez les rôles après chaque activité. Pour le TP réel, associez votre PC à celui d’un autre binôme.","تبادلا الأدوار بعد كل نشاط. في العمل الحقيقي، اربطا حاسوبكما بحاسوب ثنائي آخر.")}/></p><details><summary><Text value={t("Préparation du laboratoire · enseignant","إعداد المختبر · الأستاذ")}/></summary><p><Text value={t("Prévoir un même réseau local, les autorisations de partage et les comptes de la salle. Ouvrir BeeBEEP sur les postes. Les connexions physiques et les paramètres protégés se règlent avec l’enseignant.","تهيأ شبكة محلية واحدة وصلاحيات المشاركة وحسابات القاعة، ويفتح BeeBEEP على الأجهزة. تضبط التوصيلات والإعدادات المحمية بمرافقة الأستاذ.")}/></p></details></section></div>
+  <div className="s4-mission-columns"><section className="s4-card"><span className="s4-eyebrow">JE VAIS APPRENDRE À…</span><h2><Text value={t("Comprendre, relier, échanger","الفهم والربط والتبادل")}/></h2><ul>{session4.objectives.map(v=><li key={v.fr}><CheckCircle2 size={18}/><Text value={v}/></li>)}</ul></section><section className="s4-card s4-roles"><span className="s4-eyebrow">NOTRE ORGANISATION</span><h2><Text value={t("Deux rôles qui tournent","دوران نتبادلهما")}/></h2><article><span>P</span><div><strong><Text value={t("Pilote","المتحكم")}/></strong><p><Text value={t("Manipule la souris et le clavier ; lit les consignes avant d’agir.","يستعمل الفأرة ولوحة المفاتيح ويقرأ التعليمات قبل الإنجاز.")}/></p></div></article><article><span>C</span><div><strong><Text value={t("Copilote","المساعد")}/></strong><p><Text value={t("Observe, vérifie l’adresse et le destinataire, puis explique le résultat.","يلاحظ ويتحقق من العنوان والمستلم ثم يشرح النتيجة.")}/></p></div></article><p className="s4-help"><Text value={t("Inversez les rôles après chaque activité. Le copilote lit le résultat avant la validation.","تبادلا الأدوار بعد كل نشاط. يقرأ المساعد النتيجة قبل التحقق.")}/></p><details><summary><Text value={t("Préparation du laboratoire · enseignant","إعداد المختبر · الأستاذ")}/></summary><p><Text value={t("Prévoir un navigateur par binôme. Les branchements, le partage et le test de l’invitation se font dans les maquettes.","جهز متصفحًا لكل ثنائي. تنجز التوصيلات والمشاركة واختبار الدعوة داخل النماذج.")}/></p></details></section></div>
   <button type="button" className="s4-primary s4-start" onClick={onStart}><Text value={t("Ouvrir les caisses du club","فتح صناديق معدات النادي")}/><ArrowRight size={19}/></button>
  </div>;
 }
@@ -88,7 +88,6 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
  const summary=savedIndex>=0&&work.summary;
  const draft={...freshSession4Draft(),...work.drafts[activity.id]};
  const criteria=session4ActivityChecks(activity,draft);
- const practical=activity.kind==="practice";
  useEffect(()=>{anchor.current?.scrollIntoView({block:"start",behavior:"auto"});},[index,summary]);
 
  function go(next:number){
@@ -105,17 +104,15 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
   setWork(current=>({...current,activityIndex:index,activityId:activity.id,summary:false,
    completedIds:correct?[...new Set([...current.completedIds,activity.id])]:current.completedIds,
    drafts:{...current.drafts,[activity.id]:{...draft,result:correct,savedAt:Date.now()}}}));
-  if(!practical||correct)onRecord({
+  onRecord({
    sessionId:4,activityType:"workshop",activityId:activity.id,
-   answer:{question:activity.prompt,activityTitle:activity.title,verification:practical?"declaration-eleve":"simulation-corrigee",state:session4AnswerState(draft),completed:correct},
-   isCorrect:practical?undefined:correct,score:correct?100:session4DraftPercent(activity,draft)??0,maxScore:100,
+   answer:{question:activity.prompt,activityTitle:activity.title,verification:"simulation-corrigee",state:session4AnswerState(draft),completed:correct},
+   isCorrect:correct,score:correct?100:session4DraftPercent(activity,draft)??0,maxScore:100,
   });
  }
  const feedback=draft.result
-  ? practical?t("Compte rendu enregistré. L’enseignant pourra vérifier l’échange.","تم حفظ التقرير. يمكن للأستاذ التحقق من التبادل.")
-    :t("Mission validée. Explique au copilote ce qui a fait fonctionner ton réseau.","تم التحقق من المهمة. اشرح لزميلك ما جعل الشبكة تعمل.")
-  : practical?t("Complète les quatre étapes, les deux IPv4 différentes et la phrase de retour.","أكمل الخطوات الأربع وعنواني IPv4 المختلفين وعبارة الرد.")
-    :t(`${criteria.filter(Boolean).length} critères réussis sur ${criteria.length}. Reprends les tâches en cours et refais le test.`,`تحقق ${criteria.filter(Boolean).length} من أصل ${criteria.length} معايير. أكمل المهام وأعد الاختبار.`);
+  ? t("Exercice réussi. Compare ton résultat avec ton binôme.","نجحت في التمرين. قارن نتيجتك مع زميلك.")
+  : t(`${criteria.filter(Boolean).length} critères réussis sur ${criteria.length}. Vérifie tes réponses.`,`تحقق ${criteria.filter(Boolean).length} من أصل ${criteria.length} معايير. تحقق من إجاباتك.`);
 
  if(!persistent.ready)return <div className="s4-loading"><LoaderCircle className="spin"/><Text value={t("Recherche du travail sauvegardé…","البحث عن العمل المحفوظ…")}/></div>;
  return <div className="s4-workshop s4-panel-enter" ref={anchor}>
@@ -136,7 +133,7 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
     </header>
     <Session4ActivityPlayer key={activity.id} activity={activity} draft={draft} onChange={change}/>
     <div className="s4-check-area">
-     <button type="button" className="s4-primary" onClick={check}><ClipboardCheck size={19}/><Text value={practical?t("Enregistrer notre compte rendu","حفظ تقرير إنجازنا"):t("Vérifier mon travail","التحقق من عملي")}/></button>
+     <button type="button" className="s4-primary" onClick={check}><ClipboardCheck size={19}/><Text value={t("Vérifier mon travail","التحقق من عملي")}/></button>
      {draft.result!==null&&<p role="status" className={draft.result?"s4-feedback success":"s4-feedback retry"}><Text value={feedback}/></p>}
     </div>
    </article>

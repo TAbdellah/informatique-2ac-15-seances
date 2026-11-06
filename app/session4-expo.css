@@ -162,3 +162,80 @@
 @media (prefers-reduced-motion: reduce) {
   .session4-lesson .expo-packet { display: none; }
 }
+
+.session4-lesson .expo-stock-name { margin: 0 0 9px; color: #164c43; font-size: .98rem; font-weight: 800; }
+.session4-lesson .expo-answer-field { display: grid; gap: 5px; min-width: 0; font-size: .9rem; font-weight: 700; }
+.session4-lesson .expo-answer-trigger {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  width: 100%; min-height: 42px; padding: 7px 9px;
+  border: 1px solid #b8d1ca; border-radius: 8px; color: #123144; background: #fff;
+  font-size: .89rem; font-weight: 600; text-align: left;
+}
+.session4-lesson .expo-answer-trigger > svg { flex-shrink: 0; }
+.session4-lesson .expo-answer-trigger[data-placeholder] { color: #587269; }
+.session4-lesson .expo-answer-trigger:disabled { opacity: .55; cursor: default; }
+.session4-lesson .expo-answer-menu {
+  z-index: 1100; width: var(--radix-select-trigger-width);
+  min-width: min(210px, calc(100vw - 20px)); max-width: calc(100vw - 20px);
+  max-height: var(--radix-select-content-available-height); overflow: auto;
+  padding: 4px; border: 1px solid #b8d1ca; border-radius: 9px;
+  color: #16352f; background: #fff; box-shadow: 0 9px 28px #10283c32;
+}
+.session4-lesson .expo-answer-option {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  min-height: 37px; padding: 7px 8px; border-radius: 5px; cursor: pointer; outline: 0;
+  font-size: .86rem; line-height: 1.35; overflow-wrap: anywhere;
+}
+.session4-lesson .expo-answer-option[data-highlighted] { color: #104b3d; background: #e1f4eb; }
+.session4-lesson .expo-answer-option > svg { flex-shrink: 0; }
+
+.session4-lesson .expo-single-plan .expo-board-scroll,
+.session4-lesson .expo-patch .expo-board-scroll { border-radius: 12px; }
+.session4-lesson .expo-patch .expo-board { height: clamp(140px,22vw,215px); min-width: 350px; }
+.session4-lesson .expo-patch-ports { padding: 9px; margin: 10px 0; border: 1px solid #c8ddd4; border-radius: 10px; }
+.session4-lesson .expo-patch-ports legend { padding: 0 5px; font-size: .85rem; font-weight: 800; }
+.session4-lesson .expo-patch-ports > div { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 7px; }
+.session4-lesson .expo-patch-ports button {
+  display: grid; place-items: center; gap: 2px; min-width: 0; min-height: 65px;
+  border: 1px solid #b9d1c9; border-radius: 8px; padding: 5px;
+  background: #f3faf7; color: #1d5047; text-align: center;
+}
+.session4-lesson .expo-patch-ports button[data-connected="true"] { border-color: #1b7965; background: #d9f2e7; }
+.session4-lesson .expo-patch-ports button small { font-size: .67rem; }
+.session4-lesson .expo-exchange,
+.session4-lesson .expo-loan { margin-top: 18px; }
+.session4-lesson .expo-explorer-tabs,
+.session4-lesson .expo-explorer-actions,
+.session4-lesson .expo-explorer-hosts { display: flex; flex-wrap: wrap; gap: 8px; }
+.session4-lesson .expo-explorer-tabs { margin-bottom: 10px; }
+.session4-lesson .expo-explorer-tabs button {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 42px;
+  padding: 7px 10px; border: 1px solid #b9d1c9; border-radius: 8px;
+  color: #195c4e; background: #fff; font-size: .85rem; font-weight: 700;
+}
+.session4-lesson .expo-explorer-tabs button[aria-pressed="true"],
+.session4-lesson .expo-exchange .expo-station button[aria-pressed="true"] { border-color: #1e7b67; background: #dff4ea; }
+.session4-lesson .expo-exchange .expo-station > header { flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid #c8ddd4; }
+.session4-lesson .expo-exchange .expo-station header img,
+.session4-lesson .expo-explorer-hosts img { height: 32px; width: 40px; object-fit: contain; }
+.session4-lesson .expo-explorer-address { color: #20584c; font-size: .86rem; }
+.session4-lesson .expo-invitation {
+  display: grid; gap: 8px; padding: 10px; border: 1px solid #c8ddd4; border-radius: 9px; background: #fff;
+}
+.session4-lesson .expo-invitation button { justify-self: start; }
+.session4-lesson .expo-invitation-text {
+  display: grid; gap: 5px; padding: 9px; border-radius: 6px; background: #fff4d5; color: #59481d;
+}
+.session4-lesson .expo-loan-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 12px; }
+.session4-lesson .expo-loan-ledger { padding: 12px; border: 1px solid #c7dcd4; border-radius: 12px; background: #eff8f4; }
+.session4-lesson .expo-loan-ledger > span { font-size: .72rem; font-weight: 800; letter-spacing: .07em; color: #215b50; }
+.session4-lesson .expo-loan-ledger dl { margin: 8px 0; }
+.session4-lesson .expo-loan-ledger dl div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 7px 0; border-bottom: 1px solid #c7dcd4; font-size: .88rem; }
+.session4-lesson .expo-loan-ledger p,
+.session4-lesson .expo-loan-photo { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: .86rem; }
+.session4-lesson .expo-loan-photo { position: relative; justify-content: center; }
+.session4-lesson .expo-loan-photo code { padding: 3px 6px; border-radius: 5px; background: #fff2c9; color: #584518; }
+@media (max-width: 620px) {
+  .session4-lesson .expo-patch-ports > div { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .session4-lesson .expo-loan-grid { grid-template-columns: 1fr; }
+}

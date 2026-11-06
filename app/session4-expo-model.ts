@@ -1,4 +1,4 @@
-import { s4t as t, session4Equipment, type Session4Activity } from "./session4-data.ts";
+import { s4t as t, session4Equipment, session4NetworkEquipment, type Session4Activity } from "./session4-data.ts";
 import type { Session4Draft } from "./session4-model.ts";
 
 export const expoSSID = "CLUB-EXPO";
@@ -30,8 +30,9 @@ export const expoTopologyNames = [
   { id: "bus", label: t("Bus", "خطية") },
   { id: "ring", label: t("Anneau", "حلقية") },
 ];
+export type ExpoTopology = "star" | "bus" | "ring";
 type Plan = {
-  id: "A" | "B" | "C"; topology: string; nodes: PlanNode[]; existing: PlanEdge[];
+  id: "A" | "B" | "C"; topology: ExpoTopology; nodes: PlanNode[]; existing: PlanEdge[];
   options: { edge: PlanEdge; label: string }[]; missing: number; trunk?: [ExpoPoint, ExpoPoint];
 };
 const busNodes = planPCs.map((node, i) => ({ ...node, x: 14 + 24 * i, y: 26 }));
@@ -52,6 +53,39 @@ export const expoPlans: Plan[] = [
     options: [{ edge: ["p4", "p1"], label: "PC-4 ↔ PC-1" }, { edge: ["p4", "p2"], label: "PC-4 ↔ PC-2" }, { edge: ["p3", "p1"], label: "PC-3 ↔ PC-1" }],
   },
 ];
+
+export function expoPlanFor(topology: ExpoTopology) {
+  return expoPlans.find(plan => plan.topology === topology)!;
+}
+
+export const expoPatchPorts = Array.from({ length: 8 }, (_,i) => String(i+1));
+export function expoPatchConnected(draft: Session4Draft) {
+  const { pc21, pc22 } = draft.selections;
+  return pc21 !== pc22 && expoPatchPorts.includes(pc21) && expoPatchPorts.includes(pc22);
+}
+
+export const expoInvitation = "Invitation.txt";
+export const expoInviteCode = "STAND-04";
+export function expoInvitationOpened(draft: Session4Draft) {
+  return expoShareReady(draft) && draft.selections.remote === "PC-21" && draft.opened;
+}
+
+export const expoLoan = {
+  label: "PORTABLE-23",
+  address: "192.168.10.23",
+  registered: [
+    { name: "PC-21", address: "192.168.10.21" },
+    { name: "PC-22", address: "192.168.10.22" },
+  ],
+};
+export function expoLoanResult(draft: Session4Draft) {
+  const { loanName, loanAddress, loanWifi } = draft.selections;
+  if (!loanName || !loanAddress || !loanWifi) return "missing";
+  if (loanWifi !== expoSSID) return "wifi";
+  if (loanAddress !== expoLoan.address) return "address";
+  if (loanName !== expoLoan.label) return "name";
+  return "received";
+}
 
 export type ExpoNetworkKind = "wired" | "wireless" | "mixed" | "diagnostic";
 export type ExpoDevice = ExpoPoint & { id: string; name: string; photo?: string; port?: boolean; wifi?: boolean; slot?: "switch" | "ap" };
@@ -153,6 +187,38 @@ export function expoPathCorrect(path: string) {
 export function expoActivityChecks(activity: Session4Activity, d: Session4Draft): boolean[] {
   const s = d.selections;
   switch (activity.kind) {
+    case "names":
+    case "roles": {
+      const prefix = activity.kind === "names" ? "name" : "role";
+      return session4NetworkEquipment.map(e => s[`${prefix}-${e.id}`] === e.id);
+    }
+    case "star":
+    case "bus":
+    case "ring": {
+      const plan = expoPlanFor(activity.kind);
+      return [s[`wire-${plan.id}`] === String(plan.missing), s[`topo-${plan.id}`] === plan.topology];
+    }
+    case "patch":
+      return [
+        expoPatchPorts.includes(s.pc21),
+        expoPatchPorts.includes(s.pc22) && s.pc21 !== s.pc22,
+        d.tested && d.delivered && expoPatchConnected(d),
+      ];
+    case "exchange":
+      return [
+        expoFolderReady(d),
+        s.file === "placed" && expoFolderReady(d),
+        expoShareReady(d) && d.permission === "read",
+        expoInvitationOpened(d),
+        expoInvitationOpened(d) && s.read === "yes" && s.code?.trim().toUpperCase() === expoInviteCode,
+      ];
+    case "loan":
+      return [
+        s.loanName === expoLoan.label,
+        s.loanAddress === expoLoan.address,
+        s.loanWifi === expoSSID,
+        d.tested && d.delivered && expoLoanResult(d) === "received",
+      ];
     case "inventory":
       return session4Equipment.flatMap(e => [s[`name-${e.id}`] === e.id, s[`role-${e.id}`] === e.id]);
     case "media":

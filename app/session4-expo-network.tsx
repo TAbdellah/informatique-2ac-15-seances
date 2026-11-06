@@ -4,12 +4,13 @@ import { useState } from "react";
 import { ArrowRight, Cable, Check, CircleHelp, FileText, Radio, Send, Wifi, X } from "lucide-react";
 import { publicAsset } from "../lib/public-assets";
 import { Session3Text as Text } from "./session3-translation";
+import { ExpoAnswerDropdown } from "./session4-answer-dropdown";
 import { s4t as t } from "./session4-data";
 import type { Session4Draft } from "./session4-model";
 import {
-  expoDeviceType, expoHasPort, expoKit, expoLinks, expoNetworkWires, expoNetworks, expoPlans,
+  expoDeviceType, expoHasPort, expoKit, expoLinks, expoNetworkWires, expoNetworks, expoPatchConnected, expoPatchPorts, expoPlanFor,
   expoRoute, expoSSID, expoSSIDAt, expoTopologyNames, expoWire,
-  type ExpoDevice, type ExpoNetworkKind, type ExpoPoint,
+  type ExpoDevice, type ExpoNetworkKind, type ExpoPoint, type ExpoTopology,
 } from "./session4-expo-model";
 
 type BoardNode = ExpoPoint & {
@@ -49,13 +50,12 @@ function ExpoBoard({ nodes, lines, active, selected, onPort }: {
   </div>;
 }
 
-export function ExpoTopologyLab({ draft, onChange }: {
-  draft: Session4Draft; onChange: (patch: Partial<Session4Draft>) => void;
+export function ExpoTopologyLab({ topology, draft, onChange }: {
+  topology: ExpoTopology; draft: Session4Draft; onChange: (patch: Partial<Session4Draft>) => void;
 }) {
-  const [tab, setTab] = useState(0);
-  const plan = expoPlans[tab];
+  const plan = expoPlanFor(topology);
   const selected = draft.selections[`wire-${plan.id}`] ?? "";
-  const topology = draft.selections[`topo-${plan.id}`] ?? "";
+  const selectedTopology = draft.selections[`topo-${plan.id}`] ?? "";
   const get = (id: string) => plan.nodes.find(node => node.id === id)!;
   const lines: BoardLine[] = plan.existing.map(([a,b]) => ({ from:get(a), to:get(b) }));
   if (plan.trunk) lines.push({ from: plan.trunk[0], to: plan.trunk[1] });
@@ -66,26 +66,78 @@ export function ExpoTopologyLab({ draft, onChange }: {
   function choose(field: string, value: string) {
     onChange({ selections: { ...draft.selections, [`${field}-${plan.id}`]: value } });
   }
-  return <div className="expo-lab">
-    <div className="expo-plan-tabs" role="group" aria-label="Plans à compléter">
-      {expoPlans.map((item, i) => <button key={item.id} type="button" aria-pressed={tab === i} onClick={() => setTab(i)}>
-        <Text value={t(`Plan ${item.id}`,`المخطط ${item.id}`)} />
-        {draft.selections[`wire-${item.id}`] && draft.selections[`topo-${item.id}`] && <Check size={16} aria-label="Réponse saisie" />}
-      </button>)}
-    </div>
+  return <div className="expo-lab expo-single-plan">
     <ExpoBoard nodes={plan.nodes} lines={lines} />
     <div className="expo-plan-answers">
       <fieldset><legend><Text value={t("1 · Quel trait faut-il ajouter ?", "1 · ما الخط الذي يجب إضافته؟")} /></legend>
         {plan.options.map((option, i) => <label key={option.label}><input type="radio" name={`plan-${plan.id}`} checked={selected === String(i)} onChange={() => choose("wire",String(i))} /> {option.label}</label>)}
       </fieldset>
-      <label><Text value={t("2 · Quelle est cette topologie ?", "2 · ما اسم هذه البنية؟")} />
-        <select aria-label="Nom de la topologie" value={topology} onChange={event => choose("topo",event.target.value)}>
-          <option value="">Choisir…</option>
-          {expoTopologyNames.map(item => <option key={item.id} value={item.id}>{item.label.fr} · {item.label.ar}</option>)}
-        </select>
-      </label>
+      <ExpoAnswerDropdown label={t("2 · Nom de la topologie","2 · اسم البنية")} name="Nom de la topologie"
+        value={selectedTopology} options={expoTopologyNames} onChange={value => choose("topo",value)} />
     </div>
     <p className="s4-help"><Text value={t("Le trait jaune montre la liaison que tu proposes.", "يبين الخط الأصفر الوصلة التي تقترحها.")} /></p>
+  </div>;
+}
+
+const patchPCs = [
+  { id:"pc21", name:"PC-21", photo:photo("ordinateur-bureau"), x:17,y:50,port:true },
+  { id:"pc22", name:"PC-22", photo:photo("ordinateur-bureau"), x:83,y:50,port:true },
+];
+const patchSwitch = { id:"switch", name:"Commutateur", photo:photo("commutateur"), x:50,y:50 };
+const patchNodes = [patchPCs[0],patchSwitch,patchPCs[1]];
+
+export function ExpoPatchLab({ draft,onChange }:{
+  draft:Session4Draft; onChange:(patch:Partial<Session4Draft>)=>void;
+}) {
+  const [selected,setSelected]=useState("");
+  const [notice,setNotice]=useState<ReturnType<typeof t>|null>(null);
+  const ports = draft.selections;
+  const active = expoPatchConnected(draft);
+  const lines = patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>({from:pc,to:patchSwitch}));
+  function bind(port: string){
+    if(!selected){
+      setNotice(t("Choisis d’abord la prise RJ45 d’un PC sur le plan.","اختر أولًا منفذ RJ45 لأحد الحاسوبين على المخطط."));
+      return;
+    }
+    if(patchPCs.some(pc=>pc.id!==selected&&ports[pc.id]===port)){
+      setNotice(t("Ce port est occupé. Choisis un port libre.","هذا المنفذ مستعمل. اختر منفذًا شاغرًا."));
+      return;
+    }
+    onChange({selections:{...ports,[selected]:port},tested:false,delivered:false});
+    setSelected("");
+    setNotice(null);
+  }
+  return <div className="expo-lab expo-patch">
+    <ExpoBoard nodes={patchNodes} lines={lines} active={draft.tested&&draft.delivered&&active?patchNodes:undefined}
+      selected={selected} onPort={id=>{setSelected(id);setNotice(null);}}/>
+    <div className="expo-patch-panel">
+      <img src={publicAsset(photo("cable-rj45"))} alt=""/>
+      <p aria-live="polite"><Text value={notice??(selected
+        ? t(`${patchPCs.find(pc=>pc.id===selected)?.name} sélectionné. Clique sur un port libre du commutateur.`,"تم تحديد الحاسوب. انقر على منفذ شاغر في المبدل.")
+        : t("Choisis la prise d’un PC sur le plan, puis un port du commutateur.","اختر منفذ حاسوب على المخطط ثم منفذًا في المبدل."))}/></p>
+    </div>
+    <fieldset className="expo-patch-ports"><legend><Text value={t("Ports RJ45 du commutateur","منافذ RJ45 للمبدل")}/></legend>
+      <div>{expoPatchPorts.map(port=>{
+        const occupant=patchPCs.find(pc=>ports[pc.id]===port);
+        return <button type="button" key={port} data-connected={!!occupant}
+          aria-label={`Port ${port} · ${occupant?.name??"libre"}`} onClick={()=>bind(port)}>
+          <Cable size={17} aria-hidden="true"/><strong>{port}</strong><small>{occupant?.name??"Libre"}</small>
+        </button>;
+      })}</div>
+    </fieldset>
+    <div className="expo-cables">{patchPCs.filter(pc=>ports[pc.id]).map(pc=><button type="button" key={pc.id} onClick={()=>{
+      onChange({selections:{...ports,[pc.id]:""},tested:false,delivered:false});setSelected("");setNotice(null);
+    }}><X size={14} aria-hidden="true"/><Text value={t(`Débrancher ${pc.name}`,`فصل كابل ${pc.name}`)}/></button>)}</div>
+    <div className="expo-test">
+      <button className="s4-primary" type="button" onClick={()=>onChange({tested:true,delivered:active})}>
+        <Send size={17} aria-hidden="true"/><Text value={t("Envoyer la fiche à PC-22","إرسال البطاقة إلى PC-22")}/>
+      </button>
+      {draft.tested&&<div className={`expo-delivery ${draft.delivered?"arrived":""}`} role="status">
+        <FileText size={22} aria-hidden="true"/>
+        <Text value={draft.delivered?t("Fiche reçue par PC-22 via le commutateur.","توصل PC-22 بالبطاقة عبر المبدل."):
+          t("La fiche attend. Vérifie les deux câbles RJ45.","البطاقة في الانتظار. تحقق من كابلي RJ45.")}/>
+      </div>}
+    </div>
   </div>;
 }
 
@@ -226,13 +278,12 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
         </div>
       </div>}
     </div>
-    {diagnostic && <label className="expo-diagnosis"><Text value={t("Pourquoi l’envoi échouait-il ?","لماذا تعذر الإرسال؟")} />
-      <select aria-label="Cause de la panne" value={draft.selections.cause ?? ""} onChange={e => onChange({selections:{ ...draft.selections,cause:e.target.value }})}>
-        <option value="">Choisir l’explication…</option>
-        <option value="internet">Il fallait rétablir Internet.</option>
-        <option value="uplink">Le point d’accès n’était pas relié au commutateur.</option>
-        <option value="screen">L’écran de la TV était trop petit.</option>
-      </select>
-    </label>}
+    {diagnostic && <div className="expo-diagnosis"><ExpoAnswerDropdown label={t("Pourquoi l’envoi échouait-il ?","لماذا تعذر الإرسال؟")} name="Cause de la panne"
+      value={draft.selections.cause ?? ""} onChange={value => onChange({selections:{ ...draft.selections,cause:value }})}
+      options={[
+        {id:"internet",label:t("Il fallait rétablir Internet.","كان يلزم استعادة الإنترنت.")},
+        {id:"uplink",label:t("Le point d’accès n’était pas relié au commutateur.","لم تكن نقطة الولوج متصلة بالمبدل.")},
+        {id:"screen",label:t("L’écran de la TV était trop petit.","كانت شاشة التلفاز صغيرة جدًا.")},
+      ]}/></div>}
   </div>;
 }
