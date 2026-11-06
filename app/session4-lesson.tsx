@@ -46,6 +46,24 @@ function Mission({onStart}:{onStart:()=>void}){
  </div>;
 }
 
+const recap = [
+ {icon:Network,title:t("Relier les postes","ربط الحواسيب"),text:t("Le commutateur relie les postes câblés. Sur le même réseau local, les postes peuvent échanger même si Internet est coupé.","يربط المبدل الحواسيب السلكية. يمكن لأجهزة الشبكة المحلية أن تتبادل المعلومات حتى عند انقطاع الإنترنت.")},
+ {icon:Monitor,title:t("Identifier un poste","تحديد هوية الحاسوب"),text:t("ipconfig affiche l’adresse IPv4. hostname affiche le nom du poste.","يعرض ipconfig عنوان IPv4، ويعرض hostname اسم الحاسوب.")},
+ {icon:Target,title:t("Tester la liaison","اختبار الاتصال"),text:t("ping permet de tester si un poste répond. Vérifie le câble si le test échoue, puis refais le même test.","يختبر ping ما إذا كان الحاسوب يستجيب. تحقق من الكابل عند الفشل ثم كرر الاختبار نفسه.")},
+ {icon:Folder,title:t("Partager avec le bon droit","المشاركة بالصلاحية المناسبة"),text:t("Lecture permet d’ouvrir et de copier. Lecture et écriture permet aussi de déposer un fichier dans le dossier partagé.","تتيح القراءة فتح الملف ونسخه. وتتيح القراءة والكتابة أيضا إيداع ملف داخل المجلد المشترك.")},
+ {icon:Send,title:t("Confirmer un échange","تأكيد التبادل"),text:t("Vérifie le destinataire, joins le fichier et ouvre la pièce jointe reçue avant de répondre « Reçu ».","تحقق من المستلم وأرفق الملف وافتح المرفق المتوصل به قبل الرد «تم التوصل».")},
+];
+
+function NetworkRecap(){
+ return <section className="s4-network-recap">
+  <h3><Text value={t("Les idées à retenir","الأفكار الأساسية")}/></h3>
+  <div className="s4-recap-grid">{recap.map(({icon:Icon,title,text})=><article key={title.fr}>
+   <Icon size={23} aria-hidden="true"/><h4><Text value={title}/></h4><p><Text value={text}/></p>
+  </article>)}</div>
+  <p className="s4-recap-pair"><Users size={19} aria-hidden="true"/><Text value={t("En binôme, expliquez le chemin du fichier entre les deux postes et dites quel droit suffit pour le lire.","في الثنائي، اشرحا مسار الملف بين الحاسوبين وحددا الصلاحية الكافية لقراءته.")}/></p>
+ </section>;
+}
+
 function Workshop({participantId,onRecord,onTrace,onEvaluate}:{participantId:string;onRecord:Props["onRecordSubmission"];onTrace:()=>void;onEvaluate:()=>void}){
  const teacher=useTeacherCourse();
  const initial=useMemo(()=>initialSession4Workshop(readSnapshot(participantId,4,"workshop")?.data),[participantId]);
@@ -71,21 +89,17 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{participantId:str
  return <div className="s4-workshop s4-panel-enter" ref={anchor}><TeacherExerciseNavigator index={work.summary?session4Activities.length:work.activityIndex} titles={[...session4Activities.map(a=>a.title.fr),workshopSummaryTitle.fr]} onGo={go}/>
   {work.summary?<WorkshopSummary sessionId={4} participantId={participantId} state={work}
     onBack={()=>go(work.activityIndex)} onResume={go} onTrace={onTrace} onEvaluate={onEvaluate}>
-    <div className="s4-workshop-summary">
-      <h3><Text value={t("Les idées à retenir","الأفكار الأساسية")}/></h3>
-      <ul>{[
-        t("Reconnaître le réseau et ses équipements.","التعرف على الشبكة وأجهزتها."),
-        t("Relever une IPv4 et tester une réponse avec ping.","تحديد IPv4 واختبار الاستجابة باستعمال ping."),
-        t("Expliquer le chemin d’un partage et les droits d’accès.","شرح مسار المشاركة وصلاحيات الولوج."),
-        t("Vérifier le destinataire et la réception du fichier.","التحقق من المستلم والتوصل السليم بالملف."),
-      ].map(v=><li key={v.fr}><CheckCircle2/><Text value={v}/></li>)}</ul>
-    </div>
+    <NetworkRecap />
   </WorkshopSummary>:<>
    <div className="workshop-summary-entry"><WorkshopSummaryLink onClick={()=>go(session4Activities.length)}/></div>
-   <div className="s4-activity-topline"><span>ACTIVITÉ {String(work.activityIndex+1).padStart(2,"0")} / {session4Activities.length}</span><strong>{activity.minutes} min</strong><span>{activity.kind==="practice"?"TP SUR LES VRAIS POSTES":"OBSERVATION · ENTRAÎNEMENT"}</span></div>
+   <div className="s4-activity-topline"><span>EXERCICE {String(work.activityIndex+1).padStart(2,"0")} / {session4Activities.length}</span><strong>{activity.minutes} min</strong><span>{activity.kind==="practice"?"TP SUR LES VRAIS POSTES":"OBSERVATION · ENTRAÎNEMENT"}</span></div>
    <article className="s4-activity"><header><h2><Text value={activity.title}/></h2><div className="s4-instruction"><span>CONSIGNE · التعليمة</span><p><Text value={activity.prompt}/></p>{activity.tasks.length>0&&<ol>{activity.tasks.map(task=><li key={task.fr}><Text value={task}/></li>)}</ol>}</div></header><Session4ActivityPlayer activity={activity} draft={draft} onChange={change}/>
-    <div className="s4-check-area"><button type="button" className="s4-primary" onClick={check}><ClipboardCheck size={19}/><Text value={activity.kind==="practice"?t("Enregistrer notre compte rendu","حفظ تقرير إنجازنا"):t("Vérifier mon travail","التحقق من عملي")}/></button>{draft.result!==null&&<p role="status" className={draft.result?"s4-feedback success":"s4-feedback retry"}><Text value={draft.result?activity.kind==="practice"?t("Compte rendu enregistré. L’enseignant pourra vérifier l’échange réel.","حفظ التقرير. يمكن للأستاذ التحقق من التبادل الحقيقي."):t("C’est réussi. Explique ton résultat à ton binôme.","إنجاز ناجح. اشرح النتيجة لزميلك."):activity.kind==="practice"?t("Complète les quatre étapes, les deux IPv4 différentes et la phrase du fichier Retour.txt.","أكمل المراحل الأربع وعنواني IPv4 المختلفين وعبارة ملف Retour.txt."):t("Il reste un point à corriger. Relis les tâches et les observations, puis réessaie.","بقيت نقطة للتصحيح. أعد قراءة المهام والملاحظات ثم حاول مجددا.")}/></p>}</div>
-   </article><nav className="s4-exercise-nav" aria-label="Navigation dans l’atelier"><button type="button" disabled={work.activityIndex===0} onClick={()=>go(work.activityIndex-1)}><ArrowLeft size={18}/><Text value={t("Précédent","السابق")}/></button><span>{work.activityIndex+1} / {session4Activities.length}{teacher&&<small>Professeur · navigation libre</small>}</span><button type="button" className="s4-primary" disabled={!teacher&&!work.completedIds.includes(activity.id)} onClick={()=>go(work.activityIndex+1)}><Text value={work.activityIndex===session4Activities.length-1?workshopSummaryTitle:t("Activité suivante","النشاط التالي")}/><ArrowRight size={18}/></button></nav>
+    <div className="s4-check-area"><button type="button" className="s4-primary" onClick={check}><ClipboardCheck size={19}/><Text value={activity.kind==="practice"?t("Enregistrer notre compte rendu","حفظ تقرير إنجازنا"):t("Vérifier mon travail","التحقق من عملي")}/></button>{draft.result!==null&&<p role="status" className={draft.result?"s4-feedback success":"s4-feedback retry"}><Text value={draft.result?activity.kind==="practice"?t("Compte rendu enregistré. L’enseignant pourra vérifier l’échange réel.","حفظ التقرير. يمكن للأستاذ التحقق من التبادل الحقيقي."):t("C’est réussi. Explique ton résultat à ton binôme.","إنجاز ناجح. اشرح النتيجة لزميلك."):activity.kind==="practice"?t("Complète les quatre étapes, les deux IPv4 différentes et la phrase du fichier Retour.txt.","أكمل المراحل الأربع وعنواني IPv4 المختلفين وعبارة ملف Retour.txt."):activity.kind==="identity"&&draft.simulator?.completed
+     ?t("Vérifie l’adresse IPv4 et le nom que tu as recopiés.","تحقق من عنوان IPv4 والاسم اللذين نقلتهما.")
+     :draft.simulator
+      ?t("Reprends l’étape indiquée dans le laboratoire. Les étapes faites sont conservées.","استأنف الخطوة المشار إليها في المختبر. تحفظ الخطوات المنجزة.")
+      :t("Relis la consigne et termine les tâches demandées, puis vérifie ton travail.","أعد قراءة التعليمة وأكمل المهام المطلوبة ثم تحقق من عملك.")}/></p>}</div>
+   </article><nav className="s4-exercise-nav" aria-label="Navigation dans l’atelier"><button type="button" disabled={work.activityIndex===0} onClick={()=>go(work.activityIndex-1)}><ArrowLeft size={18}/><Text value={t("Précédent","السابق")}/></button><span>{work.activityIndex+1} / {session4Activities.length}{teacher&&<small>Professeur · navigation libre</small>}</span><button type="button" className="s4-primary" disabled={!teacher&&!work.completedIds.includes(activity.id)} onClick={()=>go(work.activityIndex+1)}><Text value={work.activityIndex===session4Activities.length-1?workshopSummaryTitle:t("Exercice suivant","التمرين التالي")}/><ArrowRight size={18}/></button></nav>
   </>}
  </div>;
 }

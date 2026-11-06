@@ -3,34 +3,34 @@
  'use strict';
  const phrase='Bonjour le club !';
  const missions={
-  identity:{title:'Retrouver l’identité du poste',ar:'تحديد هوية الحاسوب',steps:[
-   ['Sur PC-21, exécute ipconfig.','على PC-21، نفذ ipconfig.','Ouvre « Invite de commandes », écris ipconfig puis appuie sur Entrée.'],
-   ['Exécute hostname pour lire le nom du poste.','نفذ hostname لقراءة اسم الحاسوب.','Garde la même fenêtre : la commande précédente reste visible.']
+  identity:{title:'Identifier PC-21',ar:'تحديد هوية PC-21',steps:[
+   ['Relever l’adresse IPv4','قراءة عنوان IPv4','Tape ipconfig puis clique sur Exécuter. Recopie la valeur de la ligne « Adresse IPv4 » sous le simulateur.','اكتب ipconfig ثم انقر تنفيذ. انقل قيمة سطر «عنوان IPv4» أسفل المحاكي.'],
+   ['Relever le nom du poste','قراءة اسم الحاسوب','Tape hostname puis clique sur Exécuter. Recopie le nom affiché sous le simulateur.','اكتب hostname ثم انقر تنفيذ. انقل الاسم الظاهر أسفل المحاكي.']
   ]},
-  ping:{title:'Faire répondre le voisin',ar:'الحصول على استجابة الحاسوب المجاور',steps:[
-   ['Sur PC-21, teste ping 192.168.10.22 : le premier essai doit échouer.','على PC-21، اختبر ping 192.168.10.22: يجب أن تفشل المحاولة الأولى.','Le PC-22 est débranché au début. Utilise l’invite de commandes du PC-21.'],
-   ['Ouvre « Le réseau » et rebranche le câble du PC-22.','افتح «الشبكة» وأعد توصيل كابل PC-22.','Le bouton sous la photo du PC-22 change l’état de son câble.'],
-   ['Reviens sur PC-21 et refais le même ping : quatre réponses sont attendues.','عد إلى PC-21 وكرر ping نفسه: تنتظر أربع استجابات.','Une réponse indique que ce poste est joignable dans cette simulation.']
+  ping:{title:'Vérifier la connexion',ar:'التحقق من الاتصال',steps:[
+   ['Tester avant la réparation','الاختبار قبل الإصلاح','Tape ping 192.168.10.22 sur PC-21. Observe le délai dépassé et les 4 paquets perdus.','اكتب ping 192.168.10.22 على PC-21. لاحظ انتهاء المهلة وفقدان 4 حزم.'],
+   ['Rebrancher PC-22','إعادة توصيل PC-22','Clique sur « Rebrancher le câble » sous PC-22. Observe le changement de la liaison.','انقر «إعادة توصيل الكابل» أسفل PC-22. لاحظ تغير الاتصال.'],
+   ['Refaire le même test','إعادة الاختبار نفسه','Retape ping 192.168.10.22. Vérifie que PC-22 répond et que 4 paquets sont reçus.','أعد كتابة ping 192.168.10.22. تحقق من استجابة PC-22 وتلقي 4 حزم.']
   ]},
-  sharing:{title:'Partager puis récupérer le fichier',ar:'مشاركة الملف ثم الحصول عليه',steps:[
-   ['Sur PC-21, crée Club_reseau dans Documents et copie Bonjour.txt dedans.','على PC-21، أنشئ Club_reseau داخل Documents وانسخ Bonjour.txt إليه.','Explorateur → Documents → Nouveau dossier. Renomme-le Club_reseau. Copie Bonjour.txt, ouvre le dossier puis Colle.'],
-   ['Partage Club_reseau avec « Postes de la salle », en Lecture seule.','شارك Club_reseau مع «حواسيب القاعة» بصلاحية القراءة فقط.','Retourne dans Documents. Sélectionne le dossier, clique Partager, choisis les destinataires et le droit, puis Partager.'],
-   ['Sur PC-22, ouvre le partage et copie Bonjour.txt sur le Bureau.','على PC-22، افتح المجلد المشترك وانسخ Bonjour.txt إلى سطح المكتب.','Dans l’Explorateur : Réseau → PC-21 → Club_reseau. Sélectionne Bonjour.txt → Copier → Bureau → Coller.'],
-   ['Sur le Bureau du PC-22, ouvre Bonjour.txt et lis son contenu.','على سطح مكتب PC-22، افتح Bonjour.txt واقرأ محتواه.','Double-clique le fichier copié, ou sélectionne-le puis clique Ouvrir.'],
-   ['Sur PC-21, arrête le partage quand l’échange est terminé.','على PC-21، أوقف المشاركة بعد انتهاء التبادل.','Sélectionne Club_reseau dans Documents → Partager → Arrêter le partage. La copie du PC-22 reste disponible.']
+  sharing:{title:'Partager et récupérer Bonjour.txt',ar:'مشاركة Bonjour.txt والحصول عليه',steps:[
+   ['Préparer le fichier source','تحضير الملف الأصلي','Sélectionne Bonjour.txt et clique sur Copier. Ouvre Club_reseau, puis clique sur Coller.','حدد Bonjour.txt وانقر نسخ. افتح Club_reseau ثم انقر لصق.'],
+   ['Partager le dossier en lecture','مشاركة المجلد للقراءة','Dans le partage de Club_reseau, choisis « Postes de la salle » et « Lecture seule ». Valide avec Partager ou Enregistrer.','اختر «حواسيب القاعة» و«القراءة فقط» في مشاركة Club_reseau ثم انقر مشاركة أو حفظ.'],
+   ['Faire une copie sur PC-22','إنشاء نسخة على PC-22','Dans le dossier partagé, sélectionne Bonjour.txt et clique sur Copier. Ouvre le Bureau du PC-22 et clique sur Coller.','حدد Bonjour.txt في المجلد المشترك وانقر نسخ. افتح سطح مكتب PC-22 وانقر لصق.'],
+   ['Vérifier la copie','التحقق من النسخة','Sur le Bureau du PC-22, sélectionne Bonjour.txt et clique sur Ouvrir. Lis la phrase du fichier.','حدد Bonjour.txt على سطح مكتب PC-22 وانقر فتح. اقرأ العبارة داخل الملف.'],
+   ['Fermer le partage','إيقاف المشاركة','Sur PC-21, clique sur « Arrêter le partage ». Le PC-22 garde sa copie.','على PC-21، انقر «إيقاف المشاركة». يحتفظ PC-22 بنسخته.']
   ]},
-  messenger:{title:'Envoyer, recevoir et confirmer',ar:'الإرسال والتوصل والتأكيد',steps:[
-   ['Sur PC-21, envoie « Bonjour le club ! » à PC-22 avec Bonjour.txt en pièce jointe.','على PC-21، أرسل «Bonjour le club !» إلى PC-22 مع إرفاق Bonjour.txt.','Messagerie → Nouveau message. Vérifie À : PC-22, écris le message, choisis Bonjour.txt et clique Envoyer.'],
-   ['Sur PC-22, ouvre le message reçu dans la messagerie.','على PC-22، افتح الرسالة المتوصل بها داخل المراسلة.','Change de poste en haut, ouvre Messagerie puis le message de PC-21.'],
-   ['Enregistre la pièce jointe dans Téléchargements sur PC-22.','احفظ المرفق داخل Téléchargements على PC-22.','Dans le message reçu, clique « Enregistrer Bonjour.txt dans Téléchargements ».'],
-   ['Ouvre Bonjour.txt depuis Téléchargements sur PC-22.','افتح Bonjour.txt من Téléchargements على PC-22.','Ouvre l’Explorateur, clique Téléchargements puis ouvre Bonjour.txt.'],
-   ['Depuis PC-22, réponds « Reçu » à PC-21. Sur PC-21, lis cette réponse.','من PC-22، أجب «Reçu» على PC-21، ثم اقرأ الرد على PC-21.','Dans Nouveau message, choisis PC-21 et envoie Reçu. Reviens sur PC-21 et ouvre le message dans sa boîte de réception.']
+  messenger:{title:'Échanger dans la messagerie locale',ar:'التبادل في المراسلة المحلية',steps:[
+   ['Envoyer un fichier à PC-22','إرسال ملف إلى PC-22','Vérifie que le destinataire est PC-22. Écris « Bonjour le club ! », joins Bonjour.txt et clique sur Envoyer.','تحقق من أن المستلم هو PC-22. اكتب «Bonjour le club !» وأرفق Bonjour.txt ثم انقر إرسال.'],
+   ['Lire le message reçu','قراءة الرسالة المستلمة','Sur PC-22, clique sur le message de PC-21 dans la boîte de réception.','على PC-22، انقر على رسالة PC-21 في صندوق الوارد.'],
+   ['Enregistrer la pièce jointe','حفظ المرفق','Dans le message, clique sur « Enregistrer Bonjour.txt dans Téléchargements ».','انقر داخل الرسالة على «حفظ Bonjour.txt في التنزيلات».'],
+   ['Ouvrir le fichier enregistré','فتح الملف المحفوظ','Dans Téléchargements, sélectionne Bonjour.txt et clique sur Ouvrir. Lis la phrase.','حدد Bonjour.txt في التنزيلات وانقر فتح. اقرأ العبارة.'],
+   ['Confirmer la réception','تأكيد التوصل','Depuis PC-22, envoie « Reçu » à PC-21. Ouvre ensuite ce retour dans la boîte de PC-21.','من PC-22، أرسل «Reçu» إلى PC-21. افتح الرد بعد ذلك في صندوق وارد PC-21.']
   ]},
-  repair:{title:'Réparer un partage en lecture seule',ar:'إصلاح مشاركة تسمح بالقراءة فقط',steps:[
-   ['Sur PC-22, copie notes.txt puis essaie de le coller dans le partage Échange du PC-21.','على PC-22، انسخ notes.txt ثم حاول لصقه داخل المجلد المشترك Échange على PC-21.','Documents → notes.txt → Copier. Réseau → PC-21 → Échange → Coller. Observe le refus.'],
-   ['Sur PC-21, autorise Lecture et écriture pour le partage Échange.','على PC-21، اسمح بالقراءة والكتابة في مشاركة Échange.','Documents → sélectionne Échange → Partager → Lecture et écriture → Enregistrer.'],
-   ['Sur PC-22, colle à nouveau notes.txt dans Échange.','على PC-22، ألصق notes.txt مجددا داخل Échange.','Reviens dans le dossier partagé. Actualise si nécessaire, puis clique Coller.'],
-   ['Sur PC-21, ouvre notes.txt dans Documents / Échange pour vérifier la réception.','على PC-21، افتح notes.txt داخل Documents / Échange للتحقق من التوصل.','L’ordinateur source doit vérifier le fichier ajouté par son voisin.']
+  repair:{title:'Autoriser le dépôt du fichier',ar:'السماح بإيداع الملف',steps:[
+   ['Observer le refus','ملاحظة رفض الكتابة','Sur PC-22, sélectionne notes.txt et clique sur Copier. Ouvre Échange et clique sur Coller. Lis le message de refus.','على PC-22، حدد notes.txt وانقر نسخ. افتح Échange وانقر لصق. اقرأ رسالة الرفض.'],
+   ['Modifier le droit','تغيير الصلاحية','Sur PC-21, sélectionne « Lecture et écriture » pour Échange et clique sur Enregistrer.','على PC-21، اختر «القراءة والكتابة» للمجلد Échange وانقر حفظ.'],
+   ['Déposer le fichier','إيداع الملف','Sur PC-22, clique sur Coller dans Échange. Le fichier notes.txt est encore dans le presse-papiers.','على PC-22، انقر لصق داخل Échange. ما زال notes.txt في الحافظة.'],
+   ['Vérifier sur le poste source','التحقق على الحاسوب المصدر','Sur PC-21, ouvre notes.txt dans Documents / Échange et lis le début du fichier.','على PC-21، افتح notes.txt داخل Documents / Échange واقرأ بداية الملف.']
   ]}
  };
  function find(machine,path){

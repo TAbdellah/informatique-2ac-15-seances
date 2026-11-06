@@ -1,9 +1,10 @@
 "use client";
+import type {ReactNode} from "react";
 import {CloudOff,Send,Check,Monitor,Download,Users} from "lucide-react";
 import {Session3Text as Text} from "./session3-translation";
 import {publicAsset} from "../lib/public-assets";
 import {s4t as t,session4Equipment,type Session4Activity} from "./session4-data";
-import type {Session4Draft} from "./session4-model";
+import {isPrivateIPv4,type Session4Draft} from "./session4-model";
 import Session4Simulator from "./session4-simulator";
 import {Session4Network,Session4NetworkBuilder} from "./session4-network";
 export {Session4Network} from "./session4-network";
@@ -17,19 +18,92 @@ export function Session4Topology({kind}:{kind:"star"|"bus"|"ring"}){
   {positions.map(([x,y],i)=><image key={i} href={publicAsset("session4/images/ordinateur-bureau.webp")} x={x-25} y={y-20} width="50" height="40"/>)}
  </svg>;
 }
-function downloadExample(){const url=URL.createObjectURL(new Blob(["Bonjour le club !\nCe fichier sert au TP de réseau local.\n"],{type:"text/plain;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="Bonjour.txt";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function downloadExample(file: "Bonjour.txt" | "Retour.txt") {
+ const content=file==="Bonjour.txt"?"Bonjour le club !":"Bien reçu, le club !";
+ const url=URL.createObjectURL(new Blob([content+"\n"],{type:"text/plain;charset=utf-8"}));
+ const link=document.createElement("a");
+ link.href=url;
+ link.download=file;
+ link.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function PracticeTask({number,post,title,done,onToggle,children}:{
+ number:number;post:string;title:ReturnType<typeof t>;done:boolean;onToggle:()=>void;children:ReactNode;
+}) {
+ return <article className={`s4-practice-task ${done?"done":""}`}>
+  <header><span className="s4-task-number">{number}</span><div><small>{post}</small><h3><Text value={title}/></h3></div></header>
+  <div className="s4-task-details">{children}</div>
+  <label className="s4-task-done"><input type="checkbox" checked={done} onChange={onToggle} aria-label={`Étape ${number} faite · ${title.fr}`}/>
+   <Text value={t("Étape faite","أُنجزت الخطوة")}/>
+  </label>
+ </article>;
+}
+
+function RealExchange({draft,onChange}:{draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void}) {
+ const task=(id:string)=>({
+  done:draft.checks.includes(id),
+  onToggle:()=>onChange({checks:draft.checks.includes(id)?draft.checks.filter(check=>check!==id):[...draft.checks,id]})
+ });
+ const path=(ip:string,placeholder:string)=>["","",isPrivateIPv4(ip)?ip.trim():placeholder,"Club_reseau"].join("\\");
+ return <div className="s4-real-practice">
+  <div className="s4-real-pc-pair"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Poste A"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Poste B"/></div>
+  <span className="s4-real-label"><Users size={17}/><Text value={t("TP sur les postes Windows de la salle","تطبيق على حواسيب Windows في القاعة")}/></span>
+  <div className="s4-address-prep">
+   <p><Text value={t("Sur chaque poste, lancez ipconfig et relevez la ligne « Adresse IPv4 ». L’enseignant indique les comptes autorisés pour le partage.","نفذا ipconfig على كل حاسوب واقرآ سطر «عنوان IPv4». يحدد الأستاذ الحسابات المسموح لها بالمشاركة.")}/></p>
+   <div className="s4-practice-proofs">
+    <label><Text value={t("IPv4 du poste A","عنوان IPv4 للحاسوب A")}/><input aria-label="IPv4 réelle du poste A" spellCheck={false} maxLength={15} value={draft.ip} onChange={e=>onChange({ip:e.target.value})}/></label>
+    <label><Text value={t("IPv4 du poste B","عنوان IPv4 للحاسوب B")}/><input aria-label="IPv4 réelle du poste B" spellCheck={false} maxLength={15} value={draft.peerIP} onChange={e=>onChange({peerIP:e.target.value})}/></label>
+   </div>
+  </div>
+  <div className="s4-practice-tasks">
+   <PracticeTask number={1} post="POSTE A" title={t("Partager Bonjour.txt","مشاركة Bonjour.txt")} {...task("source")}>
+    <p><Text value={t("Crée Club_reseau dans Documents. Place Bonjour.txt dans ce dossier.","أنشئ Club_reseau داخل Documents وضع فيه Bonjour.txt.")}/></p>
+    <button type="button" className="s4-file-download" onClick={()=>downloadExample("Bonjour.txt")}><Download size={15}/><Text value={t("Télécharger Bonjour.txt","تنزيل Bonjour.txt")}/></button>
+    <p><Text value={t("Clic droit sur Club_reseau → Afficher plus d’options → Accorder l’accès à → Des personnes spécifiques. Donne le droit Lecture au compte indiqué.","انقر Club_reseau بالزر الأيمن ثم إظهار المزيد من الخيارات ثم منح حق الوصول ثم أشخاص محددون. امنح الحساب المحدد صلاحية القراءة.")}/></p>
+   </PracticeTask>
+   <PracticeTask number={2} post="POSTE B" title={t("Ouvrir et copier Bonjour.txt","فتح Bonjour.txt ونسخه")} {...task("receive")}>
+    <p><Text value={t("Saisis ce chemin dans la barre d’adresse de l’Explorateur et appuie sur Entrée.","اكتب هذا المسار في شريط عنوان المستكشف واضغط Enter.")}/></p>
+    <code className="s4-unc-example">{path(draft.ip,"IPv4-du-poste-A")}</code>
+    <p><Text value={t("Ouvre Bonjour.txt puis copie-le sur ton Bureau.","افتح Bonjour.txt ثم انسخه إلى سطح مكتبك.")}/></p>
+   </PracticeTask>
+   <PracticeTask number={3} post="POSTE B" title={t("Partager le fichier de retour","مشاركة ملف الرد")} {...task("reverse")}>
+    <p><Text value={t("Sur ton poste, refais l’étape 1 avec Retour.txt dans Club_reseau. Garde le droit Lecture.","أعد الخطوة الأولى على حاسوبك باستعمال Retour.txt داخل Club_reseau. احتفظ بصلاحية القراءة.")}/></p>
+    <button type="button" className="s4-file-download" onClick={()=>downloadExample("Retour.txt")}><Download size={15}/><Text value={t("Télécharger Retour.txt","تنزيل Retour.txt")}/></button>
+   </PracticeTask>
+   <PracticeTask number={4} post="POSTE A" title={t("Lire et vérifier le retour","قراءة الرد والتحقق منه")} {...task("return")}>
+    <p><Text value={t("Ouvre ce chemin dans l’Explorateur et lis Retour.txt.","افتح هذا المسار في المستكشف واقرأ Retour.txt.")}/></p>
+    <code className="s4-unc-example">{path(draft.peerIP,"IPv4-du-poste-B")}</code>
+    <label><Text value={t("Recopie la phrase lue dans Retour.txt.","انقل العبارة التي قرأتها في Retour.txt.")}/><input aria-label="Phrase reçue dans Retour.txt" value={draft.proof} onChange={e=>onChange({proof:e.target.value})} maxLength={180}/></label>
+   </PracticeTask>
+  </div>
+  <p className="s4-help"><Text value={t("Ton enseignant vérifiera le compte rendu et les fichiers sur les deux postes.","سيتحقق أستاذك من التقرير والملفات على الحاسوبين.")}/></p>
+ </div>;
+}
+
 export function Session4ActivityPlayer({activity,draft:d,onChange}:{activity:Session4Activity;draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void}){
  const choose=(id:string,value:string)=>onChange({selections:{...d.selections,[id]:value},result:null});
  const kind=activity.kind;
  if(kind==="identity"||kind==="ping"||kind==="sharing"||kind==="messenger"||kind==="repair")return <>
   <Session4Simulator key={activity.id} mode={kind} state={d.simulator} onChange={simulator=>onChange({simulator})}/>
-  {kind==="identity"&&<div className="s4-identity-card"><span>JE RELÈVE LES INFORMATIONS DU PC-21</span><label>IPv4 du PC<input aria-label="IPv4 du PC d’entraînement" maxLength={15} value={d.ip} placeholder="192.168.…" onChange={e=>onChange({ip:e.target.value})}/></label><label>Nom du PC<input aria-label="Nom du PC d’entraînement" maxLength={30} value={d.host} placeholder="PC-…" onChange={e=>onChange({host:e.target.value})}/></label></div>}
-  {kind==="messenger"&&<details className="s4-real-details"><summary><Text value={t("À vous maintenant : le même défi dans le vrai BeeBEEP","دوركم الآن: التحدي نفسه داخل BeeBEEP الحقيقي")}/></summary><ol><li><Text value={t("Ouvrez BeeBEEP sur les deux PC. Utilisez les noms de poste indiqués par l’enseignant.","افتحوا BeeBEEP على الحاسوبين واستعملوا أسماء الأجهزة التي يحددها الأستاذ.")}/></li><li><Text value={t("Retrouvez le voisin, envoyez un message et joignez Bonjour.txt.","اعثروا على الحاسوب المجاور وأرسلوا رسالة وأرفقوا Bonjour.txt.")}/></li><li><Text value={t("Le destinataire ouvre le fichier et répond avec son contenu. Vérifiez aussi l’historique des messages.","يفتح المستلم الملف ويرد بمحتواه. تحققوا أيضا من سجل الرسائل.")}/></li></ol><a href="https://www.beebeep.net/download" target="_blank" rel="noreferrer">Site officiel BeeBEEP · téléchargement pour l’enseignant</a><label><input type="checkbox" checked={d.practicalConfirmed} onChange={e=>onChange({practicalConfirmed:e.target.checked})}/><Text value={t("Nous avons aussi réalisé cet échange sur nos vrais postes.","أنجزنا هذا التبادل أيضا على حواسيبنا الحقيقية.")}/></label></details>}
+  {kind==="identity"&&<div className="s4-identity-card">
+   <span>MES OBSERVATIONS · ملاحظاتي</span>
+   <label><Text value={t("1 · IPv4 affichée par ipconfig","1 · عنوان IPv4 الذي يعرضه ipconfig")}/><input aria-label="IPv4 du PC d’entraînement" maxLength={15} value={d.ip} placeholder="192.168.…" onChange={e=>onChange({ip:e.target.value})}/></label>
+   <label><Text value={t("2 · Nom affiché par hostname","2 · الاسم الذي يعرضه hostname")}/><input aria-label="Nom du PC d’entraînement" maxLength={30} value={d.host} placeholder="PC-…" onChange={e=>onChange({host:e.target.value})}/></label>
+  </div>}
+  {kind==="messenger"&&<details className="s4-real-details">
+   <summary><Text value={t("Le même échange dans BeeBEEP, sur les vrais postes","التبادل نفسه في BeeBEEP على الحواسيب الحقيقية")}/></summary>
+   <ol>
+    <li><Text value={t("Ouvrez BeeBEEP. Envoyez Bonjour.txt au poste voisin indiqué par l’enseignant.","افتحوا BeeBEEP وأرسلوا Bonjour.txt إلى الحاسوب المجاور الذي يحدده الأستاذ.")}/></li>
+    <li><Text value={t("Sur le poste voisin, ouvrez le fichier et envoyez « Reçu ».","على الحاسوب المجاور، افتحوا الملف وأرسلوا «تم التوصل».")}/></li>
+   </ol>
+   <label><input type="checkbox" checked={d.practicalConfirmed} onChange={e=>onChange({practicalConfirmed:e.target.checked})}/><Text value={t("Nous avons réalisé cet échange sur nos postes.","أنجزنا هذا التبادل على حواسيبنا.")}/></label>
+  </details>}
  </>;
  if(kind==="lan")return <><div className="s4-simulation-label"><Monitor size={15}/><Text value={t("Observe le réseau : les appareils sont reliés par câble ou par Wi-Fi.","لاحظ الشبكة: ترتبط الأجهزة بالكابل أو بواسطة Wi-Fi.")}/></div><Session4Network internet={d.internet} delivered={d.delivered}/><div className="s4-inline-actions"><button type="button" onClick={()=>onChange({internet:!d.internet,delivered:false})}><CloudOff size={17}/><Text value={d.internet?t("Couper Internet","قطع الإنترنت"):t("Rétablir Internet","إعادة الإنترنت")}/></button><button type="button" className="s4-primary" onClick={()=>onChange({delivered:true})}><Send size={17}/><Text value={t("Envoyer une consigne au PC-22","إرسال تعليمة إلى PC-22")}/></button></div>{d.delivered&&<p className="s4-success-inline" role="status"><Check size={18}/><Text value={t("Le message est passé par le commutateur : PC-22 l’a reçu.","مرت الرسالة عبر المبدل: توصل بها PC-22.")}/></p>}<div className="s4-question-mini"><h3><Text value={t("Pourquoi la consigne arrive-t-elle même sans Internet ?","لماذا تصل التعليمة حتى دون الإنترنت؟")}/></h3>{[["local",t("Les deux PC communiquent dans le même réseau local.","يتواصل الحاسوبان عبر الشبكة المحلية نفسها.")],["web",t("La consigne doit obligatoirement passer par un site Web.","يجب أن تمر التعليمة عبر موقع ويب.")]].map(([id,label])=><button type="button" key={String(id)} aria-pressed={d.selections.lan===id} className={d.selections.lan===id?"selected":""} onClick={()=>choose("lan",String(id))}><Text value={label as ReturnType<typeof t>}/></button>)}</div></>;
  if(kind==="cables")return <Session4NetworkBuilder draft={d} onChange={onChange}/>;
  if(kind==="equipment")return <div className="s4-equipment-grid s4-equipment-identify">{session4Equipment.map((e,i)=><article key={e.id}><span className="s4-eyebrow">PHOTO {String(i+1).padStart(2,"0")}</span><img src={publicAsset(e.image)} alt={`Photo de matériel réseau ${i+1}`}/><p><Text value={e.role}/></p><label><Text value={t("Cet équipement est…","هذا الجهاز هو…")}/><select aria-label={`Nom de l’équipement ${i+1}`} value={d.selections[e.id]??""} onChange={event=>choose(e.id,event.target.value)}><option value="">Choisir son nom…</option>{session4Equipment.map(option=><option key={option.id} value={option.id}>{option.name.fr}</option>)}</select></label></article>)}</div>;
  if(kind==="topology")return <><p className="s4-help"><Text value={t("Suis les câbles entre les images. Le nom dépend de la façon dont les postes sont reliés.","تتبع الكابلات بين الصور. يعتمد الاسم على طريقة ربط الحواسيب.")}/></p><div className="s4-topology-grid">{(["star","bus","ring"] as const).map((topology,i)=><article key={topology}><span>RÉSEAU {i+1}</span><Session4Topology kind={topology}/><label><Text value={t("Cette topologie est…","هذه البنية هي…")}/><select aria-label={`Topologie du réseau ${i+1}`} value={d.selections[topology]??""} onChange={e=>choose(topology,e.target.value)}><option value="">Choisir…</option><option value="ring">Anneau · حلقية</option><option value="star">Étoile · نجمية</option><option value="bus">Bus · خطية</option></select></label></article>)}</div></>;
- if(activity.kind==="practice")return <div className="s4-real-practice"><div className="s4-real-pc-pair"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Poste A"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Poste B"/></div><span className="s4-real-label"><Users size={17}/><Text value={t("À réaliser sur deux vrais ordinateurs Windows","ينجز على حاسوبين حقيقيين بنظام Windows")}/></span><p><Text value={t("L’enseignant prépare l’accès réseau et les comptes autorisés. Les deux binômes travaillent dans le même réseau de la salle. Pour lire et copier le fichier, le droit Lecture suffit.","يعد الأستاذ الاتصال بالشبكة والحسابات المسموح لها. يعمل الثنائيان في شبكة القاعة نفسها. تكفي صلاحية القراءة لقراءة الملف ونسخه.")}/></p><div className="s4-practice-steps"><article><h3>POSTE A · SOURCE</h3><ol><li><Text value={t("Relève ton IPv4 avec ipconfig et le nom avec hostname.","حدد IPv4 باستعمال ipconfig والاسم باستعمال hostname.")}/></li><li><Text value={t("Dans Documents, crée Club_reseau, puis Bonjour.txt contenant « Bonjour le club ! ».","أنشئ Club_reseau داخل Documents، ثم Bonjour.txt الذي يحتوي «Bonjour le club !».")}/></li><li><Text value={t("Clic droit sur le dossier → Afficher plus d’options → Accorder l’accès à → Des personnes spécifiques. Choisis le compte indiqué par l’enseignant, avec Lecture.","انقر المجلد بالزر الأيمن ثم إظهار المزيد من الخيارات ثم منح حق الوصول ثم أشخاص محددون. اختر الحساب الذي يحدده الأستاذ وامنحه القراءة.")}/></li></ol></article><article><h3>POSTE B · DESTINATAIRE</h3><ol><li><Text value={t("Ouvre l’Explorateur. Dans la barre d’adresse, saisis deux antislashs, l’IPv4 du poste A, puis un antislash et Club_reseau.","افتح المستكشف. اكتب في شريط العنوان شرطتين عكسيتين ثم IPv4 للحاسوب A ثم اسم المجلد Club_reseau بعد شرطة عكسية.")}/></li><li><Text value={t("Identifie-toi avec le compte prévu si Windows le demande. Lis Bonjour.txt et copie-le sur ton Bureau.","استعمل الحساب المعد إذا طلبه Windows. اقرأ Bonjour.txt وانسخه إلى سطح مكتبك.")}/></li><li><Text value={t("Crée et partage Retour.txt dans ton propre dossier. Le poste A le lit : les rôles sont inversés.","أنشئ Retour.txt وشاركه داخل مجلدك. يقرؤه الحاسوب A: هكذا تتبادلان الأدوار.")}/></li></ol></article></div><button type="button" onClick={downloadExample}><Download size={17}/><Text value={t("Télécharger le fichier témoin Bonjour.txt","تنزيل الملف التجريبي Bonjour.txt")}/></button><div className="s4-practice-proofs"><label>IPv4 réelle du poste A<input aria-label="IPv4 réelle du poste A" value={d.ip} onChange={e=>onChange({ip:e.target.value})}/></label><label>IPv4 réelle du poste B<input aria-label="IPv4 réelle du poste B" value={d.peerIP} onChange={e=>onChange({peerIP:e.target.value})}/></label><label className="wide"><Text value={t("Quelle courte phrase as-tu lue dans Retour.txt ?","ما العبارة القصيرة التي قرأتها في Retour.txt؟")}/><input aria-label="Phrase reçue dans Retour.txt" value={d.proof} onChange={e=>onChange({proof:e.target.value})} maxLength={180}/></label></div><div className="s4-practice-checks">{[["source",t("Le poste A a partagé le fichier.","شارك الحاسوب A الملف.")],["receive",t("Le poste B l’a ouvert et copié.","فتحه الحاسوب B ونسخه.")],["reverse",t("Le poste B a partagé le fichier de retour.","شارك الحاسوب B ملف الرد.")],["return",t("Le poste A a lu le retour.","قرأ الحاسوب A الرد.")]].map(([id,label])=><label key={String(id)}><input type="checkbox" checked={d.checks.includes(String(id))} onChange={()=>onChange({checks:d.checks.includes(String(id))?d.checks.filter(x=>x!==id):[...d.checks,String(id)]})}/><Text value={label as ReturnType<typeof t>}/></label>)}</div><p className="s4-help"><Text value={t("Ce compte rendu est une déclaration de réalisation à vérifier par l’enseignant ; le site ne contrôle pas vos PC.","هذا التقرير تصريح بالإنجاز يتحقق منه الأستاذ؛ ولا يتحكم الموقع في حواسيبكم.")}/></p></div>;
+ if(kind==="practice")return <RealExchange draft={d} onChange={onChange}/>;
  return null;
 }

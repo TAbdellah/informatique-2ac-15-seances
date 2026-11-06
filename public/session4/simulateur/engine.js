@@ -71,6 +71,12 @@ function makeOS(host,cfg){
   function validName(s){s=(s||'').trim();if(!s)return 'Le nom ne peut pas être vide.';if(/[\\\/:*?"<>|]/.test(s))return 'Un nom ne peut pas contenir les caractères suivants : \\ / : * ? " < > |';return ''}
   function allDirs(){var out=[];(function walk(id,pre){kids(id).forEach(function(k){if(k.dir){out.push({id:k.id,path:pathOf(k.id)});walk(k.id)}})})('root');return out}
 
+  if(cfg.guided&&cfg.mode==='sharing'&&os.name==='PC-21'){
+    // Fournir le dossier à partager pour se concentrer sur la copie et les droits.
+    if(!os.q(['Documents','Club_reseau']))mk('Club_reseau',D.docs,true);
+    if(!os.q(['Documents','Bonjour.txt']))file('Bonjour.txt',D.docs,'Bonjour le club !');
+  }
+
   /* --- opérations sur les fichiers --- */
   function detach(n){var p=nodes[n.parent];if(p)p.kids=p.kids.filter(function(k){return k!==n.id})}
   function dropTree(n){n.kids.slice().forEach(function(k){dropTree(nodes[k])});delete nodes[n.id]}
@@ -489,6 +495,7 @@ function makeOS(host,cfg){
     w.c=c;c.win=w;
     var listEl=$('.oxlist',w.body),addr=$('.oxaddr',w.body),srch=$('.oxsearch',w.body),cmd=$('.oxcmd',w.body),side=$('.oxside',w.body),stat=$('.oxstat',w.body);
     w.search=srch;
+    if(cfg.guided)addr.readOnly=true;
     CMDS.forEach(function(m){
       if(m[0]==='share'&&!net)return;
       var b=document.createElement('button');b.type='button';b.dataset.cmd=m[0];b.dataset.g=m[2];b.textContent=m[1];
@@ -570,8 +577,9 @@ function makeOS(host,cfg){
   }
 
   /* --- partage --- */
-  function openShare(n){
+  function openShare(n,guidedName){
     var w=openWin({type:'dlg',title:'Partager « '+n.name+' »',w:400,h:360});
+    w.shareFolder=n.id;
     w.el.classList.remove('max');
     function draw(msg){
       var ex=null;os.shares.forEach(function(s){if(s.dirId===n.id)ex=s});
@@ -581,7 +589,9 @@ function makeOS(host,cfg){
         '<label>Autorisation<select data-perm><option value="read">Lecture seule</option><option value="write">Lecture et écriture</option></select></label>'+
         '<p class="osmuted" data-msg></p><div class="osrow"><button type="button" class="btn primary" data-ok></button><button type="button" class="btn" data-stop>Arrêter le partage</button><button type="button" class="btn" data-close>Fermer</button></div></div>';
       $('.osok',w.body).textContent=ex?'Ce dossier est partagé. Adresse réseau : \\\\'+os.name+'\\'+ex.name:'Ce dossier n’est pas encore partagé : seul ce poste peut le voir.';
-      $('[data-nm]',w.body).value=ex?ex.name:n.name;
+      var nameInput=$('[data-nm]',w.body);
+      nameInput.value=guidedName||(ex?ex.name:n.name);
+      nameInput.readOnly=!!guidedName;
       if(ex){$('[data-who]',w.body).value=ex.who==='Postes de la salle'?'Postes de la salle':'Moi seulement';$('[data-perm]',w.body).value=ex.perm}
       $('[data-ok]',w.body).textContent=ex?'Enregistrer':'Partager';
       $('[data-stop]',w.body).hidden=!ex;$('[data-stop]',w.body).style.display=ex?'':'none';
@@ -595,12 +605,12 @@ function makeOS(host,cfg){
       $('[data-stop]',w.body).addEventListener('click',function(){os.unshare(n.id);say('Le dossier n’est plus partagé.');draw('Le partage a été arrêté.')});
       $('[data-close]',w.body).addEventListener('click',function(){closeWin(w,true)});
     }
-    draw();
+    draw();return w;
   }
 
   /* --- bloc-notes --- */
   function openNote(src,node,allowEdit){
-    var editable=src===os||!!allowEdit,dirty=false;os.did.openedTxt=true;os.did.openedFiles=os.did.openedFiles||[];if(node)os.did.openedFiles.push({host:src.name,name:node.name,content:node.content,local:src===os});os.did.openedFiles=os.did.openedFiles.slice(-30);
+    var editable=!cfg.guided&&(src===os||!!allowEdit),dirty=false;os.did.openedTxt=true;os.did.openedFiles=os.did.openedFiles||[];if(node)os.did.openedFiles.push({host:src.name,name:node.name,content:node.content,local:src===os});os.did.openedFiles=os.did.openedFiles.slice(-30);
     var w=openWin({type:'note',title:(node?node.name:'Sans titre')+' - Bloc-notes',w:440,h:300,onclose:function(force){
       if(!force&&dirty){confirmBox('Les modifications ne sont pas enregistrées. Fermer quand même ?','Fermer sans enregistrer',function(){closeWin(w,true)});return false}
     },build:function(w){
@@ -839,6 +849,32 @@ function makeOS(host,cfg){
     $('button',w.body).addEventListener('click',execute);inp.addEventListener('keydown',function(e){if(e.key==='Enter')execute(e)});paint();return w;
   }
   os.openApp=function(app){var type={explorer:'exp',terminal:'terminal',mail:'mail',settings:'set'}[app],existing=wins.find(function(w){return w.type===type});if(existing){existing.min=false;existing.el.classList.remove('mini');focusWin(existing);return existing;}if(app==='explorer')return openExplorer({k:'dir',id:D.docs});if(app==='network')return openExplorer({k:'net'});if(app==='terminal')return openTerminal();if(app==='mail')return openMail();if(app==='settings')return openSettings('net');};
+  // Les raccourcis du guide ouvrent les outils. Ils ne réalisent aucun geste à la place de l’élève.
+  function showWindow(w){
+    w.min=false;w.el.classList.remove('mini');focusWin(w);return w;
+  }
+  os.guideExplorer=function(path,name,remote){
+    var source=remote?net.machines[remote]:os;
+    var node=source?.q(path);
+    var share=remote&&node&&source.shares.find(function(s){return s.dirId===node.id&&s.name.toLowerCase()===path[path.length-1].toLowerCase()});
+    var location=remote?(share?{k:'share',host:remote,shareId:share.id,dirId:share.dirId}:{k:'host',host:remote}):{k:'dir',id:node&&node.dir?node.id:D.docs};
+    var w=wins.find(function(win){return win.type==='exp'&&JSON.stringify(win.c.loc)===JSON.stringify(location)});
+    w=w?showWindow(w):openExplorer(location);
+    if(name){
+      var match=Object.values(w.c.items).find(function(item){return item.name===name});
+      if(match){w.c.sel=[match.key];w.refresh();}
+    }
+  };
+  os.guidePermissions=function(path){
+    var folder=os.q(path);
+    if(!folder?.dir){os.guideExplorer(['Documents']);say('Le dossier à partager est introuvable.',true);return;}
+    var w=wins.find(function(win){return win.shareFolder===folder.id});
+    if(w)showWindow(w);else openShare(folder,path[path.length-1]);
+  };
+  os.guideMail=function(tab){
+    var w=wins.find(function(win){return win.type==='mail'&&win.resume?.tab===tab});
+    if(w)showWindow(w);else openMail({tab:tab});
+  };
   os.fitWindows=function(){if(narrow())wins.forEach(function(w){w.max=true;w.el.classList.add('max')})};
   os.setCable=function(value){os.cable=!!value;os.did.cable=true;os.render();os.others()};
   os.dump=function(){
