@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LearningTeacherPortal, {TeacherNavigation, type TeacherSection} from "./learning-dashboard";
 import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-api";
 import { session3Lab } from "../session3-lab-data";
-import { session4Activities } from "../session4-data";
+import { session4AllActivities } from "../session4-data";
 import Session4TeacherReport from "./session4-report";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
@@ -233,7 +233,7 @@ const pedagogicalSessions = {
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
   if (attempt.activityId === "session-4-reseau-evaluation-v1") return "Séance 4 · Réseau local · Évaluation /20";
   if (attempt.activityId === "session-4-tp-messagerie") return "Séance 4 · Échange réel BeeBEEP · déclaré";
-  const session4Activity=session4Activities.find(a=>a.id===attempt.activityId);
+  const session4Activity=session4AllActivities.find(a=>a.id===attempt.activityId);
   if(session4Activity)return `Séance 4 · ${session4Activity.title.fr}${session4Activity.kind==="practice"?" · déclaré":""}`;
   if (attempt.activityId === "session-3-bilan-situations-v5") return "Séance 3 · Bilan en trois situations / 20";
   return session1ActivityLabels[attempt.activityId] ?? session2ActivityLabels[attempt.activityId] ?? session3Lab.exercises.find(exercise => exercise.id === attempt.activityId)?.title.fr ?? activityLabels[attempt.activityType] ?? attempt.activityType;

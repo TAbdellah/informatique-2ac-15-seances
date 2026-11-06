@@ -1,13 +1,15 @@
-import {session4Activities,session4Equipment,type Session4Activity} from "./session4-data.ts";
+import {session4Activities,session4Equipment,type Session4Activity,type Session4LegacyActivity} from "./session4-data.ts";
 import {isSession4SimulatorState,session4SimulatorSteps,type Session4SimulatorMode,type Session4SimulatorState} from './session4-simulation-contract.ts';
+import { expoActivityChecks } from "./session4-expo-model.ts";
 export const session4SourceIP="192.168.10.21",session4PeerIP="192.168.10.22";
 export const session4SharePath=String.raw`\\192.168.10.21\Club_reseau`;
 export type Session4Draft={savedAt?:number;selections:Record<string,string>;links:string[];internet:boolean;tested:boolean;delivered:boolean;connected:boolean;commands:string[];command:string;output:string;ip:string;host:string;shared:boolean;permission:string;path:string;opened:boolean;recipient:string;message:string;attached:boolean;checks:string[];peerIP:string;proof:string;practicalConfirmed:boolean;result:boolean|null;simulator:Session4SimulatorState|null};
-export type Session4WorkshopState={version:1;activityIndex:number;completedIds:string[];drafts:Record<string,Session4Draft>;summary:boolean};
+export type Session4WorkshopState={version:1;activityIndex:number;activityId?:string;completedIds:string[];drafts:Record<string,Session4Draft>;summary:boolean};
 export const freshSession4Draft=():Session4Draft=>({selections:{},links:[],internet:true,tested:false,delivered:false,connected:false,commands:[],command:"",output:"Microsoft Windows [Entraînement]\nTape ipconfig, hostname ou ping 192.168.10.22.",ip:"",host:"",shared:false,permission:"",path:"",opened:false,recipient:"",message:"",attached:false,checks:[],peerIP:"",proof:"",practicalConfirmed:false,result:null,simulator:null});
 // Keep the full two-PC disk in the checkpoint, and only the useful evidence in the teacher's answer.
 export function session4AnswerState(d:Session4Draft){return d.simulator?{ip:d.ip,host:d.host,practicalConfirmed:d.practicalConfirmed,simulator:{version:d.simulator.version,mode:d.simulator.mode,checks:d.simulator.checks,completed:d.simulator.completed,evidence:d.simulator.evidence}}:d;}
 export function initialSession4Workshop(previous:unknown):Session4WorkshopState{
+ if(validSession4Workshop(previous))return previous;
  const old=previous as {checked?:unknown[]}|null;
  return {version:1,activityIndex:0,completedIds:[...(old?.checked?.[0]===true?["session-4-workshop-A"]:[]),...(old?.checked?.[1]===true?["session-4-workshop-B"]:[])],drafts:{},summary:false};
 }
@@ -21,7 +23,17 @@ function simulatorChecks(value: unknown, mode: Session4SimulatorMode): boolean[]
   return isSession4SimulatorState(value, mode) ? value.checks : Array<boolean>(session4SimulatorSteps[mode]).fill(false);
 }
 
-export function session4ActivityChecks(activity: Session4Activity, draft: Session4Draft): boolean[] {
+function practiceChecks(draft: Session4Draft) {
+  return [
+    ...["source", "receive", "reverse", "return"].map(id => draft.checks.includes(id)),
+    isPrivateIPv4(draft.ip),
+    isPrivateIPv4(draft.peerIP) && draft.ip.trim() !== draft.peerIP.trim(),
+    draft.proof.trim().length >= 3,
+  ];
+}
+
+export function session4ActivityChecks(activity: Session4Activity | Session4LegacyActivity, draft: Session4Draft): boolean[] {
+  if ("edition" in activity) return activity.kind === "practice" ? practiceChecks(draft) : expoActivityChecks(activity,draft);
   const selected = draft.selections;
   switch (activity.kind) {
     case "lan":
@@ -43,12 +55,7 @@ export function session4ActivityChecks(activity: Session4Activity, draft: Sessio
         draft.host.trim().toUpperCase() === "PC-21",
       ];
     case "practice":
-      return [
-        ...["source", "receive", "reverse", "return"].map(id => draft.checks.includes(id)),
-        isPrivateIPv4(draft.ip),
-        isPrivateIPv4(draft.peerIP) && draft.ip.trim() !== draft.peerIP.trim(),
-        draft.proof.trim().length >= 3,
-      ];
+      return practiceChecks(draft);
     case "ping":
     case "sharing":
     case "messenger":
@@ -57,6 +64,6 @@ export function session4ActivityChecks(activity: Session4Activity, draft: Sessio
   }
 }
 
-export function session4ActivityCorrect(activity: Session4Activity, draft: Session4Draft): boolean {
+export function session4ActivityCorrect(activity: Session4Activity | Session4LegacyActivity, draft: Session4Draft): boolean {
   return session4ActivityChecks(activity, draft).every(Boolean);
 }

@@ -1,13 +1,12 @@
 "use client";
 import type {ReactNode} from "react";
-import {CloudOff,Send,Check,Monitor,Download,Users} from "lucide-react";
+import {Cable,Check,Download,FileText,Folder,FolderPlus,Monitor,Network,Terminal,Users,Wifi} from "lucide-react";
 import {Session3Text as Text} from "./session3-translation";
 import {publicAsset} from "../lib/public-assets";
 import {s4t as t,session4Equipment,type Session4Activity} from "./session4-data";
-import {isPrivateIPv4,type Session4Draft} from "./session4-model";
-import Session4Simulator from "./session4-simulator";
-import {Session4Network,Session4NetworkBuilder} from "./session4-network";
-export {Session4Network} from "./session4-network";
+import {isPrivateIPv4,runSession4Command,session4SourceIP,session4PeerIP,type Session4Draft} from "./session4-model";
+import {ExpoNetworkLab,ExpoTopologyLab} from "./session4-expo-network";
+import {expoFile,expoFolder,expoMedia,expoMessage,expoPath,expoPathCorrect,expoFolderReady,expoShareReady} from "./session4-expo-model";
 export function Session4Topology({kind}:{kind:"star"|"bus"|"ring"}){
  const positions=kind==="star"?[[150,35],[260,120],[150,205],[40,120]]:kind==="bus"?[[45,55],[150,55],[255,55]]:[[150,30],[250,110],[210,200],[90,200],[50,110]];
  return <svg viewBox="0 0 300 240" role="img" aria-label={kind==="star"?"Les PC rejoignent un équipement au centre":kind==="bus"?"Les PC rejoignent une ligne commune":"Les PC sont reliés en boucle fermée"}>
@@ -18,8 +17,8 @@ export function Session4Topology({kind}:{kind:"star"|"bus"|"ring"}){
   {positions.map(([x,y],i)=><image key={i} href={publicAsset("session4/images/ordinateur-bureau.webp")} x={x-25} y={y-20} width="50" height="40"/>)}
  </svg>;
 }
-function downloadExample(file: "Bonjour.txt" | "Retour.txt") {
- const content=file==="Bonjour.txt"?"Bonjour le club !":"Bien reçu, le club !";
+function downloadExample(file: "Affiche.txt" | "Retour.txt") {
+ const content=file==="Affiche.txt"?expoMessage:"Bien reçu, le club !";
  const url=URL.createObjectURL(new Blob([content+"\n"],{type:"text/plain;charset=utf-8"}));
  const link=document.createElement("a");
  link.href=url;
@@ -57,15 +56,15 @@ function RealExchange({draft,onChange}:{draft:Session4Draft;onChange:(patch:Part
    </div>
   </div>
   <div className="s4-practice-tasks">
-   <PracticeTask number={1} post="POSTE A" title={t("Partager Bonjour.txt","مشاركة Bonjour.txt")} {...task("source")}>
-    <p><Text value={t("Crée Club_reseau dans Documents. Place Bonjour.txt dans ce dossier.","أنشئ Club_reseau داخل Documents وضع فيه Bonjour.txt.")}/></p>
-    <button type="button" className="s4-file-download" onClick={()=>downloadExample("Bonjour.txt")}><Download size={15}/><Text value={t("Télécharger Bonjour.txt","تنزيل Bonjour.txt")}/></button>
+   <PracticeTask number={1} post="POSTE A" title={t("Partager Affiche.txt","مشاركة Affiche.txt")} {...task("source")}>
+    <p><Text value={t("Crée Club_reseau dans Documents. Place Affiche.txt dans ce dossier.","أنشئ Club_reseau داخل Documents وضع فيه Affiche.txt.")}/></p>
+    <button type="button" className="s4-file-download" onClick={()=>downloadExample("Affiche.txt")}><Download size={15}/><Text value={t("Télécharger Affiche.txt","تنزيل Affiche.txt")}/></button>
     <p><Text value={t("Clic droit sur Club_reseau → Afficher plus d’options → Accorder l’accès à → Des personnes spécifiques. Donne le droit Lecture au compte indiqué.","انقر Club_reseau بالزر الأيمن ثم إظهار المزيد من الخيارات ثم منح حق الوصول ثم أشخاص محددون. امنح الحساب المحدد صلاحية القراءة.")}/></p>
    </PracticeTask>
-   <PracticeTask number={2} post="POSTE B" title={t("Ouvrir et copier Bonjour.txt","فتح Bonjour.txt ونسخه")} {...task("receive")}>
+   <PracticeTask number={2} post="POSTE B" title={t("Ouvrir et copier Affiche.txt","فتح Affiche.txt ونسخه")} {...task("receive")}>
     <p><Text value={t("Saisis ce chemin dans la barre d’adresse de l’Explorateur et appuie sur Entrée.","اكتب هذا المسار في شريط عنوان المستكشف واضغط Enter.")}/></p>
     <code className="s4-unc-example">{path(draft.ip,"IPv4-du-poste-A")}</code>
-    <p><Text value={t("Ouvre Bonjour.txt puis copie-le sur ton Bureau.","افتح Bonjour.txt ثم انسخه إلى سطح مكتبك.")}/></p>
+    <p><Text value={t("Ouvre Affiche.txt puis copie-le sur ton Bureau.","افتح Affiche.txt ثم انسخه إلى سطح مكتبك.")}/></p>
    </PracticeTask>
    <PracticeTask number={3} post="POSTE B" title={t("Partager le fichier de retour","مشاركة ملف الرد")} {...task("reverse")}>
     <p><Text value={t("Sur ton poste, refais l’étape 1 avec Retour.txt dans Club_reseau. Garde le droit Lecture.","أعد الخطوة الأولى على حاسوبك باستعمال Retour.txt داخل Club_reseau. احتفظ بصلاحية القراءة.")}/></p>
@@ -77,33 +76,147 @@ function RealExchange({draft,onChange}:{draft:Session4Draft;onChange:(patch:Part
     <label><Text value={t("Recopie la phrase lue dans Retour.txt.","انقل العبارة التي قرأتها في Retour.txt.")}/><input aria-label="Phrase reçue dans Retour.txt" value={draft.proof} onChange={e=>onChange({proof:e.target.value})} maxLength={180}/></label>
    </PracticeTask>
   </div>
+  <details className="s4-real-details">
+   <summary><Text value={t("Confirmer la réception avec BeeBEEP","تأكيد التوصل باستعمال BeeBEEP")}/></summary>
+   <p><Text value={t("Si BeeBEEP est ouvert sur les postes, vérifie le destinataire puis envoie-lui la phrase lue dans son fichier.","إذا كان BeeBEEP مفتوحًا على الحواسيب، تحقق من المستلم ثم أرسل إليه العبارة التي قرأتها في ملفه.")}/></p>
+  </details>
   <p className="s4-help"><Text value={t("Ton enseignant vérifiera le compte rendu et les fichiers sur les deux postes.","سيتحقق أستاذك من التقرير والملفات على الحاسوبين.")}/></p>
  </div>;
 }
 
-export function Session4ActivityPlayer({activity,draft:d,onChange}:{activity:Session4Activity;draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void}){
- const choose=(id:string,value:string)=>onChange({selections:{...d.selections,[id]:value},result:null});
- const kind=activity.kind;
- if(kind==="identity"||kind==="ping"||kind==="sharing"||kind==="messenger"||kind==="repair")return <>
-  <Session4Simulator key={activity.id} mode={kind} state={d.simulator} onChange={simulator=>onChange({simulator})}/>
-  {kind==="identity"&&<div className="s4-identity-card">
-   <span>MES OBSERVATIONS · ملاحظاتي</span>
-   <label><Text value={t("1 · IPv4 affichée par ipconfig","1 · عنوان IPv4 الذي يعرضه ipconfig")}/><input aria-label="IPv4 du PC d’entraînement" maxLength={15} value={d.ip} placeholder="192.168.…" onChange={e=>onChange({ip:e.target.value})}/></label>
-   <label><Text value={t("2 · Nom affiché par hostname","2 · الاسم الذي يعرضه hostname")}/><input aria-label="Nom du PC d’entraînement" maxLength={30} value={d.host} placeholder="PC-…" onChange={e=>onChange({host:e.target.value})}/></label>
-  </div>}
-  {kind==="messenger"&&<details className="s4-real-details">
-   <summary><Text value={t("Le même échange dans BeeBEEP, sur les vrais postes","التبادل نفسه في BeeBEEP على الحواسيب الحقيقية")}/></summary>
-   <ol>
-    <li><Text value={t("Ouvrez BeeBEEP. Envoyez Bonjour.txt au poste voisin indiqué par l’enseignant.","افتحوا BeeBEEP وأرسلوا Bonjour.txt إلى الحاسوب المجاور الذي يحدده الأستاذ.")}/></li>
-    <li><Text value={t("Sur le poste voisin, ouvrez le fichier et envoyez « Reçu ».","على الحاسوب المجاور، افتحوا الملف وأرسلوا «تم التوصل».")}/></li>
-   </ol>
-   <label><input type="checkbox" checked={d.practicalConfirmed} onChange={e=>onChange({practicalConfirmed:e.target.checked})}/><Text value={t("Nous avons réalisé cet échange sur nos postes.","أنجزنا هذا التبادل على حواسيبنا.")}/></label>
-  </details>}
- </>;
- if(kind==="lan")return <><div className="s4-simulation-label"><Monitor size={15}/><Text value={t("Observe le réseau : les appareils sont reliés par câble ou par Wi-Fi.","لاحظ الشبكة: ترتبط الأجهزة بالكابل أو بواسطة Wi-Fi.")}/></div><Session4Network internet={d.internet} delivered={d.delivered}/><div className="s4-inline-actions"><button type="button" onClick={()=>onChange({internet:!d.internet,delivered:false})}><CloudOff size={17}/><Text value={d.internet?t("Couper Internet","قطع الإنترنت"):t("Rétablir Internet","إعادة الإنترنت")}/></button><button type="button" className="s4-primary" onClick={()=>onChange({delivered:true})}><Send size={17}/><Text value={t("Envoyer une consigne au PC-22","إرسال تعليمة إلى PC-22")}/></button></div>{d.delivered&&<p className="s4-success-inline" role="status"><Check size={18}/><Text value={t("Le message est passé par le commutateur : PC-22 l’a reçu.","مرت الرسالة عبر المبدل: توصل بها PC-22.")}/></p>}<div className="s4-question-mini"><h3><Text value={t("Pourquoi la consigne arrive-t-elle même sans Internet ?","لماذا تصل التعليمة حتى دون الإنترنت؟")}/></h3>{[["local",t("Les deux PC communiquent dans le même réseau local.","يتواصل الحاسوبان عبر الشبكة المحلية نفسها.")],["web",t("La consigne doit obligatoirement passer par un site Web.","يجب أن تمر التعليمة عبر موقع ويب.")]].map(([id,label])=><button type="button" key={String(id)} aria-pressed={d.selections.lan===id} className={d.selections.lan===id?"selected":""} onClick={()=>choose("lan",String(id))}><Text value={label as ReturnType<typeof t>}/></button>)}</div></>;
- if(kind==="cables")return <Session4NetworkBuilder draft={d} onChange={onChange}/>;
- if(kind==="equipment")return <div className="s4-equipment-grid s4-equipment-identify">{session4Equipment.map((e,i)=><article key={e.id}><span className="s4-eyebrow">PHOTO {String(i+1).padStart(2,"0")}</span><img src={publicAsset(e.image)} alt={`Photo de matériel réseau ${i+1}`}/><p><Text value={e.role}/></p><label><Text value={t("Cet équipement est…","هذا الجهاز هو…")}/><select aria-label={`Nom de l’équipement ${i+1}`} value={d.selections[e.id]??""} onChange={event=>choose(e.id,event.target.value)}><option value="">Choisir son nom…</option>{session4Equipment.map(option=><option key={option.id} value={option.id}>{option.name.fr}</option>)}</select></label></article>)}</div>;
- if(kind==="topology")return <><p className="s4-help"><Text value={t("Suis les câbles entre les images. Le nom dépend de la façon dont les postes sont reliés.","تتبع الكابلات بين الصور. يعتمد الاسم على طريقة ربط الحواسيب.")}/></p><div className="s4-topology-grid">{(["star","bus","ring"] as const).map((topology,i)=><article key={topology}><span>RÉSEAU {i+1}</span><Session4Topology kind={topology}/><label><Text value={t("Cette topologie est…","هذه البنية هي…")}/><select aria-label={`Topologie du réseau ${i+1}`} value={d.selections[topology]??""} onChange={e=>choose(topology,e.target.value)}><option value="">Choisir…</option><option value="ring">Anneau · حلقية</option><option value="star">Étoile · نجمية</option><option value="bus">Bus · خطية</option></select></label></article>)}</div></>;
- if(kind==="practice")return <RealExchange draft={d} onChange={onChange}/>;
- return null;
+
+type LabProps = { draft:Session4Draft; onChange:(patch:Partial<Session4Draft>)=>void };
+
+function Inventory({draft,onChange}:LabProps) {
+ const stock=[session4Equipment[4],session4Equipment[1],session4Equipment[3],session4Equipment[5],session4Equipment[0],session4Equipment[2]];
+ function choose(field:string,value:string) { onChange({selections:{...draft.selections,[field]:value}}); }
+ return <div className="expo-inventory">
+  {stock.map((item,i)=>{
+   const number=String(i+1).padStart(2,"0");
+   const nameKey=`name-${item.id}`,roleKey=`role-${item.id}`;
+   const identified=draft.selections[nameKey]===item.id,understood=draft.selections[roleKey]===item.id;
+   return <article key={item.id} className="expo-photo-card">
+    <div className="expo-packshot"><span>CAISSE {number}</span><img src={publicAsset(item.image)} alt={`Matériel réseau à identifier · photo ${i+1}`} /></div>
+    <label><Text value={t("Nom de l’équipement","اسم الجهاز")}/>
+     <select aria-label={`Nom · caisse ${i+1}`} value={draft.selections[nameKey]??""} onChange={e=>choose(nameKey,e.target.value)}>
+      <option value="">Associer un nom…</option>{session4Equipment.map(option=><option key={option.id} value={option.id}>{option.name.fr}</option>)}
+     </select>
+    </label>
+    <label><Text value={t("Sa fonction dans le réseau","وظيفته داخل الشبكة")}/>
+     <select aria-label={`Fonction · caisse ${i+1}`} value={draft.selections[roleKey]??""} onChange={e=>choose(roleKey,e.target.value)}>
+      <option value="">Associer une fonction…</option>{[...session4Equipment].reverse().map(option=><option key={option.id} value={option.id}>{option.role.fr}</option>)}
+     </select>
+    </label>
+    {draft.result!==null&&<p className={`expo-inventory-feedback ${identified&&understood?"good":""}`} role="status">
+     <Text value={identified&&understood?t("Caisse identifiée","تم التعرف على الجهاز"):identified?t("La fonction reste à trouver","ابحث عن الوظيفة"):understood?t("Le nom reste à trouver","ابحث عن الاسم"):t("Revois le nom et la fonction","راجع الاسم والوظيفة")}/>
+    </p>}
+   </article>;
+  })}
+ </div>;
+}
+
+function MediaChoice({draft,onChange}:LabProps) {
+ return <div className="expo-media-grid">
+  {expoMedia.map(device=><article className="expo-media-card" key={device.id}>
+   <img src={publicAsset(device.image)} alt="" /><div><h3><Text value={device.name}/></h3><p><Text value={device.clue}/></p></div>
+   <div role="group" aria-label={`Liaison · ${device.name.fr}`}>
+    {[{id:"wired",icon:Cable,label:t("RJ45","كابل RJ45")},{id:"wifi",icon:Wifi,label:t("Wi-Fi","Wi-Fi")}].map(({id,icon:Icon,label})=>
+     <button type="button" key={id} aria-pressed={draft.selections[device.id]===id} onClick={()=>onChange({selections:{...draft.selections,[device.id]:id}})}>
+      <Icon size={16} aria-hidden="true"/><Text value={label}/>
+     </button>)}
+   </div>
+  </article>)}
+ </div>;
+}
+
+function FolderLab({draft,onChange}:LabProps) {
+ const [s,folderReady,shareReady]=[draft.selections,expoFolderReady(draft),expoShareReady(draft)];
+ const paths=[["","","192.168.10.22",expoFolder].join("\\"),["C:","Documents",expoFolder].join("\\"),expoPath];
+ const mark=(changes:Record<string,string>,patch:Partial<Session4Draft>={})=>onChange({...patch,selections:{...s,...changes}});
+ const open=draft.opened&&shareReady&&expoPathCorrect(draft.path);
+ return <div className="expo-share">
+  <div className="expo-wired-strip">
+   <img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt=""/><b>PC-21</b><span/>
+   <img src={publicAsset("session4/images/commutateur.webp")} alt=""/><b>RJ45</b><span/>
+   <img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt=""/><b>PC-22</b>
+  </div>
+  <div className="expo-share-grid">
+   <section className="expo-station">
+    <header><Monitor size={18}/><span>PC-21 · <Text value={t("Source","المصدر")}/></span><code>{session4SourceIP}</code></header>
+    <form onSubmit={e=>{e.preventDefault();if(s.folderInput?.trim())mark({folder:s.folderInput.trim(),file:"",read:"",copied:"",triedPath:""},{shared:false,opened:false});}}>
+     <label><Text value={t("1 · Nom du nouveau dossier","1 · اسم المجلد الجديد")}/>
+      <input aria-label="Nom du nouveau dossier" value={s.folderInput??""} placeholder={expoFolder} maxLength={40} onChange={e=>mark({folderInput:e.target.value})}/>
+     </label>
+     <button type="submit" disabled={!s.folderInput?.trim()}><FolderPlus size={17}/><Text value={t("Créer","إنشاء")}/></button>
+    </form>
+    {s.folder&&<div className="expo-folder-token"><Folder size={21}/><strong>{s.folder}</strong>{s.file==="placed"&&<span>{expoFile}</span>}</div>}
+    <button type="button" disabled={!folderReady||s.file==="placed"} onClick={()=>mark({file:"placed"})}><FileText size={17}/><Text value={t(`2 · Déposer ${expoFile}`,`2 · وضع ${expoFile}`)}/></button>
+    <label><Text value={t("3 · Quel droit suffit au voisin ?","3 · ما الصلاحية الكافية للزميل؟")}/>
+     <select aria-label="Droit du partage" value={draft.permission} disabled={s.file!=="placed"} onChange={e=>mark({read:"",copied:"",triedPath:""},{permission:e.target.value,shared:false,opened:false})}>
+      <option value="">Choisir…</option><option value="none">Aucun accès</option><option value="write">Lecture et écriture</option><option value="read">Lecture</option>
+     </select>
+    </label>
+    <button type="button" disabled={s.file!=="placed"||!draft.permission} onClick={()=>onChange({shared:true})}><Network size={17}/><Text value={t("Partager sur le réseau","المشاركة عبر الشبكة")}/></button>
+    {draft.shared&&<p role="status"><Text value={draft.permission==="read"?t("Partagé en lecture.","تمت المشاركة للقراءة."):draft.permission==="none"?t("Le voisin n’a aucun accès.","لا يملك الزميل صلاحية الولوج."):t("Le voisin peut aussi modifier. Pour cette mission, le droit Lecture suffit.","يمكن للزميل أيضًا التعديل. تكفي صلاحية القراءة في هذه المهمة.")}/></p>}
+   </section>
+   <section className="expo-station">
+    <header><Monitor size={18}/><span>PC-22 · <Text value={t("Destinataire","المستلم")}/></span><code>{session4PeerIP}</code></header>
+    <label><Text value={t("4 · Chemin du dossier dans l’Explorateur","4 · مسار المجلد في المستكشف")}/>
+     <select aria-label="Chemin du dossier" value={draft.path} onChange={e=>mark({read:"",copied:"",triedPath:""},{path:e.target.value,opened:false})}>
+      <option value="">Choisir le chemin…</option>{paths.map(path=><option key={path}>{path}</option>)}
+     </select>
+    </label>
+    <button type="button" disabled={!draft.path} onClick={()=>mark({triedPath:"yes"},{opened:shareReady&&expoPathCorrect(draft.path)})}><Folder size={17}/><Text value={t("Ouvrir le partage","فتح المجلد المشترك")}/></button>
+    {s.triedPath==="yes"&&!open&&<p role="status"><Text value={t("Dossier inaccessible. Vérifie l’adresse du poste source et son droit de partage.","يتعذر فتح المجلد. تحقق من عنوان الحاسوب المصدر وصلاحية المشاركة.")}/></p>}
+    {open&&<div className="expo-received-file"><FileText size={25}/><strong>{expoFile}</strong>
+     <button type="button" onClick={()=>mark({copied:"yes"})}><Text value={s.copied==="yes"?t("Copie sur le Bureau","نسخة على سطح المكتب"):t("Copier sur le Bureau","نسخ إلى سطح المكتب")}/></button>
+     <button type="button" disabled={s.copied!=="yes"} onClick={()=>mark({read:"yes"})}><Text value={t("Lire la copie","قراءة النسخة")}/></button>
+     {s.read==="yes"&&<p role="status"><Text value={t(expoMessage,"موعدنا في الجناح 04 على الساعة العاشرة.")}/></p>}
+    </div>}
+   </section>
+  </div>
+ </div>;
+}
+
+const commands=["ipconfig","hostname",`ping ${session4PeerIP}`];
+function IdentityLab({draft,onChange}:LabProps) {
+ function run() {
+  const command=draft.command.trim().toLowerCase().replace(/\s+/g," ");
+  if(!command)return;
+  const result=runSession4Command(command,true);
+  onChange({command:"",commands:commands.includes(command)?[...new Set([...draft.commands,command])]:draft.commands,
+   output:`C:\\> ${command}\n\n${result}`,selections:{...draft.selections,commandRun:"yes"}});
+ }
+ return <div className="expo-identity">
+  <section className="expo-terminal">
+   <header><Terminal size={19}/> <Text value={t("Invite de commandes","نافذة الأوامر")}/></header>
+   <pre aria-live="polite">{draft.output}</pre>
+   <form onSubmit={e=>{e.preventDefault();run();}}>
+    <label><Text value={t("Commande","الأمر")}/><input aria-label="Commande réseau" spellCheck={false} maxLength={80} value={draft.command} onChange={e=>onChange({command:e.target.value})}/></label>
+    <button type="submit" disabled={!draft.command.trim()}><Text value={t("Exécuter","تنفيذ")}/></button>
+   </form>
+   <div className="expo-command-tools">{commands.map(command=><button type="button" key={command} aria-label={`Préparer ${command}`} onClick={()=>onChange({command})}>{draft.commands.includes(command)&&<Check size={14}/>}<code>{command}</code></button>)}</div>
+  </section>
+  <aside className="expo-ticket">
+   <span>FICHE DE RACCORDEMENT</span>
+   <img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Poste fixe du club"/>
+   <label><Text value={t("Adresse IPv4 relevée","عنوان IPv4 المقروء")}/><input aria-label="Adresse IPv4 relevée" maxLength={15} value={draft.ip} onChange={e=>onChange({ip:e.target.value})}/></label>
+   <label><Text value={t("Nom du PC relevé","اسم الحاسوب المقروء")}/><input aria-label="Nom du PC relevé" maxLength={30} value={draft.host} onChange={e=>onChange({host:e.target.value})}/></label>
+  </aside>
+ </div>;
+}
+
+export function Session4ActivityPlayer({activity,draft,onChange}:LabProps&{activity:Session4Activity}) {
+ switch(activity.kind){
+  case "inventory": return <Inventory draft={draft} onChange={onChange}/>;
+  case "media": return <MediaChoice draft={draft} onChange={onChange}/>;
+  case "plans": return <ExpoTopologyLab draft={draft} onChange={onChange}/>;
+  case "wired":
+  case "wireless":
+  case "mixed":
+  case "diagnostic": return <ExpoNetworkLab kind={activity.kind} draft={draft} onChange={onChange}/>;
+  case "folder": return <FolderLab draft={draft} onChange={onChange}/>;
+  case "identity": return <IdentityLab draft={draft} onChange={onChange}/>;
+  case "practice": return <RealExchange draft={draft} onChange={onChange}/>;
+ }
 }

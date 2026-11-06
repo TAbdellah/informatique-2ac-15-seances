@@ -85,7 +85,7 @@ export function createLearningService({database,secret}:Dependencies){
  }
  async function learnerWorkshop(p: Row, sessionId: number) {
   const ids = [...new Set([p.id, ...await aliases(p)])];
-  const definitions = new Map(workshopExercises(sessionId).map(item => [item.id, item]));
+  const definitions = new Map(workshopExercises(sessionId, true).map(item => [item.id, item]));
   const attempts: WorkshopAttempt[] = [];
   const query = `course_2ac_submissions?participant_id=in.(${ids.join(",")})&session_id=eq.${sessionId}&activity_type=in.(unit1_exercise,photo_challenge,workshop)&select=id,activity_id,activity_type,is_correct,score,max_score&order=created_at.desc,id.desc`;
   let count = 0;

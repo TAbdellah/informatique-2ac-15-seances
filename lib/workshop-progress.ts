@@ -3,7 +3,7 @@ import { photoChallenges } from "../app/practice-data.ts";
 import { unit1Labs, type Unit1Exercise } from "../app/unit1-labs.ts";
 import { guidedFileChecks, systemLabChecks, type SystemLabState } from "../app/session3-system-model.ts";
 import { isWindowsState, windowsCriteria, type WindowsMode } from "../app/session3-windows-model.ts";
-import { session4Activities } from "../app/session4-data.ts";
+import { session4Activities, session4AllActivities, type Session4Activity, type Session4LegacyActivity } from "../app/session4-data.ts";
 import { freshSession4Draft, session4ActivityChecks } from "../app/session4-model.ts";
 
 type WorkshopType = "unit1_exercise" | "photo_challenge" | "workshop";
@@ -49,11 +49,11 @@ const conversion = (value: string) => normalizeAnswer(value).replace(/\s/g, "").
 const ratio = (earned: number, total: number) => total > 0 ? Math.round(100 * Math.min(earned, total) / total) : 0;
 const percentOf = (checks: boolean[]) => ratio(checks.filter(Boolean).length, checks.length);
 
-export function workshopExercises(sessionId: number): WorkshopExercise[] {
+export function workshopExercises(sessionId: number, includeEarlier = false): WorkshopExercise[] {
   const lab = unit1Labs[sessionId as 1 | 2 | 3];
   if (lab) return lab.exercises.map(ex => ({ id: ex.id, title: ex.title, type: "unit1_exercise", declared: false }));
   if (sessionId === 4) {
-    return session4Activities.map(activity => ({ id: activity.id, title: activity.title, type: "workshop", declared: activity.kind === "practice" }));
+    return (includeEarlier ? session4AllActivities : session4Activities).map(activity => ({ id: activity.id, title: activity.title, type: "workshop", declared: activity.kind === "practice" }));
   }
   const session = sessions.find(item => item.id === sessionId);
   const challenge = photoChallenges[sessionId];
@@ -126,26 +126,33 @@ export function unit1DraftPercent(exercise: Unit1Exercise, value: unknown): numb
   }
 }
 
-export function session4DraftPercent(index: number, value: unknown): number | null {
+export function session4DraftPercent(activity: Session4Activity | Session4LegacyActivity, value: unknown): number | null {
   const raw = record(value);
+  const strings = (value: unknown) => list(value).filter((item): item is string => typeof item === "string");
   const draft = {
     ...freshSession4Draft(),
-    selections: record(raw.selections) as Record<string, string>,
-    links: list(raw.links) as string[],
+    selections: Object.fromEntries(Object.entries(record(raw.selections)).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+    links: strings(raw.links),
     internet: raw.internet !== false,
     tested: raw.tested === true,
     delivered: raw.delivered === true,
-    checks: list(raw.checks) as string[],
+    checks: strings(raw.checks),
+    commands: strings(raw.commands),
+    command: text(raw.command),
+    shared: raw.shared === true,
+    opened: raw.opened === true,
+    permission: text(raw.permission),
+    path: text(raw.path),
     ip: text(raw.ip),
     host: text(raw.host),
     peerIP: text(raw.peerIP),
     proof: text(raw.proof),
     simulator: raw.simulator as ReturnType<typeof freshSession4Draft>["simulator"],
   };
-  const checks = session4ActivityChecks(session4Activities[index], draft);
+  const checks = session4ActivityChecks(activity, draft);
   const started = checks.some(Boolean) || !draft.internet || draft.links.length || draft.checks.length
     || Object.keys(draft.selections).length || draft.ip || draft.host || draft.peerIP || draft.proof
-    || raw.tested === true || raw.result === false;
+    || draft.commands.length || draft.command || draft.path || draft.tested || raw.result === false;
   return started ? percentOf(checks) : null;
 }
 
@@ -154,6 +161,13 @@ export function workshopEvidence(sessionId: number, value: unknown): WorkshopEvi
   if (state.version !== 1) return [];
   const drafts = record(state.drafts);
   const completed = new Set(list(state.completedIds));
+  if (sessionId === 4) {
+    return session4AllActivities.flatMap(activity => {
+      const confirmed = completed.has(activity.id);
+      const percent = confirmed ? 100 : session4DraftPercent(activity, drafts[activity.id]);
+      return percent === null ? [] : [{ activityId: activity.id, percent, confirmed }];
+    });
+  }
   const lab = unit1Labs[sessionId as 1 | 2 | 3];
   return workshopExercises(sessionId).flatMap((exercise, index) => {
     const draft = record(drafts[exercise.id]);
@@ -162,8 +176,6 @@ export function workshopEvidence(sessionId: number, value: unknown): WorkshopEvi
     if (lab) {
       const item = lab.exercises[index];
       if (!item.revision || item.revision === draft.exerciseRevision) percent = unit1DraftPercent(item, draft);
-    } else if (sessionId === 4) {
-      percent = session4DraftPercent(index, draft);
     } else if (index === 0) {
       if (Number.isInteger(state.photoAnswer)) {
         confirmed = state.photoAnswer === photoChallenges[sessionId].answer;

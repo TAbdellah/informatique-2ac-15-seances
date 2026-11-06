@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),cp=require('node:child_process'),crypto=require('node:crypto'),ts=require('typescript');
 const root=path.resolve(__dirname,'..');
 function loader(revision){const cache={};return function load(relative){relative=path.normalize(relative);if(cache[relative])return cache[relative];const exports={};cache[relative]=exports;const source=revision?cp.execFileSync('git',['show',revision+':'+relative],{cwd:root,encoding:'utf8'}):fs.readFileSync(path.join(root,relative),'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,require:name=>{if(!name.startsWith('.'))return require(name);let f=path.join(path.dirname(relative),name);if(!path.extname(f))f+='.ts';return load(f)},process});return exports;}}
-const load=loader();const {session4,session4Activities,session4Equipment}=load('app/session4-data.ts'),m=load('app/session4-model.ts'),rubric=load('supabase/functions/informatique-2ac-api/session4-evaluation.ts');
+const load=loader();const {session4,session4Activities,session4LegacyActivities,session4Equipment}=load('app/session4-data.ts'),m=load('app/session4-model.ts'),rubric=load('supabase/functions/informatique-2ac-api/session4-evaluation.ts');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++};
 equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.length,10);equal(session4Activities.filter(a=>a.kind!=='practice').length,9,'hands-on declarations excluded from automatic acquisition');
 for(const [value,expected]of [['192.168.10.21',true],['10.0.0.2',true],['172.20.10.3',true],['192.168.10.999',false],['127.0.0.1',false],['example.org',false],['192.168.1',false],['8.8.8.8',false]])equal(m.isPrivateIPv4(value),expected,value);
@@ -9,13 +9,48 @@ equal(m.session4SharePath,String.raw`\\192.168.10.21\Club_reseau`,'UNC path uses
 equal(m.runSession4Command('IPCONFIG',true).includes('192.168.10.21'),true,'terminal command accepts upper case');equal(m.runSession4Command('hostname',true),'PC-21');equal((m.runSession4Command('ping 192.168.10.22',true).match(/Réponse de/g)||[]).length,4,'successful ping displays four replies');equal(m.runSession4Command('ping 192.168.10.22',false).includes('perte 100 %'),true);
 const sim=(mode,completed=true)=>({version:2,mode,checks:Array(({identity:2,ping:3,sharing:5,messenger:5,repair:4})[mode]).fill(completed),completed,snapshot:{},evidence:{}});
 const states={lan:{internet:false,delivered:true,selections:{lan:'local'}},cables:{links:['PC-21','PC-22','PC-23','Imprimante','Portable','Mac','TV'],tested:true,selections:{router:'router',switch:'switch',ap:'ap'}},equipment:{selections:Object.fromEntries(session4Equipment.map(e=>[e.id,e.answer]))},topology:{selections:{star:'star',bus:'bus',ring:'ring'}},identity:{simulator:sim('identity'),ip:'192.168.10.21',host:'pc-21'},ping:{simulator:sim('ping')},sharing:{simulator:sim('sharing')},practice:{checks:['source','receive','reverse','return'],ip:'192.168.10.21',peerIP:'192.168.10.22',proof:'Bien reçu !'},messenger:{simulator:sim('messenger')},repair:{simulator:sim('repair')}};
-for(const activity of session4Activities){equal(m.session4ActivityCorrect(activity,m.freshSession4Draft()),false,activity.id+' cannot pass empty');equal(m.session4ActivityCorrect(activity,{...m.freshSession4Draft(),...states[activity.kind]}),true,activity.id+' passes with the expected actions');}
+for(const activity of session4LegacyActivities){equal(m.session4ActivityCorrect(activity,m.freshSession4Draft()),false,activity.id+' cannot pass empty');equal(m.session4ActivityCorrect(activity,{...m.freshSession4Draft(),...states[activity.kind]}),true,activity.id+' passes with the expected actions');}
 const practice=session4Activities.find(a=>a.kind==='practice');equal(m.session4ActivityCorrect(practice,{...m.freshSession4Draft(),...states.practice,peerIP:states.practice.ip}),false,'real TP cannot declare two identical addresses');
 equal(m.initialSession4Workshop({checked:[true,true]}).completedIds,['session-4-workshop-A','session-4-workshop-B'],'previous lesson-4 completions can be retained');
 const saved={...m.initialSession4Workshop(null),activityIndex:7,completedIds:['session-4-workshop-A'],drafts:{'session-4-workshop-TP':{...m.freshSession4Draft(),...states.practice}},summary:false};equal(m.validSession4Workshop(JSON.parse(JSON.stringify(saved))),true,'real work survives serialization');
 const fullChoices=Object.fromEntries(rubric.session4Questions.map(q=>[q.id,q.answer]));const full=rubric.gradeSession4(fullChoices),empty=rubric.gradeSession4({});
 equal(full.score,20);equal(full.sections,[6,4,6,4]);equal(rubric.validSession4Evaluation(full,true,20,20),true);equal(rubric.validSession4Evaluation(empty,false,0,20),true);equal(Buffer.byteLength(JSON.stringify(full))<12000,true,'answer fits existing storage');
 for(const edit of [a=>a.score=19,a=>a.answers[0].earnedPoints=0,a=>a.sections[0]=0,a=>a.choices.unknown=0,a=>a.choices.lan=99,a=>a.answers[0].selectedChoice.fr='fake']){const changed=structuredClone(full);edit(changed);equal(rubric.validSession4Evaluation(changed,true,20,20),false,'forged assessment rejected')}
+const expo=load('app/session4-expo-model.ts'),scores=load('lib/workshop-progress.ts');
+const networks=expo.expoNetworks,ssid=expo.expoSSID;
+const makeNetwork=(kind,selections)=>({selections,links:networks[kind].wires,tested:true,delivered:true});
+const fullNetwork={switch:'switch',ap:'ap',ssid,laptop:ssid,tv:ssid};
+const newStates={
+ inventory:{selections:Object.fromEntries(session4Equipment.flatMap(item=>[[`name-${item.id}`,item.id],[`role-${item.id}`,item.id]]))},
+ media:{selections:Object.fromEntries(expo.expoMedia.map(item=>[item.id,item.link]))},
+ plans:{selections:Object.fromEntries(expo.expoPlans.flatMap(plan=>[[`wire-${plan.id}`,String(plan.missing)],[`topo-${plan.id}`,plan.topology]]))},
+ wired:makeNetwork('wired',{switch:'switch'}),
+ wireless:makeNetwork('wireless',{ap:'ap',ssid,laptop:ssid,laptop2:ssid}),
+ mixed:makeNetwork('mixed',fullNetwork),
+ folder:{selections:{folder:expo.expoFolder,file:'placed',read:'yes',copied:'yes'},permission:'read',shared:true,path:expo.expoPath,opened:true},
+ identity:{commands:['ipconfig','hostname','ping 192.168.10.22'],ip:'192.168.10.21',host:'PC-21'},
+ diagnostic:makeNetwork('diagnostic',{rewired:'yes',failed:'yes',cause:'uplink'}),
+ practice:states.practice,
+};
+for(const activity of session4Activities){
+ equal(m.session4ActivityCorrect(activity,m.freshSession4Draft()),false,activity.id+' requires active work');
+ equal(m.session4ActivityCorrect(activity,{...m.freshSession4Draft(),...newStates[activity.kind]}),true,activity.id+' completes with observed work');
+ equal(scores.session4DraftPercent(activity,newStates[activity.kind]),100,'dashboard shares the exercise rubric');
+}
+equal(expo.expoRoute('wired',newStates.wired),['pc21','switch','printer'],'the wired document traverses the switch');
+equal(expo.expoRoute('wireless',newStates.wireless),['laptop','ap','laptop2'],'the Wi-Fi packet traverses the access point without cables');
+equal(expo.expoRoute('wireless',{...newStates.wireless,selections:{...newStates.wireless.selections,laptop2:'INVITES'}}),null,'different SSIDs cannot deliver the document');
+equal(expo.expoRoute('mixed',newStates.mixed),['pc21','switch','ap','tv'],'the mixed network bridges Ethernet and Wi-Fi');
+equal(expo.expoRoute('mixed',{...newStates.mixed,links:[expo.expoWire('pc21','printer'),expo.expoWire('printer','ap')]}),null,'an end device never relays between links');
+equal(expo.expoRoute('diagnostic',m.freshSession4Draft()),null,'the missing access-point uplink prevents delivery');
+equal(scores.session4DraftPercent(session4Activities.find(a=>a.kind==='diagnostic'),{}),null,'preinstalled devices do not earn a grade');
+const folderActivity=session4Activities.find(a=>a.kind==='folder');
+equal(expo.expoShareReady({...m.freshSession4Draft(),...newStates.folder,permission:'write'}),true,'read and write still grants access');
+equal(m.session4ActivityCorrect(folderActivity,{...m.freshSession4Draft(),...newStates.folder,permission:'write'}),false,'the activity asks for the minimum right');
+equal(scores.workshopExercises(4).some(a=>a.id===session4LegacyActivities[0].id),false,'earlier results do not award credit for new exercises');
+equal(scores.workshopExercises(4,true).some(a=>a.id===session4LegacyActivities[0].id),true,'earlier activity IDs remain supported in the history API');
+const earlier=m.initialSession4Workshop(saved);
+equal(earlier.drafts,saved.drafts,'historical checkpoints are preserved on opening the redesigned lesson');
 const progress=load('app/prof/learning-model.ts');equal(progress.targetsFor(4).length,9,'teacher tracks nine auto-graded activities');equal(progress.targetsFor(4).some(t=>t.id==='session-4-workshop-TP'),false,'TP declaration does not claim mastery');
 
 // The desktop checks real files, sharing rights, inbox reads and ordered operations.
@@ -37,7 +72,7 @@ b.inbox[0].read=true;b.did.attSaved=true;file(b,'downloads','Bonjour.txt','Bonjo
 equal(simulator.evaluate('messenger',a,b,[]).completed,false,'a sent attachment is not a recipient confirmation');a.inbox=[{from:'PC-22',text:'Reçu',read:true}];equal(simulator.evaluate('messenger',a,b,[]).completed,true);
 a=machine('PC-21');b=machine('PC-22');b.cable=false;a.did.failedPing=true;equal(simulator.evaluate('ping',a,b,[]).checks,[true,false,false]);b.cable=true;b.did.cable=true;a.did.successPing=true;equal(simulator.evaluate('ping',a,b,[]).completed,true);
 equal(simulator.validSnapshot({version:2,mode:'ping',machines:{A:a,B:b}},'ping'),true);equal(simulator.validSnapshot({version:2,mode:'ping',machines:{A:a,B:b}},'sharing'),false);
-for(const mode of Object.keys(simulator.missions)){equal(m.session4ActivityCorrect(session4Activities.find(a=>a.kind===mode),{...m.freshSession4Draft(),...states[mode],simulator:{...sim(mode),checks:sim(mode).checks.map(()=>false)}}),false,'forged completed flag rejected for '+mode);}
+for(const mode of Object.keys(simulator.missions)){equal(m.session4ActivityCorrect(session4LegacyActivities.find(a=>a.kind===mode),{...m.freshSession4Draft(),...states[mode],simulator:{...sim(mode),checks:sim(mode).checks.map(()=>false)}}),false,'forged completed flag rejected for '+mode);}
 const heavy={...m.freshSession4Draft(),simulator:{...sim('sharing'),snapshot:{disk:'x'.repeat(50000)}}};equal(JSON.stringify(m.session4AnswerState(heavy)).length<12000,true,'teacher evidence excludes the full two-PC checkpoint');
 const sourceEngine=fs.readFileSync(path.join(root,'public/session4/simulateur/engine.js'),'utf8');new Function(sourceEngine);assertions++;equal(sourceEngine.includes('holder={clip:null}'),true,'the clipboard belongs to one PC, so it cannot bypass a share');
 const old=loader('43cd7bdd703767ce76bf40ce476ae3407e3cb5c4')('app/course-data.ts'),now=load('app/course-data.ts');equal(now.sessions.filter(s=>s.id!==4),old.sessions.filter(s=>s.id!==4),'other fourteen lessons are unchanged');equal(now.units,old.units,'unit structure unchanged');
