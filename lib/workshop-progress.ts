@@ -3,7 +3,7 @@ import { photoChallenges } from "../app/practice-data.ts";
 import { unit1Labs, type Unit1Exercise } from "../app/unit1-labs.ts";
 import { guidedFileChecks, systemLabChecks, type SystemLabState } from "../app/session3-system-model.ts";
 import { isWindowsState, windowsCriteria, type WindowsMode } from "../app/session3-windows-model.ts";
-import { session4Activities, session4AllActivities, type Session4Activity, type Session4LegacyActivity } from "../app/session4-data.ts";
+import { session4Activities, session4AllActivities, session4NetworkEquipment, session4OriginalStock, type Session4Activity, type Session4LegacyActivity } from "../app/session4-data.ts";
 import { freshSession4Draft, session4ActivityChecks } from "../app/session4-model.ts";
 
 type WorkshopType = "unit1_exercise" | "photo_challenge" | "workshop";
@@ -12,6 +12,7 @@ export type WorkshopExercise = {
   title: LocalizedText;
   type: WorkshopType;
   declared: boolean;
+  previous?: {id: string; weight: number};
 };
 export type WorkshopEvidence = { activityId: string; percent: number; confirmed: boolean };
 export type SavedWorkshopEvidence = WorkshopEvidence & { participantId: string; updatedAt: string };
@@ -53,7 +54,12 @@ export function workshopExercises(sessionId: number, includeEarlier = false): Wo
   const lab = unit1Labs[sessionId as 1 | 2 | 3];
   if (lab) return lab.exercises.map(ex => ({ id: ex.id, title: ex.title, type: "unit1_exercise", declared: false }));
   if (sessionId === 4) {
-    return (includeEarlier ? session4AllActivities : session4Activities).map(activity => ({ id: activity.id, title: activity.title, type: "workshop", declared: activity.kind === "practice" }));
+    return (includeEarlier ? session4AllActivities : session4Activities).map(activity => ({
+      id: activity.id, title: activity.title, type: "workshop", declared: activity.kind === "practice",
+      ...("previousId" in activity && activity.previousId
+        ? {previous: {id: activity.previousId, weight: session4OriginalStock.length / session4NetworkEquipment.length}}
+        : {}),
+    }));
   }
   const session = sessions.find(item => item.id === sessionId);
   const challenge = photoChallenges[sessionId];
@@ -164,7 +170,9 @@ export function workshopEvidence(sessionId: number, value: unknown): WorkshopEvi
   if (sessionId === 4) {
     return session4AllActivities.flatMap(activity => {
       const confirmed = completed.has(activity.id);
-      const percent = confirmed ? 100 : session4DraftPercent(activity, drafts[activity.id]);
+      const previousId = "previousId" in activity ? activity.previousId : undefined;
+      const draft = drafts[activity.id] ?? (previousId ? drafts[previousId] : undefined);
+      const percent = confirmed ? 100 : session4DraftPercent(activity, draft);
       return percent === null ? [] : [{ activityId: activity.id, percent, confirmed }];
     });
   }
@@ -220,6 +228,17 @@ export function workshopRows(exercises: WorkshopExercise[], drafts: WorkshopEvid
         ? [ratio(Math.max(0, row.bestScore), row.maxScore)]
         : row.graded ? [0] : []),
     ];
+    // A result for five photos still contributes to the revised exercise with six photos.
+    if (exercise.previous) {
+      const {id, weight} = exercise.previous;
+      for (const row of drafts) if (row.activityId === id) scores.push(Math.round(row.percent * weight));
+      for (const row of attempts) if (row.activityId === id) {
+        if (row.successful) scores.push(Math.round(100 * weight));
+        else if (row.bestScore !== null && row.maxScore !== null && row.maxScore > 0) {
+          scores.push(ratio(Math.max(0, row.bestScore) * weight, row.maxScore));
+        } else if (row.graded) scores.push(0);
+      }
+    }
     return {
       ...exercise, confirmed, percent: confirmed ? 100 : scores.length ? Math.max(...scores) : null,
       attempts: results.reduce((n, row) => n + row.attempts, 0),

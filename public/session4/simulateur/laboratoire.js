@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const channel='lab2ac-session4',protocol=2,root=document.getElementById('laboratoire'),contract=window.Session4Missions;
- const params=new URLSearchParams(location.search),mode=params.get('mode'),guided=params.get('guide')==='1';
+ const params=new URLSearchParams(location.search),mode=params.get('mode'),guided=mode!=='assessment'&&params.get('guide')==='1';
  if(!contract.missions[mode]){root.textContent='Cette activité du laboratoire n’existe pas.';return;}
  const tools={
   terminal:{label:'Invite de commandes · PC-21',ar:'نافذة الأوامر · PC-21',post:'A',open:pc=>pc.openApp('terminal')},
@@ -81,7 +81,14 @@
   root.querySelector('#guide-next').disabled=guideIndex===last||!checks[guideIndex];
  }
  let nonce=null,parentOrigin='*',ready=false,pending=false,net=null,ctx=null,current='A',view='desktop',checks=[],frameReady=false;
- const send=data=>{if(nonce)parent.postMessage({channel,protocol,nonce,...data},parentOrigin);};
+ const send=data=>{
+  if(!nonce)return;
+  const message={channel,protocol,nonce,...data};
+  if(mode==='assessment'&&data.type==='state'&&parentOrigin===location.origin){
+   // Save a completed gesture before a reload can discard a queued message.
+   parent.dispatchEvent(new MessageEvent('message',{data:message,origin:location.origin,source:window}));
+  }else parent.postMessage(message,parentOrigin);
+ };
  const photo=name=>'../images/'+name+'.webp';
  function show(next){
   if(next==='network'){view='network';}else{view='desktop';current=next;}
@@ -109,7 +116,7 @@
   root.querySelector('.lab-top strong').textContent=M.title;root.querySelector('.lab-top strong').dataset.ar=M.ar;
   net={machines:{},internet:false};ctx={A:null,B:null};
   const isRepair=mode==='repair';
-  ctx.A=makeOS(root.querySelector('[data-machine="A"]'),{name:'PC-21',user:'Amine',ip:'192.168.10.21',seed:isRepair?'netA2':'clubA',guided,mode,net,snapshot:saved?.machines.A,onchange:schedule});
+  ctx.A=makeOS(root.querySelector('[data-machine="A"]'),{name:'PC-21',user:'Amine',ip:'192.168.10.21',seed:mode==='assessment'?'assessmentA':isRepair?'netA2':'clubA',guided,mode,net,snapshot:saved?.machines.A,onchange:schedule});
   ctx.B=makeOS(root.querySelector('[data-machine="B"]'),{name:'PC-22',user:'Sara',ip:'192.168.10.22',seed:isRepair?'netB0':'clubB',guided,mode,net,cable:mode!=='ping',snapshot:saved?.machines.B,onchange:schedule});
   document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.view)));
   document.querySelectorAll('[data-app]').forEach(button=>button.addEventListener('click',()=>{ctx[current].openApp(button.dataset.app);schedule();}));
@@ -156,7 +163,7 @@
   }
   document.querySelectorAll('[data-cable]').forEach(button=>{const key=button.dataset.cable,pc=ctx[key];button.textContent=pc.cable?'Débrancher le câble':'Rebrancher le câble';button.setAttribute('aria-pressed',String(pc.cable));button.closest('article').classList.toggle('unplugged',!pc.cable);document.querySelector('.wire-'+key.toLowerCase()).classList.toggle('unplugged',!pc.cable);});
   const snapshot={version:2,mode,machines:{A:a,B:b},checks,current,view,...(guided?{guide:{index:guideIndex,tool:guideTool}}:{})};
-  const evidence={steps:contract.missions[mode].steps.map((step,i)=>({task:step[0],done:checks[i]})),posts:[a,b].map(pc=>({name:pc.name,ip:pc.ip,connected:pc.cable,shares:pc.shares.map(s=>({name:s.name,permission:s.perm})),commands:(pc.did.commands||[]).slice(-6),messagesReceived:pc.inbox.slice(0,6).map(m=>({from:m.from,text:m.text,attachment:m.att?.name,read:m.read}))}))};
+  const evidence=result.evidence||{steps:contract.missions[mode].steps.map((step,i)=>({task:step[0],done:checks[i]})),posts:[a,b].map(pc=>({name:pc.name,ip:pc.ip,connected:pc.cable,shares:pc.shares.map(s=>({name:s.name,permission:s.perm})),commands:(pc.did.commands||[]).slice(-6),messagesReceived:pc.inbox.slice(0,6).map(m=>({from:m.from,text:m.text,attachment:m.att?.name,read:m.read}))}))};
   send({type:'state',mode,checks,completed:result.completed,snapshot,evidence});
   send({type:'resize',height:Math.ceil(root.scrollHeight)});
  }

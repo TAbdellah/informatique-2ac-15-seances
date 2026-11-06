@@ -1,4 +1,4 @@
-import { s4t as t, session4Equipment, session4NetworkEquipment, type Session4Activity } from "./session4-data.ts";
+import { s4t as t, session4Equipment, session4NetworkEquipment, session4OriginalStock, type Session4Activity } from "./session4-data.ts";
 import type { Session4Draft } from "./session4-model.ts";
 
 export const expoSSID = "CLUB-EXPO";
@@ -190,7 +190,8 @@ export function expoActivityChecks(activity: Session4Activity, d: Session4Draft)
     case "names":
     case "roles": {
       const prefix = activity.kind === "names" ? "name" : "role";
-      return session4NetworkEquipment.map(e => s[`${prefix}-${e.id}`] === e.id);
+      const equipment = activity.previousId ? session4NetworkEquipment : session4OriginalStock;
+      return equipment.map(e => s[`${prefix}-${e.id}`] === e.id);
     }
     case "star":
     case "bus":

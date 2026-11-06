@@ -58,6 +58,8 @@ Les schémas de conversion et d’exemples de systèmes d’exploitation provien
 
 Photographie du clavier : Pixloom, [Wireless Computer Keyboard](https://commons.wikimedia.org/wiki/File:Wireless_Computer_Keyboard.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), sans modification. Les informations de crédit figurent aussi dans `public/session3/ressources/clavier-credit.json`.
 
+Photographie de la carte Wi-Fi (séance 4) par Thiemo Schuff. [Netgear WG311](https://commons.wikimedia.org/wiki/File:Netgear_WG311.jpg) · [CC BY-SA 3.0 DE](https://creativecommons.org/licenses/by-sa/3.0/de/deed.fr) · fichier d’origine.
+
 ## Auteur
 
 Prof. Abdellah TAHTOH — Collège Othmane Ibn Affane

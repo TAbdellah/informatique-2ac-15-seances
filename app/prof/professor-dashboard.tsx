@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LearningTeacherPortal, {TeacherNavigation, type TeacherSection} from "./learning-dashboard";
 import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-api";
 import { session3Lab } from "../session3-lab-data";
-import { session4AllActivities } from "../session4-data";
+import { session4AllActivities, session4LabEvaluationId, session4QuizEvaluationId } from "../session4-data";
 import Session4TeacherReport from "./session4-report";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
@@ -231,7 +231,8 @@ const pedagogicalSessions = {
 } as const;
 
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
-  if (attempt.activityId === "session-4-reseau-evaluation-v1") return "Séance 4 · Réseau local · Évaluation /20";
+  if (attempt.activityId === session4LabEvaluationId) return "Séance 4 · QCM et simulateur réseau · Évaluation /20";
+  if (attempt.activityId === session4QuizEvaluationId) return "Séance 4 · Réseau local · Évaluation /20";
   if (attempt.activityId === "session-4-tp-messagerie") return "Séance 4 · Échange réel BeeBEEP · déclaré";
   const session4Activity=session4AllActivities.find(a=>a.id===attempt.activityId);
   if(session4Activity)return `Séance 4 · ${session4Activity.title.fr}${session4Activity.kind==="practice"?" · déclaré":""}`;
@@ -650,7 +651,22 @@ function attemptExportRows(row: Attempt) {
       result: row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
     }];
 
-  return details.map((detail) => [
+  const labDetails = row.activityId === session4LabEvaluationId && Array.isArray(answerRecord?.practical)
+    ? (answerRecord.practical as Array<Record<string, unknown>>).map((item,index)=>({
+        number: details.length + index + 1,
+        question: displayAnswerValue(item.criterion),
+        selected: item.correct ? "Geste réalisé" : "Geste à revoir",
+        expected: "Geste réalisé",
+        answerResult: item.correct ? "Validé" : "À revoir",
+        selectedJustification: "",
+        expectedJustification: "",
+        justificationResult: "",
+        questionPoints: typeof item.earnedPoints === "number" ? item.earnedPoints : 0,
+        questionMaxPoints: typeof item.maxPoints === "number" ? item.maxPoints : "",
+        result: item.correct ? "Correct" : "Incorrect",
+      }))
+    : [];
+  return [...details,...labDetails].map((detail) => [
     ...base,
     detail.number,
     detail.question,
@@ -686,9 +702,22 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
     typeof answer === "object" &&
     Array.isArray((answer as { answers?: unknown }).answers)
   ) {
-    const answers = (answer as { answers: Array<Record<string, unknown>> }).answers;
+    const {answers,practical} = answer as {answers:Array<Record<string,unknown>>;practical?:unknown};
     return (
       <div className="prof-quiz-details">
+        {attempt.activityId === session4LabEvaluationId && Array.isArray(practical) && <>
+          <h4>Manipulation dans le simulateur</h4>
+          {(practical as Array<Record<string,unknown>>).map((item,index)=><article key={index}>
+            <div className="prof-question-line">
+              <strong>{displayAnswerValue(item.criterion)}</strong>
+              <span className={item.correct?"prof-result-good":"prof-result-bad"}>
+                {item.correct?<CheckCircle2 size={14}/>:<XCircle size={14}/>}
+                {displayAnswerValue(item.earnedPoints)}/{displayAnswerValue(item.maxPoints)} pts
+              </span>
+            </div>
+          </article>)}
+          <h4>Questions du QCM</h4>
+        </>}
         {answers.map((item, index) => {
           const answerCorrect = typeof item.answerCorrect === "boolean" ? item.answerCorrect : Boolean(item.correct);
           const hasJustification = item.correctJustification !== null && item.correctJustification !== undefined;

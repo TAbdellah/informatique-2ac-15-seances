@@ -6,6 +6,11 @@ export const session4SharePath=String.raw`\\192.168.10.21\Club_reseau`;
 export type Session4Draft={savedAt?:number;selections:Record<string,string>;links:string[];internet:boolean;tested:boolean;delivered:boolean;connected:boolean;commands:string[];command:string;output:string;ip:string;host:string;shared:boolean;permission:string;path:string;opened:boolean;recipient:string;message:string;attached:boolean;checks:string[];peerIP:string;proof:string;practicalConfirmed:boolean;result:boolean|null;simulator:Session4SimulatorState|null};
 export type Session4WorkshopState={version:1;activityIndex:number;activityId?:string;completedIds:string[];drafts:Record<string,Session4Draft>;summary:boolean};
 export const freshSession4Draft=():Session4Draft=>({selections:{},links:[],internet:true,tested:false,delivered:false,connected:false,commands:[],command:"",output:"Microsoft Windows [Entraînement]\nTape ipconfig, hostname ou ping 192.168.10.22.",ip:"",host:"",shared:false,permission:"",path:"",opened:false,recipient:"",message:"",attached:false,checks:[],peerIP:"",proof:"",practicalConfirmed:false,result:null,simulator:null});
+export function session4WorkshopDraft(activity:Session4Activity,drafts:Session4WorkshopState["drafts"]):Session4Draft {
+ const previous=activity.previousId?drafts[activity.previousId]:undefined;
+ const current=drafts[activity.id];
+ return current?{...freshSession4Draft(),...current}:{...freshSession4Draft(),...previous,result:null};
+}
 // Keep the full two-PC disk in the checkpoint, and only the useful evidence in the teacher's answer.
 export function session4AnswerState(d:Session4Draft){return d.simulator?{ip:d.ip,host:d.host,practicalConfirmed:d.practicalConfirmed,simulator:{version:d.simulator.version,mode:d.simulator.mode,checks:d.simulator.checks,completed:d.simulator.completed,evidence:d.simulator.evidence}}:d;}
 export function initialSession4Workshop(previous:unknown):Session4WorkshopState{

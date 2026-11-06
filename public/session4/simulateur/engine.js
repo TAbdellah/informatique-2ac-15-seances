@@ -41,6 +41,7 @@ function makeOS(host,cfg){
   os.users=cfg.users||[os.user];
   if(cfg.seed==='clubA'){file('Bonjour.txt',D.docs,'Bonjour le club !');file('affiche.png',D.imgs)}
   else if(cfg.seed==='clubB'){file('Retour.txt',D.docs,'Bien reçu, le club !')}
+  else if(cfg.seed==='assessmentA'){var club=mk('Club_reseau',D.docs,true);file('Invitation.txt',club.id,window.Session4Missions.invitation)}
   else if(cfg.seed==='netA'){file('rapport.docx',D.docs);file('cours.pptx',D.docs);file('logo.png',D.imgs)}
   else if(cfg.seed==='netB0'){file('notes.txt',D.docs,'Notes de Sara : réunion du club informatique mardi.')}
   else if(cfg.seed==='netB'){var nt=mk('Notes',D.docs,true);file('notes.txt',nt.id,'Notes de Sara : réunion du club informatique mardi.');os.shares.push({id:'sh'+(++shareSeq),name:'Notes',dirId:nt.id,who:'Postes de la salle',perm:'read'})}
@@ -610,7 +611,7 @@ function makeOS(host,cfg){
 
   /* --- bloc-notes --- */
   function openNote(src,node,allowEdit){
-    var editable=!cfg.guided&&(src===os||!!allowEdit),dirty=false;os.did.openedTxt=true;os.did.openedFiles=os.did.openedFiles||[];if(node)os.did.openedFiles.push({host:src.name,name:node.name,content:node.content,local:src===os});os.did.openedFiles=os.did.openedFiles.slice(-30);
+    var editable=!cfg.guided&&(src===os||!!allowEdit),dirty=false;os.did.openedTxt=true;os.did.openedFiles=os.did.openedFiles||[];if(node)os.did.openedFiles.push({host:src.name,nodeId:node.id,name:node.name,content:node.content,local:src===os});os.did.openedFiles=os.did.openedFiles.slice(-30);
     var w=openWin({type:'note',title:(node?node.name:'Sans titre')+' - Bloc-notes',w:440,h:300,onclose:function(force){
       if(!force&&dirty){confirmBox('Les modifications ne sont pas enregistrées. Fermer quand même ?','Fermer sans enregistrer',function(){closeWin(w,true)});return false}
     },build:function(w){

@@ -1,4 +1,4 @@
-export const session4SimulatorSteps={identity:2,ping:3,sharing:5,messenger:5,repair:4} as const;
+export const session4SimulatorSteps={identity:2,ping:3,sharing:5,messenger:5,repair:4,assessment:3} as const;
 export type Session4SimulatorMode=keyof typeof session4SimulatorSteps;
 export type Session4SimulatorState={version:2;mode:Session4SimulatorMode;checks:boolean[];completed:boolean;snapshot:Record<string,unknown>;evidence:Record<string,unknown>};
 export function isSession4SimulatorState(value:unknown,mode:Session4SimulatorMode):value is Session4SimulatorState{

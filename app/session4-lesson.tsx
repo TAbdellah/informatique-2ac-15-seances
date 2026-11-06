@@ -11,9 +11,11 @@ import {WorkshopSummary,WorkshopSummaryLink,workshopSummaryTitle} from "./worksh
 import {session4DraftPercent} from "../lib/workshop-progress";
 import {TeacherExerciseNavigator} from "./teacher-exercise-navigator";
 import {Session4ActivityPlayer,Session4Topology} from "./session4-activities";
+import Session4Simulator from "./session4-simulator";
+import {isSession4SimulatorState,type Session4SimulatorState} from "./session4-simulation-contract";
 import {session4,session4Activities,s4t as t} from "./session4-data";
-import {freshSession4Draft,initialSession4Workshop,validSession4Workshop,session4ActivityChecks,session4AnswerState,type Session4Draft,type Session4WorkshopState} from "./session4-model";
-import {session4Questions,gradeSession4} from "../supabase/functions/informatique-2ac-api/session4-evaluation";
+import {session4WorkshopDraft,initialSession4Workshop,validSession4Workshop,session4ActivityChecks,session4AnswerState,type Session4Draft,type Session4WorkshopState} from "./session4-model";
+import {session4Questions,gradeSession4Lab,session4LabEvaluationId,validSession4Choices} from "../supabase/functions/informatique-2ac-api/session4-evaluation";
 import "./session4.css";
 import "./session4-expo.css";
 
@@ -81,12 +83,12 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
  const persistent=useDurableLessonState<Session4WorkshopState>({participantId,sessionId:4,kind:"workshop",initial,validate:validSession4Workshop});
  const {value:work,setValue:setWork}=persistent;
  const anchor=useRef<HTMLDivElement>(null);
- const savedIndex=session4Activities.findIndex(item=>item.id===work.activityId);
+ const savedIndex=session4Activities.findIndex(item=>item.id===work.activityId||item.previousId===work.activityId&&work.activityId!==undefined);
  const firstMissing=session4Activities.findIndex(item=>!work.completedIds.includes(item.id));
  const index=savedIndex>=0?savedIndex:firstMissing>=0?firstMissing:session4Activities.length-1;
  const activity=session4Activities[index];
  const summary=savedIndex>=0&&work.summary;
- const draft={...freshSession4Draft(),...work.drafts[activity.id]};
+ const draft=session4WorkshopDraft(activity,work.drafts);
  const criteria=session4ActivityChecks(activity,draft);
  useEffect(()=>{anchor.current?.scrollIntoView({block:"start",behavior:"auto"});},[index,summary]);
 
@@ -97,7 +99,7 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
  }
  function change(patch:Partial<Session4Draft>){
   setWork(current=>({...current,activityIndex:index,activityId:activity.id,summary:false,
-   drafts:{...current.drafts,[activity.id]:{...freshSession4Draft(),...current.drafts[activity.id],...patch,result:null,savedAt:Date.now()}}}));
+   drafts:{...current.drafts,[activity.id]:{...session4WorkshopDraft(activity,current.drafts),...patch,result:null,savedAt:Date.now()}}}));
  }
  function check(){
   const correct=criteria.every(Boolean);
@@ -152,23 +154,137 @@ function Trace({onEvaluate}:{onEvaluate:()=>void}){
  return <div className="s4-trace-wrap s4-panel-enter"><article className="s4-notebook"><header><span>SÉANCE 04 · À RETENIR</span><h1><Text value={session4.title}/></h1></header><h2><Text value={t("1. Le réseau local","1. الشبكة المحلية")}/></h2><p><Text value={session4.trace[0]}/></p><p><Text value={t("Il peut fonctionner sans accès à Internet. Internet relie des réseaux à l’échelle mondiale.","يمكن أن يعمل دون الإنترنت، الذي يربط الشبكات على الصعيد العالمي.")}/></p><h2><Text value={t("2. Les équipements et les liaisons","2. الأجهزة والروابط")}/></h2><p><Text value={session4.trace[1]}/></p><p><Text value={t("La carte réseau donne au poste une interface de connexion. Le routeur relie des réseaux entre eux.","توفر بطاقة الشبكة للحاسوب واجهة اتصال. ويربط الموجه شبكات مختلفة.")}/></p><p><Text value={session4.trace[2]}/></p><h2><Text value={t("3. Identifier et tester","3. التعرف والاختبار")}/></h2><dl><div><dt>ipconfig</dt><dd><Text value={t("Lire l’adresse IPv4 du poste.","قراءة عنوان IPv4 للحاسوب.")}/></dd></div><div><dt>hostname</dt><dd><Text value={t("Lire le nom du poste.","قراءة اسم الحاسوب.")}/></dd></div><div><dt>ping 192.168.10.22</dt><dd><Text value={t("Tester si cette destination répond.","اختبار استجابة هذا الجهاز.")}/></dd></div></dl><h2><Text value={t("4. Partager et communiquer","4. المشاركة والتواصل")}/></h2><p><Text value={session4.trace[4]}/></p><code className="s4-unc-example">{String.raw`\\192.168.10.21\Club_reseau`}</code><p><Text value={session4.trace[5]}/></p><p><Text value={t("Avant d’annoncer « reçu », j’ouvre le fichier et je vérifie son contenu.","قبل تأكيد التوصل، أفتح الملف وأتحقق من محتواه.")}/></p></article><div className="s4-trace-sources"><span>Pour aller plus loin :</span><a href="https://support.microsoft.com/en-us/windows/experience/connectivity-networking/file-sharing-over-a-network-in-windows" target="_blank" rel="noreferrer">Partage de fichiers · Microsoft</a><a href="https://www.beebeep.net/" target="_blank" rel="noreferrer">BeeBEEP · site officiel</a></div><button type="button" className="s4-primary" onClick={onEvaluate}><Text value={t("Je passe à l’évaluation","أنتقل إلى التقويم")}/><ArrowRight size={18}/></button></div>;
 }
 
-type AssessmentState={version:1;index:number;choices:Record<string,number>;submitted:boolean};
+type QuizState={index:number;choices:Record<string,number>;submitted:boolean};
+type AssessmentState=QuizState&{version:2;simulator:Session4SimulatorState|null};
+const practicalIndex=session4Questions.length;
+const initialAssessment:AssessmentState={version:2,index:0,choices:{},submitted:false,simulator:null};
+const assessmentSections=[
+ t("Le réseau du club","شبكة النادي"),
+ t("Le poste et son adresse","الحاسوب وعنوانه"),
+ t("Le fichier partagé","الملف المشترك"),
+ t("La messagerie locale","المراسلة المحلية"),
+];
+function validAssessmentState(value:unknown):value is AssessmentState{
+ const state=value as AssessmentState|null;
+ return !!state&&state.version===2&&Number.isInteger(state.index)&&state.index>=0&&state.index<=practicalIndex
+  &&validSession4Choices(state.choices)&&typeof state.submitted==="boolean"
+  &&(state.simulator===null||isSession4SimulatorState(state.simulator,"assessment"));
+}
+
 function Assessment({participantId,onRecord}:{participantId:string;onRecord:Props["onRecordSubmission"]}){
- const teacher=useTeacherCourse();const [confirm,setConfirm]=useState(false);const lock=useRef(false);
- const persistent=useDurableLessonState<AssessmentState>({participantId,sessionId:4,kind:"quiz",initial:{version:1,index:0,choices:{},submitted:false},validate:(v):v is AssessmentState=>Boolean(v&&typeof v==="object"&&(v as AssessmentState).version===1&&Number.isInteger((v as AssessmentState).index)&&(v as AssessmentState).index>=0&&(v as AssessmentState).index<session4Questions.length&&(v as AssessmentState).choices&&typeof (v as AssessmentState).submitted==="boolean")});
- const {value:state,setValue:setState}=persistent;const question=session4Questions[state.index];const result=gradeSession4(state.choices);const allAnswered=session4Questions.every(q=>Number.isInteger(state.choices[q.id]));
- const sections=[t("Le réseau du club","شبكة النادي"),t("Le poste et son adresse","الحاسوب وعنوانه"),t("Le fichier partagé","الملف المشترك"),t("La messagerie locale","المراسلة المحلية")];
+ const teacher=useTeacherCourse();
+ const [confirm,setConfirm]=useState(false);
+ const lock=useRef(false),panel=useRef<HTMLDivElement>(null);
+ const {value:state,setValue:setState,ready,restored}=useDurableLessonState({
+  participantId,sessionId:4,kind:"assessment",initial:initialAssessment,validate:validAssessmentState,
+ });
+ const practical=state.index===practicalIndex;
+ const question=session4Questions[state.index];
+ const result=gradeSession4Lab(state.choices,state.simulator?.evidence);
+ const answered=Object.keys(state.choices).length;
+ const practicalScore=result.sections[4];
  const orders=useMemo(()=>session4Questions.map(q=>q.choices.map((_,i)=>i).sort((a,b)=>hash(`${participantId}-${q.id}-${a}`)-hash(`${participantId}-${q.id}-${b}`))),[participantId]);
  useEffect(()=>{lock.current=state.submitted},[state.submitted]);
- function submit(){if(lock.current)return;lock.current=true;onRecord({sessionId:4,activityType:"practical_evaluation",activityId:"session-4-reseau-evaluation-v1",answer:result,score:result.score,maxScore:20,isCorrect:result.score===20});setState(v=>({...v,submitted:true}));setConfirm(false)}
- if(!persistent.ready)return <p className="s4-loading"><LoaderCircle className="spin"/> Chargement de l’évaluation sauvegardée…</p>;
- return <div className="s4-assessment s4-panel-enter"><header className="s4-assessment-intro"><span className="s4-eyebrow">ÉVALUATION · 15 MINUTES · /20</span><h1><Text value={t("Le club ouvre ses portes","يفتح النادي أبوابه")}/></h1><p><Text value={t("10 décisions pour installer le réseau, retrouver le bon poste et faire arriver le fichier. Chaque réponse correcte vaut 2 points. La correction apparaît après la remise.","10 قرارات لإعداد الشبكة وتحديد الحاسوب الصحيح وإيصال الملف. لكل جواب صحيح نقطتان. يظهر التصحيح بعد التسليم.")}/></p></header>
-  {state.submitted?<section className="s4-result"><div><CheckCircle2 size={36}/><h2><Text value={teacher?t("Correction de démonstration","تصحيح توضيحي"):t("Ton bilan est enregistré","حفظ تقويمك")}/></h2><strong>{result.score} / 20</strong></div><div className="s4-result-sections">{sections.map((name,i)=><article key={name.fr}><Text value={name}/><b>{result.sections[i]} / {[6,4,6,4][i]}</b></article>)}</div><details><summary><Text value={t("Voir mes réponses et le corrigé","عرض أجوبتي والتصحيح")}/></summary>{result.answers.map((answer,i)=><article className={answer.correct?"correct":"review"} key={i}><h3>{i+1}. <Text value={answer.question}/></h3><p><Text value={t("Ma réponse : ","جوابي: ")}/><Text value={answer.selectedChoice}/></p>{!answer.correct&&<p><Text value={t("Réponse attendue : ","الجواب المنتظر: ")}/><Text value={answer.correctChoice}/></p>}<b>{answer.earnedPoints}/2</b></article>)}</details></section>:<>
-   <TeacherExerciseNavigator index={state.index} titles={session4Questions.map(q=>q.question.fr)} onGo={index=>setState(v=>({...v,index}))} label="Aller à la question"/>
-   <div className="s4-assessment-layout"><aside className="s4-assessment-context"><span>SITUATION {question.section+1} / 4</span><h2><Text value={sections[question.section]}/></h2>{question.section===0?<><Session4Topology kind="star"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau du club"/></>:question.section===1?<pre>PC-21{"\n"}IPv4 : 192.168.10.21{"\n"}Masque : 255.255.255.0{"\n"}Passerelle : 192.168.10.1</pre>:question.section===2?<div className="s4-folder-preview"><Folder size={65}/><strong>PC-21 / Club_reseau</strong><FileCheck2 size={30}/><span>Bonjour.txt</span></div>:<div className="s4-assessment-chat"><Users size={35}/><strong>PC-21 → PC-22</strong><span>Message + Bonjour.txt</span><p>« Reçu : Bonjour le club ! »</p></div>}</aside><article className="s4-assessment-question"><span>QUESTION {String(state.index+1).padStart(2,"0")} / 10 · 2 POINTS</span><h2><Text value={question.question}/></h2><div className="s4-assessment-choices">{orders[state.index].map((index,display)=><button type="button" key={index} className={state.choices[question.id]===index?"selected":""} aria-pressed={state.choices[question.id]===index} onClick={()=>setState(v=>({...v,choices:{...v.choices,[question.id]:index}}))}><b>{String.fromCharCode(65+display)}</b><Text value={question.choices[index]}/></button>)}</div></article></div>
-   <nav className="s4-exercise-nav" aria-label="Navigation de l’évaluation"><button type="button" disabled={state.index===0} onClick={()=>setState(v=>({...v,index:v.index-1}))}><ArrowLeft size={18}/><Text value={t("Précédente","السابق")}/></button><span>{Object.keys(state.choices).length} / 10 réponses</span>{state.index<9?<button type="button" className="s4-primary" disabled={!teacher&&!Number.isInteger(state.choices[question.id])} onClick={()=>setState(v=>({...v,index:v.index+1}))}><Text value={t("Suivante","التالي")}/><ArrowRight size={18}/></button>:<button type="button" className="s4-primary" disabled={!teacher&&!allAnswered} onClick={()=>setConfirm(true)}><Send size={18}/><Text value={t("Rendre mon évaluation","تسليم تقويمي")}/></button>}</nav>
-  </>}
-  {confirm&&<div className="s4-modal-backdrop"><section className="s4-modal" role="dialog" aria-modal="true" aria-labelledby="s4-submit-title"><button type="button" className="s4-modal-close" aria-label="Fermer" onClick={()=>setConfirm(false)}><X size={20}/></button><h2 id="s4-submit-title"><Text value={t("Remettre tes réponses ?","هل تسلم أجوبتك؟")}/></h2><p><Text value={t("La note sur 20 et la correction seront calculées à partir de tes dix réponses.","ستحسب النقطة على 20 ويعرض التصحيح انطلاقا من أجوبتك العشرة.")}/></p><div className="s4-inline-actions"><button type="button" onClick={()=>setConfirm(false)}><Text value={t("Je relis","أراجع")}/></button><button type="button" className="s4-primary" onClick={submit}><Text value={t("Confirmer la remise","تأكيد التسليم")}/></button></div></section></div>}
+ useEffect(()=>{
+  if(!ready||restored)return;
+  const previous=readSnapshot(participantId,4,"quiz")?.data as (QuizState&{version:1})|undefined;
+  if(previous?.version!==1||previous.submitted!==false||!validSession4Choices(previous.choices)||!Object.keys(previous.choices).length)return;
+  setState(current=>current.submitted||current.simulator||Object.keys(current.choices).length?current:{...current,choices:previous.choices});
+ },[participantId,ready,restored,setState]);
+
+ function goTo(index:number){
+  setState(current=>({...current,index}));
+  requestAnimationFrame(()=>panel.current?.scrollIntoView({block:"start",behavior:"auto"}));
+ }
+ function saveSimulator(simulator:Session4SimulatorState){
+  setState(current=>current.submitted||JSON.stringify(current.simulator)===JSON.stringify(simulator)?current:{...current,simulator});
+ }
+ function submit(){
+  if(lock.current)return;
+  lock.current=true;
+  onRecord({sessionId:4,activityType:"practical_evaluation",activityId:session4LabEvaluationId,answer:result,score:result.score,maxScore:20,isCorrect:result.score===20});
+  setState(current=>({...current,submitted:true}));
+  setConfirm(false);
+  requestAnimationFrame(()=>panel.current?.scrollIntoView({block:"start",behavior:"auto"}));
+ }
+
+ if(!ready)return <p className="s4-loading"><LoaderCircle className="spin"/> Chargement de l’évaluation sauvegardée…</p>;
+ return <div className="s4-assessment s4-panel-enter">
+  <header className="s4-assessment-intro">
+   <span className="s4-eyebrow">ÉVALUATION · 15 MINUTES · /20</span>
+   <h1><Text value={t("Le club ouvre ses portes","يفتح النادي أبوابه")}/></h1>
+   <p><Text value={t("Réponds aux dix questions, puis fais parvenir l’invitation du club au PC-22 dans le simulateur. Chaque partie vaut 10 points.","أجب عن الأسئلة العشرة، ثم أوصل دعوة النادي إلى PC-22 في المحاكي. لكل جزء 10 نقاط.")}/></p>
+  </header>
+  <div className="s4-assessment-panel" ref={panel}>
+   {state.submitted?<section className="s4-result">
+    <div><CheckCircle2 size={36}/><h2><Text value={teacher?t("Correction de démonstration","تصحيح توضيحي"):t("Ton bilan est enregistré","حفظ تقويمك")}/></h2><strong>{result.score} / 20</strong></div>
+    <div className="s4-result-sections">
+     <article><Text value={t("Questions","الأسئلة")}/><b>{result.score-practicalScore} / 10</b></article>
+     <article><Text value={t("Simulateur","المحاكي")}/><b>{practicalScore} / 10</b></article>
+    </div>
+    <details open>
+     <summary><Text value={t("Détail de la manipulation","تفاصيل التطبيق")}/></summary>
+     {result.practical.map(item=><article key={item.criterion.fr} className={item.correct?"correct":"review"}><h3><Text value={item.criterion}/></h3><b>{item.earnedPoints}/{item.maxPoints}</b></article>)}
+    </details>
+    <details>
+     <summary><Text value={t("Voir le corrigé des questions","عرض تصحيح الأسئلة")}/></summary>
+     {result.answers.map((answer,i)=><article className={answer.correct?"correct":"review"} key={i}><h3>{i+1}. <Text value={answer.question}/></h3><p><Text value={t("Ma réponse : ","جوابي: ")}/><Text value={answer.selectedChoice}/></p>{!answer.correct&&<p><Text value={t("Réponse attendue : ","الجواب المنتظر: ")}/><Text value={answer.correctChoice}/></p>}<b>{answer.earnedPoints}/{answer.maxPoints}</b></article>)}
+    </details>
+   </section>:<>
+    <div className="s4-assessment-parts" role="group" aria-label="Parties de l’évaluation">
+     <button type="button" aria-pressed={!practical} onClick={()=>goTo(Math.max(0,session4Questions.findIndex(q=>state.choices[q.id]===undefined)))}>
+      <BookOpen size={18}/><Text value={t("1 · Questions","1 · الأسئلة")}/><small>10 pts</small>
+     </button>
+     <button type="button" aria-pressed={practical} onClick={()=>goTo(practicalIndex)}>
+      <Monitor size={18}/><Text value={t("2 · Simulateur","2 · المحاكي")}/><small>10 pts</small>
+     </button>
+    </div>
+    <TeacherExerciseNavigator index={state.index} titles={[...session4Questions.map(q=>q.question.fr),"Manipulation dans le simulateur"]} onGo={goTo} label="Aller à la question"/>
+    {practical?<Session4Simulator mode="assessment" state={state.simulator} onChange={saveSimulator}/>:<>
+     <div className="s4-assessment-layout">
+      <aside className="s4-assessment-context">
+       <span>SITUATION {question.section+1} / 4</span>
+       <h2><Text value={assessmentSections[question.section]}/></h2>
+       {question.section===0?<><Session4Topology kind="star"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau du club"/></>
+        :question.section===1?<pre>PC-21{"\n"}IPv4 : 192.168.10.21{"\n"}Masque : 255.255.255.0{"\n"}Passerelle : 192.168.10.1</pre>
+        :question.section===2?<div className="s4-folder-preview"><Folder size={65}/><strong>PC-21 / Club_reseau</strong><FileCheck2 size={30}/><span>Bonjour.txt</span></div>
+        :<div className="s4-assessment-chat"><Users size={35}/><strong>PC-21 → PC-22</strong><span>Message + Bonjour.txt</span><p>« Reçu : Bonjour le club ! »</p></div>}
+      </aside>
+      <article className="s4-assessment-question">
+       <span>QUESTION {String(state.index+1).padStart(2,"0")} / {practicalIndex} · 1 POINT</span>
+       <h2><Text value={question.question}/></h2>
+       <div className="s4-assessment-choices">{orders[state.index].map((index,display)=>
+        <button type="button" key={index} className={state.choices[question.id]===index?"selected":""} aria-pressed={state.choices[question.id]===index} onClick={()=>setState(current=>({...current,choices:{...current.choices,[question.id]:index}}))}>
+         <b>{String.fromCharCode(65+display)}</b><Text value={question.choices[index]}/>
+        </button>
+       )}</div>
+      </article>
+     </div>
+     <nav className="s4-exercise-nav" aria-label="Navigation des questions">
+      <button type="button" disabled={state.index===0} onClick={()=>goTo(state.index-1)}><ArrowLeft size={18}/><Text value={t("Précédente","السابق")}/></button>
+      <span>{answered} / {practicalIndex} réponses</span>
+      <button type="button" className="s4-primary" onClick={()=>goTo(state.index+1)}>
+       <Text value={state.index===practicalIndex-1?t("Passer au simulateur","الانتقال إلى المحاكي"):t("Suivante","التالي")}/><ArrowRight size={18}/>
+      </button>
+     </nav>
+    </>}
+    <div className="s4-assessment-submit">
+     <p><Text value={t("Tu peux remettre le travail déjà fait, même si tu n’as pas tout terminé.","يمكنك تسليم العمل المنجز حتى لو لم تكمل جميع المهام.")}/></p>
+     <button type="button" className="s4-primary" disabled={!teacher&&!answered&&!state.simulator} onClick={()=>setConfirm(true)}><Send size={18}/><Text value={t("Rendre mon évaluation","تسليم تقويمي")}/></button>
+    </div>
+   </>}
+  </div>
+  {confirm&&<div className="s4-modal-backdrop">
+   <section className="s4-modal" role="dialog" aria-modal="true" aria-labelledby="s4-submit-title">
+    <button type="button" className="s4-modal-close" aria-label="Fermer" onClick={()=>setConfirm(false)}><X size={20}/></button>
+    <h2 id="s4-submit-title"><Text value={t("Remettre ton évaluation ?","هل تسلم تقويمك؟")}/></h2>
+    <p><Text value={t(`Tu as répondu à ${answered} question(s) sur ${practicalIndex}. La note tiendra aussi compte des gestes réalisés dans le simulateur.`,`أجبت عن ${answered} من أصل ${practicalIndex} أسئلة. ستحتسب النقطة أيضًا العمليات المنجزة في المحاكي.`)}/></p>
+    <div className="s4-inline-actions">
+     <button type="button" onClick={()=>setConfirm(false)}><Text value={t("Je relis","أراجع")}/></button>
+     <button type="button" className="s4-primary" onClick={submit}><Text value={t("Confirmer la remise","تأكيد التسليم")}/></button>
+    </div>
+   </section>
+  </div>}
  </div>;
 }
 function hash(value:string){let h=2166136261;for(const c of value){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}

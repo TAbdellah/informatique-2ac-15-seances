@@ -1,7 +1,7 @@
 /* Contrats et vérification des gestes du simulateur. Même modèle pour les tests et le navigateur. */
 (function(root){
  'use strict';
- const phrase='Bonjour le club !';
+ const phrase='Bonjour le club !',invitation='Bienvenue à l’exposition du club !';
  const missions={
   identity:{title:'Identifier PC-21',ar:'تحديد هوية PC-21',steps:[
    ['Relever l’adresse IPv4','قراءة عنوان IPv4','Tape ipconfig puis clique sur Exécuter. Recopie la valeur de la ligne « Adresse IPv4 » sous le simulateur.','اكتب ipconfig ثم انقر تنفيذ. انقل قيمة سطر «عنوان IPv4» أسفل المحاكي.'],
@@ -18,6 +18,11 @@
    ['Faire une copie sur PC-22','إنشاء نسخة على PC-22','Dans le dossier partagé, sélectionne Bonjour.txt et clique sur Copier. Ouvre le Bureau du PC-22 et clique sur Coller.','حدد Bonjour.txt في المجلد المشترك وانقر نسخ. افتح سطح مكتب PC-22 وانقر لصق.'],
    ['Vérifier la copie','التحقق من النسخة','Sur le Bureau du PC-22, sélectionne Bonjour.txt et clique sur Ouvrir. Lis la phrase du fichier.','حدد Bonjour.txt على سطح مكتب PC-22 وانقر فتح. اقرأ العبارة داخل الملف.'],
    ['Fermer le partage','إيقاف المشاركة','Sur PC-21, clique sur « Arrêter le partage ». Le PC-22 garde sa copie.','على PC-21، انقر «إيقاف المشاركة». يحتفظ PC-22 بنسخته.']
+  ]},
+  assessment:{title:'Livrer l’invitation au PC-22',ar:'إيصال الدعوة إلى PC-22',steps:[
+   ['Partager Club_reseau en lecture seule · 3 pts','مشاركة Club_reseau للقراءة فقط · 3 نقاط','Sur PC-21, ouvre Documents. Partage Club_reseau avec les postes de la salle en lecture seule.','على PC-21، افتح المستندات. شارك Club_reseau مع حواسيب القاعة للقراءة فقط.'],
+   ['Copier Invitation.txt sur le Bureau de PC-22 · 4 pts','نسخ Invitation.txt إلى سطح مكتب PC-22 · 4 نقاط','Passe sur PC-22. Ouvre le dossier partagé depuis Réseau, puis copie Invitation.txt sur le Bureau de PC-22.','انتقل إلى PC-22. افتح المجلد المشترك من الشبكة ثم انسخ Invitation.txt إلى سطح مكتب PC-22.'],
+   ['Ouvrir la copie sur PC-22 · 3 pts','فتح النسخة على PC-22 · 3 نقاط','Ouvre Invitation.txt depuis le Bureau de PC-22 pour vérifier que la copie est lisible.','افتح Invitation.txt من سطح مكتب PC-22 للتحقق من إمكانية قراءة النسخة.'],
   ]},
   messenger:{title:'Échanger dans la messagerie locale',ar:'التبادل في المراسلة المحلية',steps:[
    ['Envoyer un fichier à PC-22','إرسال ملف إلى PC-22','Vérifie que le destinataire est PC-22. Écris « Bonjour le club ! », joins Bonjour.txt et clique sur Envoyer.','تحقق من أن المستلم هو PC-22. اكتب «Bonjour le club !» وأرفق Bonjour.txt ثم انقر إرسال.'],
@@ -41,6 +46,16 @@
  }
  function opened(machine,name,local){return (machine.did.openedFiles||[]).some(f=>f.name===name&&f.local===local);}
  function transferred(machine,from,name){return (machine.did.transfers||[]).some(t=>t.from===from&&t.names.includes(name));}
+ function assessmentEvidence(a,b){
+  const folder=find(a,['Documents','Club_reseau']);
+  const share=folder&&a.shares.find(s=>s.name==='Club_reseau'&&s.dirId===folder.id&&s.who==='Postes de la salle');
+  const copy=find(b,['Bureau','Invitation.txt']);
+  return {
+   access:share?.perm||null,
+   copied:copy?.content===invitation&&(b.did.transfers||[]).some(t=>t.from==='PC-21'&&t.destination==='Ce PC › Bureau'&&t.names.includes('Invitation.txt')),
+   opened:!!copy&&(b.did.openedFiles||[]).some(f=>f.nodeId===copy.id&&f.local&&f.content===invitation),
+  };
+ }
  function rawChecks(mode,a,b){
   if(!a||!b)return [];
   const commands=a.did.commands||[],share=a.shares.find(s=>s.name==='Club_reseau'),folder=find(a,['Documents','Club_reseau']),copy=find(b,['Bureau','Bonjour.txt']),download=find(b,['Téléchargements','Bonjour.txt']);
@@ -52,12 +67,17 @@
   return [];
  }
  function evaluate(mode,a,b,previous){
+  if(mode==='assessment'){
+   const evidence=assessmentEvidence(a,b);
+   const checks=[evidence.access==='read',evidence.copied,evidence.copied&&evidence.opened];
+   return {checks,completed:checks.every(Boolean),evidence};
+  }
   const raw=rawChecks(mode,a,b),count=missions[mode]?.steps.length||0,checks=[];
   for(let i=0;i<count;i++)checks.push((i===0||checks[i-1])&&(previous?.[i]===true||raw[i]===true));
   return {checks,completed:count>0&&checks.length===count&&checks.every(Boolean)};
  }
  function validMachine(m,name){return !!m&&m.version===2&&m.name===name&&m.nodes&&typeof m.nodes==='object'&&Object.keys(m.nodes).length<400&&m.nodes.root&&m.nodes.trash&&m.dirs&&m.nodes[m.dirs.docs]&&Array.isArray(m.shares)&&Array.isArray(m.inbox)&&Array.isArray(m.sent)&&m.did&&Array.isArray(m.users);}
  function validSnapshot(s,mode){try{return s?.version===2&&s.mode===mode&&validMachine(s.machines?.A,'PC-21')&&validMachine(s.machines?.B,'PC-22')&&JSON.stringify(s).length<200000;}catch{return false;}}
- const api={missions,find,evaluate,validSnapshot};
+ const api={missions,find,evaluate,validSnapshot,invitation};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.Session4Missions=api;
 })(typeof window==='undefined'?{}:window);

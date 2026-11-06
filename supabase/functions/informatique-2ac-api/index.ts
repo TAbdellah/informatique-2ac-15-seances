@@ -1,6 +1,6 @@
 import { createLearningService } from "./learning-service.ts";
 import { validSession3Evaluation } from "./session3-evaluation.ts";
-import { validSession4Evaluation } from "./session4-evaluation.ts";
+import { session4LabEvaluationId, session4QuizEvaluationId, validSession4Evaluation } from "./session4-evaluation.ts";
 
 const allowedOrigins = new Set([
   "https://tabdellah.github.io",
@@ -82,8 +82,8 @@ function validPracticalEvaluation(
   maxScore: number | null,
 ) {
   if (activityType !== "practical_evaluation") return true;
-  if (sessionId === 4 && activityId === "session-4-reseau-evaluation-v1") {
-    return validSession4Evaluation(answer, isCorrect, score, maxScore);
+  if (sessionId === 4 && (activityId === session4QuizEvaluationId || activityId === session4LabEvaluationId)) {
+    return isRecord(answer) && answer.format === activityId && validSession4Evaluation(answer, isCorrect, score, maxScore);
   }
   if (sessionId === 3 && activityId === "session-3-bilan-situations-v5") {
     return validSession3Evaluation(answer, isCorrect, score, maxScore);

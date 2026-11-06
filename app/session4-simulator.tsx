@@ -28,9 +28,10 @@ export default function Session4Simulator({mode,state,onChange}:{mode:Session4Si
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[mode]);
  useEffect(()=>{if(!expanded)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setExpanded(false);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[expanded]);
+ const assessment=mode==='assessment';
  return <section className={`s4-simulator-shell ${expanded?'expanded':''}`} aria-label="Laboratoire réseau à deux postes">
-  <header><span><Network size={18}/><Text value={{fr:'Laboratoire guidé',ar:'مختبر موجه'}}/></span><button type="button" onClick={()=>setExpanded(v=>!v)} aria-expanded={expanded}>{expanded?<Minimize size={17}/>:<Expand size={17}/>}<Text value={expanded?{fr:'Réduire',ar:'تصغير'}:{fr:'Agrandir le simulateur',ar:'تكبير المحاكي'}}/></button></header>
-  <iframe ref={frame} title="Simulateur du réseau local et des échanges entre PC-21 et PC-22" src={publicAsset(`session4/simulateur/index.html?mode=${mode}&guide=1`)} sandbox="allow-scripts allow-same-origin" onLoad={initialize} style={{height}}/>
-  <p className="s4-help"><Text value={{fr:'Réalise le geste de l’étape, puis clique sur « Étape suivante ».',ar:'أنجز العملية المطلوبة ثم انقر «الخطوة التالية».'}}/></p>
+  <header><span><Network size={18}/><Text value={assessment?{fr:'Simulateur Windows · PC-21 et PC-22',ar:'محاكي ويندوز · PC-21 وPC-22'}:{fr:'Laboratoire guidé',ar:'مختبر موجه'}}/></span><button type="button" onClick={()=>setExpanded(v=>!v)} aria-expanded={expanded}>{expanded?<Minimize size={17}/>:<Expand size={17}/>}<Text value={expanded?{fr:'Réduire',ar:'تصغير'}:{fr:'Agrandir le simulateur',ar:'تكبير المحاكي'}}/></button></header>
+  <iframe ref={frame} title="Simulateur du réseau local et des échanges entre PC-21 et PC-22" src={publicAsset(`session4/simulateur/index.html?mode=${mode}&guide=${assessment?0:1}&v=eval-2`)} sandbox="allow-scripts allow-same-origin" onLoad={initialize} style={{height}}/>
+  <p className="s4-help"><Text value={assessment?{fr:'Change de poste avec les boutons PC-21 et PC-22.',ar:'انتقل بين الحاسوبين باستعمال زري PC-21 وPC-22.'}:{fr:'Réalise le geste de l’étape, puis clique sur « Étape suivante ».',ar:'أنجز العملية المطلوبة ثم انقر «الخطوة التالية».'}}/></p>
  </section>;
 }
