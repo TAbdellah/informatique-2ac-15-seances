@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Cable, Check, CircleHelp, FileText, Radio, Send, Wifi, X } from "lucide-react";
+import { Cable, CircleHelp, Radio, Wifi, X } from "lucide-react";
 import { publicAsset } from "../lib/public-assets";
 import { Session3Text as Text } from "./session3-translation";
 import { ExpoAnswerDropdown } from "./session4-answer-dropdown";
@@ -19,20 +19,16 @@ type BoardNode = ExpoPoint & {
 type BoardLine = { from: ExpoPoint; to: ExpoPoint; kind?: "wifi" | "selected" };
 const photo = (name: string) => `session4/images/${name}.webp`;
 
-function ExpoBoard({ nodes, lines, active, selected, onPort }: {
+function ExpoBoard({ nodes, lines, selected, onPort }: {
   nodes: BoardNode[];
   lines: BoardLine[];
-  active?: BoardNode[];
   selected?: string;
   onPort?: (id: string) => void;
 }) {
-  const path = active?.map((node, i) => `${i === 0 ? "M" : "L"} ${node.x} ${node.y}`).join(" ");
   return <div className="expo-board-scroll" tabIndex={0} role="region" aria-label="Plan des connexions">
     <div className="expo-board">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         {lines.map(({ from, to, kind }, i) => <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y} vectorEffect="non-scaling-stroke" className={kind ?? ""} />)}
-        {path && <><path d={path} className="expo-packet-trail" vectorEffect="non-scaling-stroke" />
-          <circle r="1.05" className="expo-packet"><animateMotion key={path} path={path} dur="1.8s" repeatCount="2" fill="freeze" /></circle></>}
       </svg>
       {nodes.filter(node => node.name).map(node => {
         const props = { className: `expo-device ${node.slot ? "expo-device-slot" : ""}`, style: { left: `${node.x}%`, top: `${node.y}%` } };
@@ -80,64 +76,80 @@ export function ExpoTopologyLab({ topology, draft, onChange }: {
 }
 
 const patchPCs = [
-  { id:"pc21", name:"PC-21", photo:photo("ordinateur-bureau"), x:17,y:50,port:true },
-  { id:"pc22", name:"PC-22", photo:photo("ordinateur-bureau"), x:83,y:50,port:true },
+  {id:"pc21",name:"PC-21",x:19.5},
+  {id:"pc22",name:"PC-22",x:80.5},
 ];
-const patchSwitch = { id:"switch", name:"Commutateur", photo:photo("commutateur"), x:50,y:50 };
-const patchNodes = [patchPCs[0],patchSwitch,patchPCs[1]];
+const switchPortX=(port:string)=>12+76*(0.15+(Number(port)-1)*0.10);
 
-export function ExpoPatchLab({ draft,onChange }:{
-  draft:Session4Draft; onChange:(patch:Partial<Session4Draft>)=>void;
-}) {
+export function ExpoPatchLab({draft,onChange}:{
+  draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void;
+}){
   const [selected,setSelected]=useState("");
   const [notice,setNotice]=useState<ReturnType<typeof t>|null>(null);
-  const ports = draft.selections;
-  const active = expoPatchConnected(draft);
-  const lines = patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>({from:pc,to:patchSwitch}));
-  function bind(port: string){
+  const ports=draft.selections;
+  const connected=expoPatchConnected(draft);
+  function bind(port:string){
     if(!selected){
-      setNotice(t("Choisis d’abord la prise RJ45 d’un PC sur le plan.","اختر أولًا منفذ RJ45 لأحد الحاسوبين على المخطط."));
+      setNotice(t("Clique d’abord sur un PC, puis sur un port de la photo du switch.","انقر أولًا على حاسوب، ثم على منفذ في صورة المبدل."));
       return;
     }
     if(patchPCs.some(pc=>pc.id!==selected&&ports[pc.id]===port)){
-      setNotice(t("Ce port est occupé. Choisis un port libre.","هذا المنفذ مستعمل. اختر منفذًا شاغرًا."));
+      setNotice(t("Ce port est occupé. Choisis un autre port.","هذا المنفذ مستعمل. اختر منفذًا آخر."));
       return;
     }
     onChange({selections:{...ports,[selected]:port},tested:false,delivered:false});
     setSelected("");
     setNotice(null);
   }
-  return <div className="expo-lab expo-patch">
-    <ExpoBoard nodes={patchNodes} lines={lines} active={draft.tested&&draft.delivered&&active?patchNodes:undefined}
-      selected={selected} onPort={id=>{setSelected(id);setNotice(null);}}/>
-    <div className="expo-patch-panel">
-      <img src={publicAsset(photo("cable-rj45"))} alt=""/>
-      <p aria-live="polite"><Text value={notice??(selected
-        ? t(`${patchPCs.find(pc=>pc.id===selected)?.name} sélectionné. Clique sur un port libre du commutateur.`,"تم تحديد الحاسوب. انقر على منفذ شاغر في المبدل.")
-        : t("Choisis la prise d’un PC sur le plan, puis un port du commutateur.","اختر منفذ حاسوب على المخطط ثم منفذًا في المبدل."))}/></p>
+  return <div className="expo-lab s4-direct-switch">
+    <p className="s4-switch-instruction" role="status"><Cable size={20} aria-hidden="true"/>
+      <Text value={notice??(selected
+        ?t("Clique maintenant sur un port libre de la photo du switch.","انقر الآن على منفذ شاغر في صورة المبدل.")
+        :t("Choisis un PC, puis branche son câble dans un port de la photo.","اختر حاسوبًا، ثم أوصل كابله بمنفذ في الصورة."))}/>
+    </p>
+    <div className="s4-switch-scroll" role="region" aria-label="Branchement sur les vrais ports du switch" tabIndex={0}>
+      <div className="s4-switch-scene">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>
+            <path key={pc.id} d={`M ${pc.x} 64 C ${pc.x} 49 ${switchPortX(ports[pc.id])} 49 ${switchPortX(ports[pc.id])} 32.3`}
+              className={draft.tested&&connected?"connected":""} vectorEffect="non-scaling-stroke"/>
+          )}
+        </svg>
+        <div className="s4-switch-photo">
+          <img src={publicAsset(photo("commutateur"))} alt="Switch à huit ports RJ45. Clique directement sur ses prises."/>
+          {expoPatchPorts.map(port=>{
+            const occupant=patchPCs.find(pc=>ports[pc.id]===port);
+            return <button type="button" key={port} className="s4-switch-port"
+              style={{left:`${15+(Number(port)-1)*10}%`}} data-connected={!!occupant}
+              aria-label={`Port ${port} du switch · ${occupant?.name??"libre"}`}
+              data-s3-ar={`منفذ ${port} في المبدل · ${occupant?.name??"شاغر"}`}
+              aria-pressed={!!occupant} onClick={()=>bind(port)}>
+              {occupant&&<span className="s4-switch-plug" aria-hidden="true"/>}
+            </button>;
+          })}
+        </div>
+        {patchPCs.map(pc=><button type="button" key={pc.id}
+          className="s4-switch-pc" style={{left:`${pc.x}%`}}
+          aria-label={`Prise RJ45 · ${pc.name}`} aria-pressed={selected===pc.id}
+          onClick={()=>{setSelected(selected===pc.id?"":pc.id);setNotice(null);}}>
+          <span className="s4-pc-socket"><Cable size={22} aria-hidden="true"/><strong>{pc.name}</strong></span>
+          <img src={publicAsset(photo("ordinateur-bureau"))} alt=""/>
+          <small><Text value={t("Prise RJ45","منفذ RJ45")}/></small>
+        </button>)}
+      </div>
     </div>
-    <fieldset className="expo-patch-ports"><legend><Text value={t("Ports RJ45 du commutateur","منافذ RJ45 للمبدل")}/></legend>
-      <div>{expoPatchPorts.map(port=>{
-        const occupant=patchPCs.find(pc=>ports[pc.id]===port);
-        return <button type="button" key={port} data-connected={!!occupant}
-          aria-label={`Port ${port} · ${occupant?.name??"libre"}`} onClick={()=>bind(port)}>
-          <Cable size={17} aria-hidden="true"/><strong>{port}</strong><small>{occupant?.name??"Libre"}</small>
-        </button>;
-      })}</div>
-    </fieldset>
-    <div className="expo-cables">{patchPCs.filter(pc=>ports[pc.id]).map(pc=><button type="button" key={pc.id} onClick={()=>{
-      onChange({selections:{...ports,[pc.id]:""},tested:false,delivered:false});setSelected("");setNotice(null);
-    }}><X size={14} aria-hidden="true"/><Text value={t(`Débrancher ${pc.name}`,`فصل كابل ${pc.name}`)}/></button>)}</div>
-    <div className="expo-test">
-      <button className="s4-primary" type="button" onClick={()=>onChange({tested:true,delivered:active})}>
-        <Send size={17} aria-hidden="true"/><Text value={t("Envoyer la fiche à PC-22","إرسال البطاقة إلى PC-22")}/>
-      </button>
-      {draft.tested&&<div className={`expo-delivery ${draft.delivered?"arrived":""}`} role="status">
-        <FileText size={22} aria-hidden="true"/>
-        <Text value={draft.delivered?t("Fiche reçue par PC-22 via le commutateur.","توصل PC-22 بالبطاقة عبر المبدل."):
-          t("La fiche attend. Vérifie les deux câbles RJ45.","البطاقة في الانتظار. تحقق من كابلي RJ45.")}/>
-      </div>}
-    </div>
+    <div className="expo-cables">{patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>
+      <button type="button" key={pc.id} aria-label={`Débrancher ${pc.name}`} onClick={()=>{
+        onChange({selections:{...ports,[pc.id]:""},tested:false,delivered:false});
+        setSelected("");setNotice(null);
+      }}><X size={14} aria-hidden="true"/>{pc.name} · <Text value={t(`port ${ports[pc.id]}`,`المنفذ ${ports[pc.id]}`)}/></button>
+    )}</div>
+    <button className="s4-primary" type="button" onClick={()=>onChange({tested:true,delivered:connected})}>
+      <Cable size={18} aria-hidden="true"/><Text value={t("Tester les connexions","اختبار الاتصالات")}/>
+    </button>
+    {draft.tested&&<p className={`s4-feedback ${connected?"success":"retry"}`} role="status">
+      <Text value={connected?t("Les deux PC sont connectés au switch.","الحاسوبان متصلان بالمبدل."):t("Branche les deux PC sur deux ports différents.","أوصل الحاسوبين بمنفذين مختلفين.")}/>
+    </p>}
   </div>;
 }
 
@@ -158,12 +170,6 @@ function DeviceKit({ slots, kind, draft, onInstall }: {
   </div>;
 }
 
-const receipt = {
-  wired: t("Feuille imprimée au bureau", "تمت طباعة الورقة في المكتب"),
-  wireless: t("Programme reçu à la bibliothèque", "تم استلام البرنامج في المكتبة"),
-  mixed: t("Affiche visible sur la TV du hall", "ظهر الإعلان على تلفاز الردهة"),
-  diagnostic: t("Affiche visible sur la TV du hall", "ظهر الإعلان على تلفاز الردهة"),
-};
 const ssidOptions = [expoSSID,"SALLE-PROFS","INVITES"];
 export function ExpoNetworkLab({ kind, draft, onChange }: {
   kind: ExpoNetworkKind; draft: Session4Draft; onChange: (patch: Partial<Session4Draft>) => void;
@@ -185,7 +191,7 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
   }));
   const get = (id: string) => board.find(node => node.id === id)!;
   const lines: BoardLine[] = expoLinks(kind,draft).map(edge => ({ from:get(edge.a),to:get(edge.b),kind:edge.wireless ? "wifi" : undefined }));
-  const route = draft.tested && draft.delivered ? expoRoute(kind,draft) : null;
+  const route = draft.tested ? expoRoute(kind,draft) : null;
   function rewire(links: string[]) {
     onChange({ links, selections: diagnostic ? { ...draft.selections,rewired:"yes" } : draft.selections, tested:false, delivered:false });
   }
@@ -200,7 +206,7 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
   }
   function connect(id: string) {
     if (diagnostic && draft.selections.failed !== "yes") {
-      setHint(t("Teste d’abord l’envoi pour observer la panne.","اختبر الإرسال أولًا لملاحظة العطل."));
+      setHint(t("Teste d’abord la connexion pour observer la panne.","اختبر الاتصال أولًا لملاحظة العطل."));
       return;
     }
     if (!selected || selected === id) {
@@ -226,7 +232,7 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
   function setSSID(id: string, ssid: string) {
     onChange({ selections:{ ...draft.selections,[id]:ssid },tested:false,delivered:false });
   }
-  function send() {
+  function testConnectivity() {
     const found = expoRoute(kind,draft);
     const selections = diagnostic && !found ? { ...draft.selections, failed:"yes" } : draft.selections;
     setHint(null);
@@ -250,7 +256,7 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
       <span><Radio size={15} aria-hidden="true" /> RÉSEAU LOCAL · INTERNET COUPÉ</span>
       <div className="expo-legend"><span className="wired">RJ45</span>{network.clients.length > 0 && <span className="wireless">Wi-Fi</span>}</div>
     </div>
-    <ExpoBoard nodes={board} lines={lines} active={route?.map(get)} selected={selected} onPort={network.wires.length ? connect : undefined} />
+    <ExpoBoard nodes={board} lines={lines} selected={selected} onPort={network.wires.length ? connect : undefined} />
     {network.wires.length > 0 && <div className="expo-patch-panel">
       <img src={publicAsset(photo("cable-rj45"))} alt="" />
       <div><strong><Text value={t("Câble RJ45","كابل RJ45")} /></strong>
@@ -269,16 +275,12 @@ export function ExpoNetworkLab({ kind, draft, onChange }: {
       })}
     </div>}
     <div className="expo-test">
-      <button type="button" className="s4-primary" onClick={send}><Send size={17} aria-hidden="true" /><Text value={network.test} /></button>
-      {draft.tested && <div className={`expo-delivery ${route ? "arrived" : ""}`} role="status">
-        <FileText size={22} aria-hidden="true" />
-        <div><strong><Text value={route ? receipt[kind] : t("Document en attente","المستند في الانتظار")} /></strong>
-          {route ? <><p><Text value={network.document} /></p><p className="expo-route">{route.map((id,i) => <span key={id}>{i > 0 && <ArrowRight size={13} aria-hidden="true" />} {name(id)}</span>)}</p></>
-            : <p><Text value={t("Le document ne trouve pas de trajet. Suis les connexions entre le départ et l’arrivée.","لم يجد المستند مسارًا. تتبع الاتصالات من المصدر إلى الوجهة.")} /></p>}
-        </div>
-      </div>}
+      <button type="button" className="s4-primary" onClick={testConnectivity}><Cable size={17} aria-hidden="true" /><Text value={t("Tester les connexions","اختبار الاتصالات")} /></button>
+      {draft.tested&&<p className={`s4-feedback ${route?"success":"retry"}`} role="status">
+        <Text value={route?t("Les appareils sont connectés.","الأجهزة متصلة."):t("La connexion échoue. Vérifie les câbles et le Wi-Fi.","فشل الاتصال. تحقق من الكابلات وشبكة Wi-Fi.")}/>
+      </p>}
     </div>
-    {diagnostic && <div className="expo-diagnosis"><ExpoAnswerDropdown label={t("Pourquoi l’envoi échouait-il ?","لماذا تعذر الإرسال؟")} name="Cause de la panne"
+    {diagnostic && <div className="expo-diagnosis"><ExpoAnswerDropdown label={t("Pourquoi la connexion échouait-elle ?","لماذا فشل الاتصال؟")} name="Cause de la panne"
       value={draft.selections.cause ?? ""} onChange={value => onChange({selections:{ ...draft.selections,cause:value }})}
       options={[
         {id:"internet",label:t("Il fallait rétablir Internet.","كان يلزم استعادة الإنترنت.")},

@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'..');
 function loader(revision){const cache={};return function load(relative){relative=path.normalize(relative);if(cache[relative])return cache[relative];const exports={};cache[relative]=exports;const source=revision?cp.execFileSync('git',['show',revision+':'+relative],{cwd:root,encoding:'utf8'}):fs.readFileSync(path.join(root,relative),'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,require:name=>{if(!name.startsWith('.'))return require(name);let f=path.join(path.dirname(relative),name);if(!path.extname(f))f+='.ts';return load(f)},process});return exports;}}
 const load=loader();const {session4,session4Activities,session4EarlierActivities,session4LegacyActivities,session4Equipment,session4NetworkEquipment}=load('app/session4-data.ts'),m=load('app/session4-model.ts'),rubric=load('supabase/functions/informatique-2ac-api/session4-evaluation.ts');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++};
-equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','exchange','wireless','mixed','identity','diagnostic','loan'],'all twelve practical exercises retain their order');equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
+equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','wireless','mixed','identity','diagnostic'],'the retained exercises keep their order');equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
 equal(new Set(session4NetworkEquipment.map(item=>item.role.fr)).size,6,'each device has a distinct role');
 equal(session4NetworkEquipment.every(item=>fs.existsSync(path.join(root,'public',item.image))),true,'all equipment photos are available');
 for(const [value,expected]of [['192.168.10.21',true],['10.0.0.2',true],['172.20.10.3',true],['192.168.10.999',false],['127.0.0.1',false],['example.org',false],['192.168.1',false],['8.8.8.8',false]])equal(m.isPrivateIPv4(value),expected,value);
@@ -49,14 +49,14 @@ const newStates={
  diagnostic:makeNetwork('diagnostic',{rewired:'yes',failed:'yes',cause:'uplink'}),
  practice:states.practice,
 };
-for(const activity of [...session4Activities.filter(a=>a.kind!=='video'),...session4EarlierActivities.filter(a=>'edition' in a)]){
+for(const activity of [...session4Activities.filter(a=>a.kind!=='video'),...session4EarlierActivities.filter(a=>'edition' in a&&a.kind!=='video')]){
  equal(m.session4ActivityCorrect(activity,m.freshSession4Draft()),false,activity.id+' requires active work');
  equal(m.session4ActivityCorrect(activity,{...m.freshSession4Draft(),...newStates[activity.kind]}),true,activity.id+' completes with observed work');
  equal(scores.session4DraftPercent(activity,newStates[activity.kind]),100,'dashboard shares the exercise rubric');
 }
 const videoActivities=session4Activities.filter(a=>a.kind==='video');
-equal(videoActivities.map(a=>a.video.file),['Video_Get_IP.mp4','Video_partage.mp4','Video_access.mp4','Video_Downold_img.mp4','Video_save_copy_img.mp4'],'all five clips from the U2 pages are used');
-equal(videoActivities.reduce((total,a)=>total+a.video.questions.length,0),11,'the five video exercises have eleven questions');
+equal(videoActivities.map(a=>a.video.file),['Video_Get_IP.mp4','Video_partage.mp4','Video_access.mp4','Video_Downold_img.mp4'],'the messenger clip is removed from the active workshop');
+equal(videoActivities.reduce((total,a)=>total+a.video.questions.length,0),9,'the four video exercises have nine questions');
 equal(new Set(session4Activities.map(a=>a.id)).size,session4Activities.length,'each saved exercise has a unique ID');
 for(const activity of videoActivities){
  const {questions}=activity.video;
@@ -93,7 +93,7 @@ equal(expo.expoRoute('mixed',newStates.mixed),['pc21','switch','ap','tv'],'the m
 equal(expo.expoRoute('mixed',{...newStates.mixed,links:[expo.expoWire('pc21','printer'),expo.expoWire('printer','ap')]}),null,'an end device never relays between links');
 equal(expo.expoRoute('diagnostic',m.freshSession4Draft()),null,'the missing access-point uplink prevents delivery');
 equal(scores.session4DraftPercent(session4Activities.find(a=>a.kind==='diagnostic'),{}),null,'preinstalled devices do not earn a grade');
-const exchangeActivity=session4Activities.find(a=>a.kind==='exchange');
+const exchangeActivity=session4EarlierActivities.find(a=>a.kind==='exchange');
 const exchange={...m.freshSession4Draft(),...newStates.exchange};
 equal(expo.expoShareReady({...exchange,permission:'write'}),true,'read and write still grants access');
 equal(m.session4ActivityCorrect(exchangeActivity,{...exchange,permission:'write'}),false,'the activity asks for the minimum right');
@@ -109,7 +109,38 @@ equal(scores.workshopExercises(4,true).some(a=>a.id==='session-4-workshop-expo-m
 equal(scores.workshopExercises(4).filter(a=>a.id==='session-4-workshop-expo-wireless').length,1,'equivalent wireless attempts still match exactly one current activity');
 const earlier=m.initialSession4Workshop(saved);
 equal(earlier.drafts,saved.drafts,'historical checkpoints are preserved on opening the redesigned lesson');
-const progress=load('app/prof/learning-model.ts');equal(progress.targetsFor(4).length,17,'teacher tracks both practical and video exercises');equal(progress.targetsFor(4).some(t=>t.id==='session-4-workshop-TP'),false,'TP declaration does not claim mastery');
+const retiredIds=['session-4-workshop-expo-exchange','session-4-workshop-expo-loan','session-4-workshop-video-messagerie'];
+for(const id of retiredIds){
+ equal(session4Activities.some(a=>a.id===id),false,'retired exercise is hidden from the active workshop');
+ equal(scores.workshopExercises(4,true).some(a=>a.id===id),true,'retired exercise retains its grading history');
+}
+const lastOldCheckpoint={...saved,activityIndex:16,activityId:retiredIds[2]};
+equal(m.validSession4Workshop(lastOldCheckpoint),true,'a saved index beyond the shorter workshop never discards earlier work');
+equal(m.initialSession4Workshop(lastOldCheckpoint).drafts,saved.drafts,'all drafts survive the removal of the last exercises');
+const videoFlow=load('app/session4-video-model.ts');
+const ipVideo=videoActivities[0].video;
+const [firstQuestion,secondQuestion]=ipVideo.questions;
+let videoDraft={...m.freshSession4Draft(),videoPosition:0};
+equal(videoFlow.pendingVideoQuestion(ipVideo,videoDraft),0);
+equal(videoFlow.limitVideoPosition(ipVideo,videoDraft,200),firstQuestion.second,'seeking cannot skip the first unanswered checkpoint');
+videoDraft={...videoDraft,selections:{[firstQuestion.id]:firstQuestion.answer},checks:[videoFlow.videoQuestionMarker(firstQuestion.id)]};
+equal(videoFlow.limitVideoPosition(ipVideo,videoDraft,200),secondQuestion.second,'a validated answer unlocks only the next segment');
+videoDraft.selections[secondQuestion.id]=secondQuestion.answer;
+videoDraft.checks.push(videoFlow.videoQuestionMarker(secondQuestion.id));
+equal(videoFlow.pendingVideoQuestion(ipVideo,videoDraft),-1);
+equal(videoFlow.limitVideoPosition(ipVideo,videoDraft,200),200,'the completed video can be replayed freely');
+const legacyVideo={...m.freshSession4Draft(),selections:{[firstQuestion.id]:firstQuestion.answer}};
+equal(videoFlow.pendingVideoQuestion(ipVideo,legacyVideo),1,'correct answers saved in the earlier video format are retained');
+const shareVideo=videoActivities[1].video;
+const shareDraft={...m.freshSession4Draft(),videoPosition:36,selections:Object.fromEntries(shareVideo.questions.slice(0,2).map(q=>[q.id,q.answer])),checks:shareVideo.questions.slice(0,2).map(q=>videoFlow.videoQuestionMarker(q.id))};
+equal(videoFlow.pendingVideoQuestion(shareVideo,shareDraft),2,'two questions at the same second remain separate checkpoints');
+equal(videoFlow.limitVideoPosition(shareVideo,shareDraft,60),36);
+equal(m.runSession4Command('ping   192.168.10.22',true).includes('reçus = 4'),true,'the terminal accepts spacing variations');
+equal(m.runSession4Command('cls',true),'');
+equal(m.runSession4Command('help',true).includes('IPCONFIG'),true);
+const longTerminal={...m.freshSession4Draft(),terminalHistory:Array(40).fill('ipconfig'),output:'x'.repeat(18000)};
+equal(JSON.stringify(m.session4AnswerState(longTerminal)).length<12000,true,'terminal transcripts do not overflow the submission limit');
+const progress=load('app/prof/learning-model.ts');equal(progress.targetsFor(4).length,14,'teacher tracks both practical and video exercises');equal(progress.targetsFor(4).some(t=>t.id==='session-4-workshop-TP'),false,'TP declaration does not claim mastery');
 
 // The desktop checks real files, sharing rights, inbox reads and ordered operations.
 const simulationModule={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'public/session4/simulateur/missions.js'),'utf8'),{module:simulationModule});const simulator=simulationModule.exports;

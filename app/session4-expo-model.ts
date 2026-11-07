@@ -91,7 +91,6 @@ export type ExpoNetworkKind = "wired" | "wireless" | "mixed" | "diagnostic";
 export type ExpoDevice = ExpoPoint & { id: string; name: string; photo?: string; port?: boolean; wifi?: boolean; slot?: "switch" | "ap" };
 type Network = {
   nodes: ExpoDevice[]; wires: string[]; clients: string[]; from: string; to: string;
-  test: ReturnType<typeof t>; document: ReturnType<typeof t>;
 };
 export const expoWire = (a: string, b: string) => [a,b].sort().join("|");
 const switchSlot: ExpoDevice = { id: "switch", name: "Emplacement central", slot: "switch", x: 51, y: 49 };
@@ -104,19 +103,16 @@ const mixed: Network = {
   nodes: [{ ...wiredPC, x: 13 }, { ...printer, x: 13, y: 75 }, { ...switchSlot, x: 38 }, { ...wifiSlot, x: 63, y: 49 }, tv, { ...portable, x: 88, y: 76 }],
   wires: ["pc21", "printer", "ap"].map(id => expoWire(id, "switch")),
   clients: ["laptop", "tv"], from: "pc21", to: "tv",
-  test: t("Envoyer l’affiche à la TV", "إرسال الإعلان إلى التلفاز"),
-  document: t("Affiche du club", "إعلان النادي"),
 };
 export const expoNetworks: Record<ExpoNetworkKind, Network> = {
   wired: {
     nodes: [wiredPC, { id: "pc22", name: "PC-22", photo: pc, port: true, x: 16, y: 74 }, switchSlot, printer],
     wires: ["pc21","pc22","printer"].map(id => expoWire(id, "switch")), clients: [],
-    from: "pc21", to: "printer", test: t("Imprimer depuis PC-21", "الطباعة من PC-21"), document: t("Plan de l’exposition", "مخطط المعرض"),
+    from: "pc21", to: "printer",
   },
   wireless: {
     nodes: [portable, wifiSlot, { id: "laptop2", name: "Portable-32", photo: image("portable-mac"), wifi: true, x: 81, y: 58 }],
     wires: [], clients: ["laptop","laptop2"], from: "laptop", to: "laptop2",
-    test: t("Envoyer le programme", "إرسال البرنامج"), document: t("Programme du club", "برنامج النادي"),
   },
   mixed,
   diagnostic: mixed,
@@ -245,7 +241,7 @@ export function expoActivityChecks(activity: Session4Activity, d: Session4Draft)
       return [
         s.failed === "yes",
         wires.length === mixed.wires.length && mixed.wires.every(wire => wires.includes(wire)),
-        d.tested && d.delivered && !!expoRoute("diagnostic", d),
+        d.tested && !!expoRoute("diagnostic", d),
         s.cause === "uplink",
       ];
     }
@@ -263,7 +259,7 @@ export function expoActivityChecks(activity: Session4Activity, d: Session4Draft)
         ...network.clients.map(id => expoSSIDAt(kind,d,id) === expoSSID),
       ] : [];
       return [...devices, ...correctWires, ...wifi,
-        d.tested && d.delivered && wires.length === network.wires.length && !!expoRoute(kind,d)];
+        d.tested && wires.length === network.wires.length && !!expoRoute(kind,d)];
     }
     case "practice":
       return [];

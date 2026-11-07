@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, FileText, Folder, FolderPlus, Monitor, Network, Send, Terminal, Wifi } from "lucide-react";
+import { FileText, Folder, FolderPlus, Monitor, Network, Send, Wifi } from "lucide-react";
 import { Session3Text as Text } from "./session3-translation";
 import { publicAsset } from "../lib/public-assets";
 import { s4t as t, session4NetworkEquipment, type Session4Activity } from "./session4-data";
-import { runSession4Command, session4PeerIP, session4SourceIP, type Session4Draft } from "./session4-model";
+import { session4PeerIP, session4SourceIP, type Session4Draft } from "./session4-model";
+import { Session4CommandLab } from "./session4-terminal";
 import { ExpoNetworkLab, ExpoPatchLab, ExpoTopologyLab } from "./session4-expo-network";
 import { ExpoAnswerDropdown } from "./session4-answer-dropdown";
 import { Session4VideoExercise } from "./session4-video-exercise";
@@ -22,35 +23,6 @@ export function Session4Topology({kind}:{kind:"star"|"bus"|"ring"}){
   {positions.map(([x,y],i)=><image key={i} href={publicAsset("session4/images/ordinateur-bureau.webp")} x={x-25} y={y-20} width="50" height="40"/>)}
  </svg>;
 }
-const commands=["ipconfig","hostname",`ping ${session4PeerIP}`];
-function IdentityLab({draft,onChange}:LabProps) {
- function run() {
-  const command=draft.command.trim().toLowerCase().replace(/\s+/g," ");
-  if(!command)return;
-  const result=runSession4Command(command,true);
-  onChange({command:"",commands:commands.includes(command)?[...new Set([...draft.commands,command])]:draft.commands,
-   output:`C:\\> ${command}\n\n${result}`,selections:{...draft.selections,commandRun:"yes"}});
- }
- return <div className="expo-identity">
-  <section className="expo-terminal">
-   <header><Terminal size={19}/> <Text value={t("Invite de commandes","نافذة الأوامر")}/></header>
-   <pre aria-live="polite">{draft.output}</pre>
-   <form onSubmit={e=>{e.preventDefault();run();}}>
-    <label><Text value={t("Commande","الأمر")}/><input aria-label="Commande réseau" spellCheck={false} maxLength={80} value={draft.command} onChange={e=>onChange({command:e.target.value})}/></label>
-    <button type="submit" disabled={!draft.command.trim()}><Text value={t("Exécuter","تنفيذ")}/></button>
-   </form>
-   <div className="expo-command-tools">{commands.map(command=><button type="button" key={command} aria-label={`Préparer ${command}`} onClick={()=>onChange({command})}>{draft.commands.includes(command)&&<Check size={14}/>}<code>{command}</code></button>)}</div>
-  </section>
-  <aside className="expo-ticket">
-   <span>FICHE DE RACCORDEMENT</span>
-   <img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Poste fixe du club"/>
-   <label><Text value={t("Adresse IPv4 relevée","عنوان IPv4 المقروء")}/><input aria-label="Adresse IPv4 relevée" maxLength={15} value={draft.ip} onChange={e=>onChange({ip:e.target.value})}/></label>
-   <label><Text value={t("Nom du PC relevé","اسم الحاسوب المقروء")}/><input aria-label="Nom du PC relevé" maxLength={30} value={draft.host} onChange={e=>onChange({host:e.target.value})}/></label>
-  </aside>
- </div>;
-}
-
-
 const stock = [...session4NetworkEquipment].reverse();
 function NetworkStock({ mode,draft,onChange }:LabProps&{mode:"names"|"roles"}) {
  const names = mode === "names";
@@ -214,7 +186,7 @@ export function Session4ActivityPlayer({activity,draft,onChange}:LabProps&{activ
   case "wireless":
   case "mixed":
   case "diagnostic": return <ExpoNetworkLab kind={activity.kind} draft={draft} onChange={onChange}/>;
-  case "identity": return <IdentityLab draft={draft} onChange={onChange}/>;
+  case "identity": return <Session4CommandLab draft={draft} onChange={onChange}/>;
   case "loan": return <LoanLab draft={draft} onChange={onChange}/>;
  }
 }
