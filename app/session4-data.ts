@@ -1,4 +1,5 @@
 import type { CourseSession, LocalizedText } from "./course-data.ts";
+import { session4Videos, type Session4Video } from "./session4-video-data.ts";
 export const s4t = (fr: string, ar: string): LocalizedText => ({fr, ar});
 export const session4QuizEvaluationId="session-4-reseau-evaluation-v1";
 export const session4LabEvaluationId="session-4-reseau-evaluation-v2";
@@ -19,9 +20,21 @@ export const session4LegacyActivities: Session4LegacyActivity[] = [
  activity("I","repair",11,s4t("Corriger un droit de partage","تصحيح صلاحية المشاركة"),s4t("Sara doit déposer notes.txt dans le dossier Échange. Observe le refus, puis règle le droit de partage et réessaie.","على سارة وضع notes.txt داخل Échange. لاحظ الرفض ثم صحح صلاحية المشاركة وأعد المحاولة."),[],"Diagnostiquer un échange local"),
 ];
 export type Session4Kind = "inventory" | "media" | "plans" | "wired" | "folder" | "wireless" | "mixed" | "identity" | "diagnostic" | "practice" | "names" | "roles" | "star" | "bus" | "ring" | "patch" | "exchange" | "loan";
-export type Session4Activity = ActivityCopy & {edition:2; kind:Session4Kind; zone:LocalizedText; previousId?:string};
-const newActivity = (kind:Session4Kind,minutes:number,zone:LocalizedText,title:LocalizedText,prompt:LocalizedText,tasks:LocalizedText[],objective:string):Session4Activity =>
+type Session4ActivityCopy = ActivityCopy & {edition:2; zone:LocalizedText; previousId?:string};
+type Session4StandardActivity = Session4ActivityCopy & {kind:Session4Kind};
+export type Session4VideoActivity = Session4ActivityCopy & {kind:"video"; video:Session4Video};
+export type Session4Activity = Session4StandardActivity | Session4VideoActivity;
+const newActivity = (kind:Session4Kind,minutes:number,zone:LocalizedText,title:LocalizedText,prompt:LocalizedText,tasks:LocalizedText[],objective:string):Session4StandardActivity =>
  ({id:`session-4-workshop-expo-${kind}`,label:kind,edition:2,kind,minutes,zone,title,prompt,tasks,objective});
+
+function videoActivity(key:keyof typeof session4Videos):Session4VideoActivity {
+ const video=session4Videos[key];
+ return {
+  id:`session-4-workshop-video-${key}`,label:`video-${key}`,edition:2,kind:"video",
+  zone:s4t("Observation vidéo · U2","ملاحظة فيديو · الوحدة 2"),
+  minutes:video.minutes,title:video.title,prompt:video.prompt,objective:video.objective,tasks:[],video,
+ };
+}
 
 const previousExpoActivities = [
  newActivity("inventory",8,s4t("Le stock","المخزن"),s4t("Inventaire avant l’ouverture","جرد المعدات قبل الافتتاح"),s4t("Les étiquettes des caisses sont tombées. Redonne à chaque photo le bon nom et la bonne fonction.","سقطت ملصقات الصناديق. أعد لكل صورة اسم الجهاز ووظيفته."),
@@ -51,26 +64,35 @@ const previousEquipmentActivities = [
  newActivity("roles",6,s4t("Le stock","المخزن"),s4t("À quoi sert ce matériel ?","ما وظيفة هذه المعدة؟"),s4t("Le nom est indiqué sous chaque photo. Associe le matériel à son rôle dans le réseau.","اسم المعدة مكتوب تحت كل صورة. اربط كل معدة بوظيفتها في الشبكة."),
   [],"Associer le matériel réseau à sa fonction"),
 ];
-export const session4Activities = [
+const practiceMinutes = {wireless:7,mixed:9,identity:6,diagnostic:5} as const;
+export const session4Activities:Session4Activity[] = [
  ...previousEquipmentActivities.map(item=>({
-  ...item,id:`${item.id}-v2`,previousId:item.id,
+  ...item,id:`${item.id}-v2`,previousId:item.id,minutes:5,
   prompt:item.kind==="roles"
    ?s4t("Lis le nom sous chaque photo. Choisis l’action que fait cet équipement. Utilise chaque rôle une seule fois.","اقرأ الاسم تحت كل صورة. اختر ما يفعله هذا الجهاز. استعمل كل وظيفة مرة واحدة.")
    :s4t("Observe les six photos. Choisis le nom de chaque équipement réseau.","لاحظ الصور الست واختر اسم كل جهاز شبكة."),
  })),
- newActivity("star",4,s4t("Plan A","المخطط A"),s4t("Le poste oublié","الحاسوب المنسي"),s4t("PC-4 attend son câble. Observe les trois liaisons déjà tracées, puis complète et nomme le plan.","ينتظر PC-4 كابله. لاحظ الوصلات الثلاث المرسومة ثم أكمل المخطط وسمِّ بنيته."),
+ newActivity("star",3,s4t("Plan A","المخطط A"),s4t("Le poste oublié","الحاسوب المنسي"),s4t("PC-4 attend son câble. Observe les trois liaisons déjà tracées, puis complète et nomme le plan.","ينتظر PC-4 كابله. لاحظ الوصلات الثلاث المرسومة ثم أكمل المخطط وسمِّ بنيته."),
   [],"Reconnaître la topologie en étoile"),
- newActivity("bus",4,s4t("Plan B","المخطط B"),s4t("La ligne commune","الخط المشترك"),s4t("PC-2 est isolé. Choisis le trait qui le relie à la même ligne que les autres postes, puis nomme la topologie.","الحاسوب PC-2 معزول. اختر الخط الذي يربطه بالخط المشترك لباقي الحواسيب، ثم سمِّ البنية."),
+ newActivity("bus",3,s4t("Plan B","المخطط B"),s4t("La ligne commune","الخط المشترك"),s4t("PC-2 est isolé. Choisis le trait qui le relie à la même ligne que les autres postes, puis nomme la topologie.","الحاسوب PC-2 معزول. اختر الخط الذي يربطه بالخط المشترك لباقي الحواسيب، ثم سمِّ البنية."),
   [],"Reconnaître la topologie en bus"),
- newActivity("ring",4,s4t("Plan C","المخطط C"),s4t("Le dernier segment","الوصلة الأخيرة"),s4t("Complète la liaison pour que chaque poste ait exactement deux voisins et que la boucle soit fermée. Nomme ensuite la topologie.","أكمل الوصلة حتى يكون لكل حاسوب جاران وتغلق الحلقة. ثم سمِّ البنية."),
+ newActivity("ring",3,s4t("Plan C","المخطط C"),s4t("Le dernier segment","الوصلة الأخيرة"),s4t("Complète la liaison pour que chaque poste ait exactement deux voisins et que la boucle soit fermée. Nomme ensuite la topologie.","أكمل الوصلة حتى يكون لكل حاسوب جاران وتغلق الحلقة. ثم سمِّ البنية."),
   [],"Reconnaître la topologie en anneau"),
- newActivity("patch",9,s4t("Le bureau","المكتب"),s4t("Brancher deux PC au commutateur","ربط حاسوبين بالمبدل"),s4t("Relie PC-21 et PC-22 au commutateur par des câbles RJ45. Envoie ensuite une fiche de test à PC-22.","اربط PC-21 وPC-22 بالمبدل بكابلي RJ45. ثم أرسل بطاقة اختبار إلى PC-22."),
+ newActivity("patch",7,s4t("Le bureau","المكتب"),s4t("Brancher deux PC au commutateur","ربط حاسوبين بالمبدل"),s4t("Relie PC-21 et PC-22 au commutateur par des câbles RJ45. Envoie ensuite une fiche de test à PC-22.","اربط PC-21 وPC-22 بالمبدل بكابلي RJ45. ثم أرسل بطاقة اختبار إلى PC-22."),
   [s4t("Clique sur la prise RJ45 d’un PC, puis sur un port libre du commutateur.","انقر منفذ RJ45 لأحد الحاسوبين ثم منفذًا شاغرًا في المبدل."),s4t("Branche le second PC sur un autre port. Teste l’envoi.","اربط الحاسوب الثاني بمنفذ آخر، ثم اختبر الإرسال.")],"Construire un réseau filaire"),
- newActivity("exchange",10,s4t("Le bureau","المكتب"),s4t("Retrouver le code dans un dossier partagé","العثور على الرمز في مجلد مشترك"),s4t("PC-21 et PC-22 sont déjà reliés par câble. Prépare l’invitation sur PC-21, puis retrouve son code depuis PC-22.","الحاسوبان PC-21 وPC-22 متصلان بالكابل. جهز الدعوة على PC-21 ثم اعثر على رمزها من PC-22."),
+ videoActivity("adresse"),
+ videoActivity("partage"),
+ videoActivity("acces"),
+ newActivity("exchange",8,s4t("Le bureau","المكتب"),s4t("Retrouver le code dans un dossier partagé","العثور على الرمز في مجلد مشترك"),s4t("PC-21 et PC-22 sont déjà reliés par câble. Prépare l’invitation sur PC-21, puis retrouve son code depuis PC-22.","الحاسوبان PC-21 وPC-22 متصلان بالكابل. جهز الدعوة على PC-21 ثم اعثر على رمزها من PC-22."),
   [s4t("Crée Club_reseau et partage l’invitation en lecture depuis PC-21.","أنشئ Club_reseau وشارك الدعوة للقراءة من PC-21."),s4t("Sur PC-22, passe par Réseau, ouvre le dossier du bon poste et lis l’invitation.","على PC-22، افتح الشبكة ثم مجلد الحاسوب الصحيح واقرأ الدعوة.")],"Ouvrir un dossier partagé sur le réseau local"),
- ...previousExpoActivities.filter(activity => ["wireless","mixed","identity","diagnostic"].includes(activity.kind)),
- newActivity("loan",11,s4t("Dernière mission","المهمة الأخيرة"),s4t("Accueillir le portable de prêt","إضافة الحاسوب المحمول المعار"),s4t("Le portable de prêt doit recevoir l’invitation du club. Relève le nom sur son étiquette, choisis une IPv4 libre et connecte-le au Wi-Fi de l’équipe.","يجب أن يتوصل الحاسوب المحمول المعار بدعوة النادي. اقرأ اسمه من الملصق واختر عنوان IPv4 شاغرًا وأوصله بشبكة Wi-Fi للفريق."),
+ videoActivity("image"),
+ ...previousExpoActivities.flatMap(activity => {
+  const minutes=practiceMinutes[activity.kind as keyof typeof practiceMinutes];
+  return minutes===undefined?[]:[{...activity,minutes}];
+ }),
+ newActivity("loan",10,s4t("Dernière mission","المهمة الأخيرة"),s4t("Accueillir le portable de prêt","إضافة الحاسوب المحمول المعار"),s4t("Le portable de prêt doit recevoir l’invitation du club. Relève le nom sur son étiquette, choisis une IPv4 libre et connecte-le au Wi-Fi de l’équipe.","يجب أن يتوصل الحاسوب المحمول المعار بدعوة النادي. اقرأ اسمه من الملصق واختر عنوان IPv4 شاغرًا وأوصله بشبكة Wi-Fi للفريق."),
   [s4t("Compare les adresses proposées avec la liste des postes déjà connectés.","قارن العناوين المقترحة بقائمة الحواسيب المتصلة."),s4t("Teste l’envoi de l’invitation au portable de prêt.","اختبر إرسال الدعوة إلى الحاسوب المحمول المعار.")],"Identifier et intégrer un poste au réseau local"),
+ videoActivity("messagerie"),
 ];
 export const session4EarlierActivities = [
  ...previousEquipmentActivities,

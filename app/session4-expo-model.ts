@@ -187,6 +187,8 @@ export function expoPathCorrect(path: string) {
 export function expoActivityChecks(activity: Session4Activity, d: Session4Draft): boolean[] {
   const s = d.selections;
   switch (activity.kind) {
+    case "video":
+      return activity.video.questions.map(question => s[question.id] === question.answer);
     case "names":
     case "roles": {
       const prefix = activity.kind === "names" ? "name" : "role";

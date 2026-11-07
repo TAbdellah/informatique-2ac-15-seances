@@ -7,6 +7,7 @@ import { s4t as t, session4NetworkEquipment, type Session4Activity } from "./ses
 import { runSession4Command, session4PeerIP, session4SourceIP, type Session4Draft } from "./session4-model";
 import { ExpoNetworkLab, ExpoPatchLab, ExpoTopologyLab } from "./session4-expo-network";
 import { ExpoAnswerDropdown } from "./session4-answer-dropdown";
+import { Session4VideoExercise } from "./session4-video-exercise";
 import { expoFolder, expoFolderReady, expoInvitation, expoInvitationOpened, expoInviteCode, expoLoan, expoLoanResult, expoShareReady, expoSSID } from "./session4-expo-model";
 
 type LabProps = { draft:Session4Draft; onChange:(patch:Partial<Session4Draft>)=>void };
@@ -202,6 +203,7 @@ function LoanLab({draft,onChange}:LabProps) {
 
 export function Session4ActivityPlayer({activity,draft,onChange}:LabProps&{activity:Session4Activity}) {
  switch(activity.kind){
+  case "video": return <Session4VideoExercise activity={activity} draft={draft} onChange={onChange}/>;
   case "names":
   case "roles": return <NetworkStock mode={activity.kind} draft={draft} onChange={onChange}/>;
   case "star":

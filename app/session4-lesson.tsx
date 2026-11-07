@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,BookOpen,CheckCircle2,ClipboardCheck,CloudOff,FileCheck2,Flag,FlaskConical,Folder,GraduationCap,LoaderCircle,Monitor,Network,Send,Target,Users,X} from "lucide-react";
+import {ArrowLeft,ArrowRight,BookOpen,CheckCircle2,ClipboardCheck,CloudOff,FileCheck2,Film,Flag,FlaskConical,Folder,GraduationCap,LoaderCircle,Monitor,Network,Send,Target,Users,X} from "lucide-react";
 import {Session3Text as Text,Session3TranslationScope} from "./session3-translation";
 import {useTeacherCourse} from "../lib/teacher-course-context";
 import {useDurableLessonState,LearningSaveBadge} from "../lib/learning-context";
@@ -24,16 +24,19 @@ export type Session4Submission={sessionId:number;activityType:"workshop"|"practi
 type Props={student:StudentProfile;activeTab:Tab;onTab:(tab:Tab)=>void;onBack:()=>void;onChangeStudent:()=>void;onRecordSubmission:(submission:Session4Submission)=>void};
 const tabs=[{id:"mission",icon:Flag,label:t("Mission","المهمة")},{id:"workshop",icon:FlaskConical,label:t("Atelier","الورشة")},{id:"trace",icon:BookOpen,label:t("Trace écrite","خلاصة الدرس")},{id:"quiz",icon:FileCheck2,label:t("Évaluation","التقويم")}] as const;
 const phases=[{minutes:10,title:t("Comprendre le défi","فهم التحدي")},{minutes:85,title:t("Pratiquer dans l’atelier","التطبيق في الورشة")},{minutes:10,title:t("Retenir l’essentiel","تثبيت الأساسيات")},{minutes:15,title:t("Évaluer mes acquis","تقويم مكتسباتي")}];
+const videoCount=session4Activities.filter(activity=>activity.kind==="video").length;
 
 export default function Session4Lesson({student,activeTab,onTab,onBack,onChangeStudent,onRecordSubmission}:Props){
  const teacher=useTeacherCourse();const [visited,setVisited]=useState<Tab[]>([activeTab]);
+ const workshopPanel=useRef<HTMLElement>(null);
+ useEffect(()=>{if(activeTab!=="workshop")workshopPanel.current?.querySelector("video")?.pause();},[activeTab]);
  function open(tab:Tab){setVisited(v=>v.includes(tab)?v:[...v,tab]);onTab(tab);requestAnimationFrame(()=>document.querySelector('.main-scroll')?.scrollTo({top:0,behavior:"auto"}))}
  return <Session3TranslationScope enabled scopeKey={`session4-${activeTab}`}><div className="session4-lesson session3-theme">
   <header className="s4-course-header"><button type="button" className="s4-back" onClick={onBack}><ArrowLeft size={17}/><span>Programme</span></button><div className="s4-brand"><Network size={24}/><div><strong>LAB·2AC</strong><small>SÉANCE 04 · 2 HEURES</small></div></div>{teacher?<span className="s4-profile"><GraduationCap size={19}/> Professeur · démonstration</span>:<button type="button" className="s4-profile" onClick={onChangeStudent}><Users size={19}/><span>{student.studentOne}{student.isPair&&student.studentTwo?` + ${student.studentTwo}`:""}<small>{student.className} · Groupe {student.groupName}</small></span></button>}</header>
   {!teacher&&<LearningSaveBadge/>}
   <nav className="s4-tabs" aria-label="Contenu de la séance 4">{tabs.map(({id,icon:Icon,label})=><button type="button" key={id} aria-current={activeTab===id?"page":undefined} className={activeTab===id?"active":""} onClick={()=>open(id)}><Icon size={19}/><span>{label.fr}<small lang="ar" dir="rtl">{label.ar}</small></span></button>)}</nav>
   {visited.includes("mission")&&<section hidden={activeTab!=="mission"} data-s4-panel="mission"><Mission onStart={()=>open("workshop")}/></section>}
-  {visited.includes("workshop")&&<section hidden={activeTab!=="workshop"} data-s4-panel="workshop"><Workshop participantId={student.id} onRecord={onRecordSubmission} onTrace={()=>open("trace")} onEvaluate={()=>open("quiz")}/></section>}
+  {visited.includes("workshop")&&<section ref={workshopPanel} hidden={activeTab!=="workshop"} data-s4-panel="workshop"><Workshop participantId={student.id} onRecord={onRecordSubmission} onTrace={()=>open("trace")} onEvaluate={()=>open("quiz")}/></section>}
   {visited.includes("trace")&&<section hidden={activeTab!=="trace"} data-s4-panel="trace"><Trace onEvaluate={()=>open("quiz")}/></section>}
   {visited.includes("quiz")&&<section hidden={activeTab!=="quiz"} data-s4-panel="quiz"><Assessment participantId={student.id} onRecord={onRecordSubmission}/></section>}
   <footer className="s4-credit">LAB·2AC · Prof. Abdellah TAHTOH · Collège Othmane Ibn Affane</footer>
@@ -41,7 +44,7 @@ export default function Session4Lesson({student,activeTab,onTab,onBack,onChangeS
 }
 
 function Mission({onStart}:{onStart:()=>void}){
- return <div className="s4-panel-enter"><section className="s4-mission-hero"><div><span className="s4-eyebrow"><Network size={16}/> MISSION DU CLUB · 120 MINUTES</span><h1><Text value={session4.title}/></h1><p className="s4-mission-lead"><Text value={session4.mission}/></p><div className="s4-mission-tags"><span><Users size={16}/> 2 élèves par PC</span><span><Monitor size={16}/> 12 exercices</span><span><CloudOff size={16}/> LAN sans Internet</span></div></div><div className="s4-mission-visual"><div className="s4-mission-devices"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Un poste du réseau local"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau local"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Un autre poste du réseau local"/></div><span><Text value={t("Une salle. Plusieurs postes. Un même réseau.","قاعة واحدة وحواسيب متعددة وشبكة مشتركة.")}/></span></div></section>
+ return <div className="s4-panel-enter"><section className="s4-mission-hero"><div><span className="s4-eyebrow"><Network size={16}/> MISSION DU CLUB · 120 MINUTES</span><h1><Text value={session4.title}/></h1><p className="s4-mission-lead"><Text value={session4.mission}/></p><div className="s4-mission-tags"><span><Users size={16}/> 2 élèves par PC</span><span><Monitor size={16}/> {session4Activities.length} exercices</span><span><Film size={16}/> {videoCount} vidéos U2</span><span><CloudOff size={16}/> LAN sans Internet</span></div></div><div className="s4-mission-visual"><div className="s4-mission-devices"><img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="Un poste du réseau local"/><img src={publicAsset("session4/images/commutateur.webp")} alt="Commutateur du réseau local"/><img src={publicAsset("session4/images/portable-windows.webp")} alt="Un autre poste du réseau local"/></div><span><Text value={t("Une salle. Plusieurs postes. Un même réseau.","قاعة واحدة وحواسيب متعددة وشبكة مشتركة.")}/></span></div></section>
   <section className="s4-situation"><span className="s4-eyebrow">LE DÉFI À RÉSOUDRE</span><h2><Text value={t("Trois zones à raccorder avant l’ouverture","ثلاث مناطق يجب ربطها قبل الافتتاح")}/></h2><p><Text value={session4.situation}/></p><div><Target size={24}/><strong><Text value={t("Le club veut voir un document arriver dans chaque zone.","يريد النادي رؤية مستند يصل إلى كل منطقة.")}/></strong></div></section>
   <div className="expo-zones">{[
    {photo:"commutateur",place:t("Bureau","المكتب"),label:t("Filaire · échanger entre deux PC","سلكي · التبادل بين حاسوبين")},
@@ -103,18 +106,25 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
  }
  function check(){
   const correct=criteria.every(Boolean);
+  const videoAnswers=activity.kind==="video"?activity.video.questions.map((question,index)=>({
+   question:question.prompt,
+   selectedChoice:question.choices.find(choice=>choice.id===draft.selections[question.id])?.label??t("Sans réponse","دون جواب"),
+   correctChoice:question.choices.find(choice=>choice.id===question.answer)?.label,
+   correct:criteria[index],earnedPoints:criteria[index]?1:0,maxPoints:1,
+  })):null;
   setWork(current=>({...current,activityIndex:index,activityId:activity.id,summary:false,
    completedIds:correct?[...new Set([...current.completedIds,activity.id])]:current.completedIds,
    drafts:{...current.drafts,[activity.id]:{...draft,result:correct,savedAt:Date.now()}}}));
   onRecord({
    sessionId:4,activityType:"workshop",activityId:activity.id,
-   answer:{question:activity.prompt,activityTitle:activity.title,verification:"simulation-corrigee",state:session4AnswerState(draft),completed:correct},
+   answer:{question:activity.prompt,activityTitle:activity.title,verification:videoAnswers?"observation-video":"simulation-corrigee",state:session4AnswerState(draft),completed:correct,...(videoAnswers?{answers:videoAnswers}:{})},
    isCorrect:correct,score:correct?100:session4DraftPercent(activity,draft)??0,maxScore:100,
   });
  }
+ const achieved=criteria.filter(Boolean).length;
  const feedback=draft.result
   ? t("Exercice réussi. Compare ton résultat avec ton binôme.","نجحت في التمرين. قارن نتيجتك مع زميلك.")
-  : t(`${criteria.filter(Boolean).length} critères réussis sur ${criteria.length}. Vérifie tes réponses.`,`تحقق ${criteria.filter(Boolean).length} من أصل ${criteria.length} معايير. تحقق من إجاباتك.`);
+  : t(`${achieved} / ${criteria.length} critères validés. Vérifie tes réponses.`,`تحقق ${achieved} من أصل ${criteria.length} معايير. تحقق من إجاباتك.`);
 
  if(!persistent.ready)return <div className="s4-loading"><LoaderCircle className="spin"/><Text value={t("Recherche du travail sauvegardé…","البحث عن العمل المحفوظ…")}/></div>;
  return <div className="s4-workshop s4-panel-enter" ref={anchor}>
