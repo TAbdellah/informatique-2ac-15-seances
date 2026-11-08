@@ -17,6 +17,7 @@ export function Session4VideoExercise({activity,draft,onChange}:{
   onChange:(patch:Partial<Session4Draft>)=>void;
 }){
   const {video}=activity;
+  const container=useRef<HTMLElement>(null);
   const player=useRef<HTMLVideoElement>(null);
   const savedPosition=useRef(draft.videoPosition??0);
   const heading=useRef<HTMLHeadingElement>(null);
@@ -28,6 +29,7 @@ export function Session4VideoExercise({activity,draft,onChange}:{
   const [playing,setPlaying]=useState(false);
   const [unavailable,setUnavailable]=useState(false);
   const [expanded,setExpanded]=useState(false);
+  const [nativeFullscreen,setNativeFullscreen]=useState(false);
   const [attempted,setAttempted]=useState(false);
   const [questionIndex,setQuestionIndex]=useState<number|null>(
     pending>=0&&initialPosition>=video.questions[pending].second?pending:null
@@ -51,10 +53,30 @@ export function Session4VideoExercise({activity,draft,onChange}:{
 
   useEffect(()=>{
     if(!expanded)return;
-    const close=(event:KeyboardEvent)=>{if(event.key==="Escape")setExpanded(false);};
+    const close=(event:KeyboardEvent)=>{if(event.key==="Escape"&&!document.fullscreenElement)setExpanded(false);};
     window.addEventListener("keydown",close);
     return()=>window.removeEventListener("keydown",close);
   },[expanded]);
+
+  useEffect(()=>{
+    const sync=()=>{const active=document.fullscreenElement===container.current;setNativeFullscreen(active);setExpanded(active);};
+    document.addEventListener("fullscreenchange",sync);
+    return()=>document.removeEventListener("fullscreenchange",sync);
+  },[]);
+
+  async function toggleFullscreen(){
+    const section=container.current;
+    if(!section)return;
+    if(document.fullscreenElement===section){
+      await document.exitFullscreen();
+      return;
+    }
+    if(expanded){setExpanded(false);return;}
+    if(section.requestFullscreen){
+      try{await section.requestFullscreen();return;}catch{/* Keep questions accessible when fullscreen is unavailable. */}
+    }
+    setExpanded(true);
+  }
 
   function savePosition(second:number){
     const next=Math.max(0,Math.floor(second*10)/10);
@@ -68,8 +90,8 @@ export function Session4VideoExercise({activity,draft,onChange}:{
     const clip=player.current;
     const second=video.questions[index].second;
     if(clip){
+      if(Math.abs(clip.currentTime-second)>0.01)clip.currentTime=second;
       clip.pause();
-      if(Math.abs(clip.currentTime-second)>0.15)clip.currentTime=second;
     }
     setPlaying(false);
     setAttempted(false);
@@ -138,12 +160,12 @@ export function Session4VideoExercise({activity,draft,onChange}:{
     void player.current.play().catch(error=>{if(error.name!=="AbortError")setUnavailable(true);});
   }
 
-  return <section className={`s4-interactive-video ${expanded?"expanded":""}`} aria-label="Vidéo avec questions intégrées">
+  return <section ref={container} className={`s4-interactive-video ${expanded?"expanded":""}`} data-display={nativeFullscreen?"fullscreen":expanded?"expanded":"embedded"} aria-label="Vidéo avec questions intégrées">
     <header>
       <span><Film size={18} aria-hidden="true"/><Text value={t("Observe, réponds, puis continue","شاهد وأجب ثم تابع")}/></span>
-      <button type="button" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>
+      <button type="button" aria-expanded={expanded} onClick={()=>void toggleFullscreen()}>
         {expanded?<Minimize size={17}/>:<Expand size={17}/>}
-        <Text value={expanded?t("Réduire","تصغير"):t("Agrandir","تكبير")}/>
+        <Text value={expanded?t("Quitter le plein écran","مغادرة ملء الشاشة"):t("Plein écran","ملء الشاشة")}/>
       </button>
     </header>
     <div className="s4-video-viewport">

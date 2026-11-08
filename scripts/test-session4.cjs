@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'..');
 function loader(revision){const cache={};return function load(relative){relative=path.normalize(relative);if(cache[relative])return cache[relative];const exports={};cache[relative]=exports;const source=revision?cp.execFileSync('git',['show',revision+':'+relative],{cwd:root,encoding:'utf8'}):fs.readFileSync(path.join(root,relative),'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,require:name=>{if(!name.startsWith('.'))return require(name);let f=path.join(path.dirname(relative),name);if(!path.extname(f))f+='.ts';return load(f)},process});return exports;}}
 const load=loader();const {session4,session4Activities,session4EarlierActivities,session4LegacyActivities,session4Equipment,session4NetworkEquipment}=load('app/session4-data.ts'),m=load('app/session4-model.ts'),rubric=load('supabase/functions/informatique-2ac-api/session4-evaluation.ts');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++};
-equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','wireless','mixed','identity','diagnostic'],'the retained exercises keep their order');equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
+equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','wireless','mixed','identity','build'],'the final activity builds a complete network');equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
 equal(new Set(session4NetworkEquipment.map(item=>item.role.fr)).size,6,'each device has a distinct role');
 equal(session4NetworkEquipment.every(item=>fs.existsSync(path.join(root,'public',item.image))),true,'all equipment photos are available');
 for(const [value,expected]of [['192.168.10.21',true],['10.0.0.2',true],['172.20.10.3',true],['192.168.10.999',false],['127.0.0.1',false],['example.org',false],['192.168.1',false],['8.8.8.8',false]])equal(m.isPrivateIPv4(value),expected,value);
@@ -32,6 +32,7 @@ const networks=expo.expoNetworks,ssid=expo.expoSSID;
 const makeNetwork=(kind,selections)=>({selections,links:networks[kind].wires,tested:true,delivered:true});
 const fullNetwork={switch:'switch',ap:'ap',ssid,laptop:ssid,tv:ssid};
 const newStates={
+ build:{selections:{'build-switch':'switch','build-ap':'ap','build-port-pc21':'1','build-port-pc22':'2','build-port-ap':'3','build-ssid':ssid,'build-laptop':ssid},checks:['build-wired-tested','build-mixed-tested'],tested:true,delivered:true},
  names:{selections:Object.fromEntries(session4NetworkEquipment.map(item=>[`name-${item.id}`,item.id]))},
  roles:{selections:Object.fromEntries(session4NetworkEquipment.map(item=>[`role-${item.id}`,item.id]))},
  ...Object.fromEntries(expo.expoPlans.map(plan=>[plan.topology,{selections:{[`wire-${plan.id}`]:String(plan.missing),[`topo-${plan.id}`]:plan.topology}}])),
@@ -92,7 +93,7 @@ equal(expo.expoRoute('wireless',{...newStates.wireless,selections:{...newStates.
 equal(expo.expoRoute('mixed',newStates.mixed),['pc21','switch','ap','tv'],'the mixed network bridges Ethernet and Wi-Fi');
 equal(expo.expoRoute('mixed',{...newStates.mixed,links:[expo.expoWire('pc21','printer'),expo.expoWire('printer','ap')]}),null,'an end device never relays between links');
 equal(expo.expoRoute('diagnostic',m.freshSession4Draft()),null,'the missing access-point uplink prevents delivery');
-equal(scores.session4DraftPercent(session4Activities.find(a=>a.kind==='diagnostic'),{}),null,'preinstalled devices do not earn a grade');
+equal(scores.session4DraftPercent(session4EarlierActivities.find(a=>a.kind==='diagnostic'),{}),null,'preinstalled devices do not earn a grade');
 const exchangeActivity=session4EarlierActivities.find(a=>a.kind==='exchange');
 const exchange={...m.freshSession4Draft(),...newStates.exchange};
 equal(expo.expoShareReady({...exchange,permission:'write'}),true,'read and write still grants access');
@@ -109,7 +110,7 @@ equal(scores.workshopExercises(4,true).some(a=>a.id==='session-4-workshop-expo-m
 equal(scores.workshopExercises(4).filter(a=>a.id==='session-4-workshop-expo-wireless').length,1,'equivalent wireless attempts still match exactly one current activity');
 const earlier=m.initialSession4Workshop(saved);
 equal(earlier.drafts,saved.drafts,'historical checkpoints are preserved on opening the redesigned lesson');
-const retiredIds=['session-4-workshop-expo-exchange','session-4-workshop-expo-loan','session-4-workshop-video-messagerie'];
+const retiredIds=['session-4-workshop-expo-exchange','session-4-workshop-expo-loan','session-4-workshop-video-messagerie','session-4-workshop-expo-diagnostic'];
 for(const id of retiredIds){
  equal(session4Activities.some(a=>a.id===id),false,'retired exercise is hidden from the active workshop');
  equal(scores.workshopExercises(4,true).some(a=>a.id===id),true,'retired exercise retains its grading history');
@@ -117,6 +118,19 @@ for(const id of retiredIds){
 const lastOldCheckpoint={...saved,activityIndex:16,activityId:retiredIds[2]};
 equal(m.validSession4Workshop(lastOldCheckpoint),true,'a saved index beyond the shorter workshop never discards earlier work');
 equal(m.initialSession4Workshop(lastOldCheckpoint).drafts,saved.drafts,'all drafts survive the removal of the last exercises');
+const buildActivity=session4Activities.at(-1),buildDraft={...m.freshSession4Draft(),...newStates.build};
+equal(buildActivity.kind,'build','the final mission asks learners to construct the network');
+equal(expo.expoBuildStatus(buildDraft).mixed,true,'a complete setup reaches the portable over Ethernet and Wi-Fi');
+equal(m.session4ActivityCorrect(buildActivity,{...buildDraft,checks:[]}),false,'connections alone require a real test');
+const noUplink={...buildDraft,selections:{...buildDraft.selections,'build-port-ap':''}};
+equal(expo.expoBuildStatus(noUplink).wired,true,'the two wired PCs still communicate without an AP uplink');
+equal(expo.expoBuildStatus(noUplink).mixed,false,'the portable needs the access point connected to the switch');
+equal(scores.session4DraftPercent(buildActivity,noUplink),78,'partial work retains the successful wiring and Wi-Fi settings');
+for(const patch of [{'build-port-pc22':'1'},{'build-port-ap':'1'},{'build-port-pc21':'9'},{'build-switch':''},{'build-ap':''},{'build-laptop':'INVITES'}]){
+ equal(m.session4ActivityCorrect(buildActivity,{...buildDraft,selections:{...buildDraft.selections,...patch}}),false,'occupied ports, missing equipment and different Wi-Fi networks cannot pass');
+}
+equal(scores.workshopEvidence(4,{version:1,completedIds:['session-4-workshop-expo-diagnostic'],drafts:{'session-4-workshop-expo-diagnostic':{...m.freshSession4Draft(),...newStates.diagnostic}}}).some(row=>row.activityId===buildActivity.id),false,'the earlier repair exercise never marks the new construction mission completed');
+equal(fs.existsSync(path.join(root,'public/session4/images/salle-reseau-club.webp')),true,'the classroom mission banner is packaged with the lesson');
 const videoFlow=load('app/session4-video-model.ts');
 const ipVideo=videoActivities[0].video;
 const [firstQuestion,secondQuestion]=ipVideo.questions;

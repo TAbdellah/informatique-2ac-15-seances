@@ -76,6 +76,7 @@ export function Session3TranslationScope({ enabled, scopeKey, children }: { enab
     document.addEventListener("scroll", hide, true);
     window.addEventListener("resize", hide);
     window.addEventListener("blur", hide);
+    document.addEventListener("fullscreenchange", hide);
     return () => {
       hide();
       document.removeEventListener("pointerover", pointerOver);
@@ -89,6 +90,7 @@ export function Session3TranslationScope({ enabled, scopeKey, children }: { enab
       document.removeEventListener("scroll", hide, true);
       window.removeEventListener("resize", hide);
       window.removeEventListener("blur", hide);
+      document.removeEventListener("fullscreenchange", hide);
     };
   }, [enabled, scopeKey, tooltipId]);
 
@@ -104,6 +106,6 @@ export function Session3TranslationScope({ enabled, scopeKey, children }: { enab
 
   return <TranslationMode.Provider value={enabled}>
     {children}
-    {enabled && translation && createPortal(<div ref={tooltipRef} id={tooltipId} className="s3-translation-tooltip" role="tooltip" lang="ar" dir="rtl" style={position}>{translation.text}</div>, document.body)}
+    {enabled && translation && createPortal(<div ref={tooltipRef} id={tooltipId} className="s3-translation-tooltip" role="tooltip" lang="ar" dir="rtl" style={position}>{translation.text}</div>, document.fullscreenElement ?? document.body)}
   </TranslationMode.Provider>;
 }

@@ -64,6 +64,26 @@ export function expoPatchConnected(draft: Session4Draft) {
   return pc21 !== pc22 && expoPatchPorts.includes(pc21) && expoPatchPorts.includes(pc22);
 }
 
+export const expoBuildPortKey=(id:string)=>`build-port-${id}`;
+export function expoBuildStatus(draft: Pick<Session4Draft,"selections">){
+  const s=draft.selections;
+  const installed=s["build-switch"]==="switch";
+  const accessPoint=s["build-ap"]==="ap";
+  const [a,b,uplink]=["pc21","pc22","ap"].map(id=>s[expoBuildPortKey(id)]);
+  const pc21=installed&&expoPatchPorts.includes(a);
+  const pc22=installed&&expoPatchPorts.includes(b)&&a!==b;
+  const uplinkReady=installed&&accessPoint&&expoPatchPorts.includes(uplink)&&uplink!==a&&uplink!==b;
+  const broadcast=accessPoint&&s["build-ssid"]===expoSSID;
+  const wifi=broadcast&&s["build-laptop"]===s["build-ssid"];
+  return {installed,accessPoint,pc21,pc22,uplink:uplinkReady,broadcast,wifi,wired:pc21&&pc22,mixed:pc21&&pc22&&uplinkReady&&wifi};
+}
+export function expoBuildChecks(draft:Session4Draft){
+  const status=expoBuildStatus(draft);
+  return [status.installed,status.pc21,status.pc22,status.accessPoint,status.uplink,status.broadcast,status.wifi,
+    status.wired&&draft.checks.includes("build-wired-tested"),
+    status.mixed&&draft.checks.includes("build-mixed-tested")];
+}
+
 export const expoInvitation = "Invitation.txt";
 export const expoInviteCode = "STAND-04";
 export function expoInvitationOpened(draft: Session4Draft) {
@@ -183,6 +203,8 @@ export function expoPathCorrect(path: string) {
 export function expoActivityChecks(activity: Session4Activity, d: Session4Draft): boolean[] {
   const s = d.selections;
   switch (activity.kind) {
+    case "build":
+      return expoBuildChecks(d);
     case "video":
       return activity.video.questions.map(question => s[question.id] === question.answer);
     case "names":

@@ -81,6 +81,44 @@ const patchPCs = [
 ];
 const switchPortX=(port:string)=>12+76*(0.15+(Number(port)-1)*0.10);
 
+export type SwitchEndpoint={id:string;name:string;x:number;image?:string;installed?:boolean};
+export function DirectSwitchScene({endpoints,ports,selected,connected,installed=true,onSelect,onPort}:{
+  endpoints:SwitchEndpoint[];ports:Record<string,string>;selected:string;connected:boolean;installed?:boolean;
+  onSelect:(id:string)=>void;onPort:(port:string)=>void;
+}){
+  return <div className="s4-switch-scroll" role="region" aria-label="Branchement sur les vrais ports du switch" tabIndex={0}>
+    <div className="s4-switch-scene">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        {installed&&endpoints.filter(item=>item.installed!==false&&expoPatchPorts.includes(ports[item.id])).map(item=>
+          <path key={item.id} d={`M ${item.x} 64 C ${item.x} 49 ${switchPortX(ports[item.id])} 49 ${switchPortX(ports[item.id])} 32.3`}
+            className={connected?"connected":""} vectorEffect="non-scaling-stroke"/>
+        )}
+      </svg>
+      {installed?<div className="s4-switch-photo">
+        <img src={publicAsset(photo("commutateur"))} alt="Switch à huit ports RJ45. Clique directement sur ses prises."/>
+        {expoPatchPorts.map(port=>{
+          const occupant=endpoints.find(item=>item.installed!==false&&ports[item.id]===port);
+          return <button type="button" key={port} className="s4-switch-port"
+            style={{left:`${15+(Number(port)-1)*10}%`}} data-connected={!!occupant}
+            aria-label={`Port ${port} du switch · ${occupant?.name??"libre"}`}
+            data-s3-ar={`منفذ ${port} في المبدل · ${occupant?.name??"شاغر"}`}
+            aria-pressed={!!occupant} onClick={()=>onPort(port)}>
+            {occupant&&<span className="s4-switch-plug" aria-hidden="true"/>}
+          </button>;
+        })}
+      </div>:<div className="s4-switch-placeholder"><Text value={t("Installe le switch depuis le matériel ci-dessus.","ثبّت المبدل من المعدات أعلاه.")}/></div>}
+      {endpoints.map(item=>item.installed===false?<div key={item.id} className="s4-switch-pc s4-endpoint-empty" style={{left:`${item.x}%`}}><Wifi size={28}/><Text value={t("Emplacement du point d’accès","مكان نقطة الولوج")}/></div>:<button type="button" key={item.id}
+        className="s4-switch-pc" style={{left:`${item.x}%`}}
+        aria-label={`Prise RJ45 · ${item.name}`} aria-pressed={selected===item.id}
+        onClick={()=>onSelect(item.id)}>
+        <span className="s4-pc-socket"><Cable size={22} aria-hidden="true"/><strong>{item.name}</strong></span>
+        <img src={publicAsset(item.image??photo("ordinateur-bureau"))} alt=""/>
+        <small><Text value={t("Prise RJ45","منفذ RJ45")}/></small>
+      </button>)}
+    </div>
+  </div>;
+}
+
 export function ExpoPatchLab({draft,onChange}:{
   draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void;
 }){
@@ -107,37 +145,8 @@ export function ExpoPatchLab({draft,onChange}:{
         ?t("Clique maintenant sur un port libre de la photo du switch.","انقر الآن على منفذ شاغر في صورة المبدل.")
         :t("Choisis un PC, puis branche son câble dans un port de la photo.","اختر حاسوبًا، ثم أوصل كابله بمنفذ في الصورة."))}/>
     </p>
-    <div className="s4-switch-scroll" role="region" aria-label="Branchement sur les vrais ports du switch" tabIndex={0}>
-      <div className="s4-switch-scene">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>
-            <path key={pc.id} d={`M ${pc.x} 64 C ${pc.x} 49 ${switchPortX(ports[pc.id])} 49 ${switchPortX(ports[pc.id])} 32.3`}
-              className={draft.tested&&connected?"connected":""} vectorEffect="non-scaling-stroke"/>
-          )}
-        </svg>
-        <div className="s4-switch-photo">
-          <img src={publicAsset(photo("commutateur"))} alt="Switch à huit ports RJ45. Clique directement sur ses prises."/>
-          {expoPatchPorts.map(port=>{
-            const occupant=patchPCs.find(pc=>ports[pc.id]===port);
-            return <button type="button" key={port} className="s4-switch-port"
-              style={{left:`${15+(Number(port)-1)*10}%`}} data-connected={!!occupant}
-              aria-label={`Port ${port} du switch · ${occupant?.name??"libre"}`}
-              data-s3-ar={`منفذ ${port} في المبدل · ${occupant?.name??"شاغر"}`}
-              aria-pressed={!!occupant} onClick={()=>bind(port)}>
-              {occupant&&<span className="s4-switch-plug" aria-hidden="true"/>}
-            </button>;
-          })}
-        </div>
-        {patchPCs.map(pc=><button type="button" key={pc.id}
-          className="s4-switch-pc" style={{left:`${pc.x}%`}}
-          aria-label={`Prise RJ45 · ${pc.name}`} aria-pressed={selected===pc.id}
-          onClick={()=>{setSelected(selected===pc.id?"":pc.id);setNotice(null);}}>
-          <span className="s4-pc-socket"><Cable size={22} aria-hidden="true"/><strong>{pc.name}</strong></span>
-          <img src={publicAsset(photo("ordinateur-bureau"))} alt=""/>
-          <small><Text value={t("Prise RJ45","منفذ RJ45")}/></small>
-        </button>)}
-      </div>
-    </div>
+    <DirectSwitchScene endpoints={patchPCs} ports={ports} selected={selected} connected={draft.tested&&connected}
+      onPort={bind} onSelect={id=>{setSelected(selected===id?"":id);setNotice(null);}}/>
     <div className="expo-cables">{patchPCs.filter(pc=>expoPatchPorts.includes(ports[pc.id])).map(pc=>
       <button type="button" key={pc.id} aria-label={`Débrancher ${pc.name}`} onClick={()=>{
         onChange({selections:{...ports,[pc.id]:""},tested:false,delivered:false});

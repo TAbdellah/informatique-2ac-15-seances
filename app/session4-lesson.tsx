@@ -16,6 +16,7 @@ import {isSession4SimulatorState,type Session4SimulatorState} from "./session4-s
 import {session4,session4Activities,s4t as t} from "./session4-data";
 import {session4WorkshopDraft,initialSession4Workshop,validSession4Workshop,session4ActivityChecks,session4AnswerState,type Session4Draft,type Session4WorkshopState} from "./session4-model";
 import {session4Questions,gradeSession4Lab,session4LabEvaluationId,validSession4Choices} from "../supabase/functions/informatique-2ac-api/session4-evaluation";
+import {Session4Trace} from "./session4-trace";
 import "./session4.css";
 import "./session4-expo.css";
 
@@ -165,7 +166,7 @@ function Workshop({participantId,onRecord,onTrace,onEvaluate}:{
 }
 
 function Trace({onEvaluate}:{onEvaluate:()=>void}){
- return <div className="s4-trace-wrap s4-panel-enter"><article className="s4-notebook"><header><span>SÉANCE 04 · À RETENIR</span><h1><Text value={session4.title}/></h1></header><h2><Text value={t("1. Le réseau local","1. الشبكة المحلية")}/></h2><p><Text value={session4.trace[0]}/></p><p><Text value={t("Il peut fonctionner sans accès à Internet. Internet relie des réseaux à l’échelle mondiale.","يمكن أن يعمل دون الإنترنت، الذي يربط الشبكات على الصعيد العالمي.")}/></p><h2><Text value={t("2. Les équipements et les liaisons","2. الأجهزة والروابط")}/></h2><p><Text value={session4.trace[1]}/></p><p><Text value={t("La carte réseau donne au poste une interface de connexion. Le routeur relie des réseaux entre eux.","توفر بطاقة الشبكة للحاسوب واجهة اتصال. ويربط الموجه شبكات مختلفة.")}/></p><p><Text value={session4.trace[2]}/></p><h2><Text value={t("3. Identifier et tester","3. التعرف والاختبار")}/></h2><dl><div><dt>ipconfig</dt><dd><Text value={t("Lire l’adresse IPv4 du poste.","قراءة عنوان IPv4 للحاسوب.")}/></dd></div><div><dt>hostname</dt><dd><Text value={t("Lire le nom du poste.","قراءة اسم الحاسوب.")}/></dd></div><div><dt>ping 192.168.10.22</dt><dd><Text value={t("Tester si cette destination répond.","اختبار استجابة هذا الجهاز.")}/></dd></div></dl><h2><Text value={t("4. Partager et communiquer","4. المشاركة والتواصل")}/></h2><p><Text value={session4.trace[4]}/></p><code className="s4-unc-example">{String.raw`\\192.168.10.21\Club_reseau`}</code><p><Text value={session4.trace[5]}/></p><p><Text value={t("Avant d’annoncer « reçu », j’ouvre le fichier et je vérifie son contenu.","قبل تأكيد التوصل، أفتح الملف وأتحقق من محتواه.")}/></p></article><div className="s4-trace-sources"><span>Pour aller plus loin :</span><a href="https://support.microsoft.com/en-us/windows/experience/connectivity-networking/file-sharing-over-a-network-in-windows" target="_blank" rel="noreferrer">Partage de fichiers · Microsoft</a><a href="https://www.beebeep.net/" target="_blank" rel="noreferrer">BeeBEEP · site officiel</a></div><button type="button" className="s4-primary" onClick={onEvaluate}><Text value={t("Je passe à l’évaluation","أنتقل إلى التقويم")}/><ArrowRight size={18}/></button></div>;
+ return <Session4Trace onEvaluate={onEvaluate}/>;
 }
 
 type QuizState={index:number;choices:Record<string,number>;submitted:boolean};

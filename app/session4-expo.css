@@ -343,3 +343,87 @@
   .session4-lesson .s4-cmd-screen{font-size:13px;padding:12px 9px}
   .session4-lesson .s4-cmd-window>header .s4-cmd-decoration{display:none}
 }
+
+/* The whole interactive player enters fullscreen, keeping its questions usable. */
+.session4-lesson .s4-interactive-video.expanded{inset:0;border:0;border-radius:0;background:#07131d}
+.session4-lesson .s4-interactive-video:fullscreen{width:100%;height:100%;max-width:none;margin:0;border:0;border-radius:0;display:flex;flex-direction:column;background:#07131d}
+.session4-lesson .s4-interactive-video.expanded .s4-video-viewport,.session4-lesson .s4-interactive-video:fullscreen .s4-video-viewport{min-height:0;flex:1;aspect-ratio:auto}
+.session4-lesson .s4-interactive-video.expanded .s4-video-checkpoints,.session4-lesson .s4-interactive-video.expanded .s4-video-links{display:none}
+.session4-lesson .s4-interactive-video:fullscreen::backdrop{background:#07131d}
+
+/* Final workshop mission: build, connect, then test. */
+.session4-lesson .s4-build-network{display:grid;gap:25px;margin-top:24px}
+.session4-lesson .s4-build-situation{margin:0;border:1px solid #c7dcd3;border-radius:13px;overflow:hidden;background:#f3f8f5}
+.session4-lesson .s4-build-situation>img{display:block;width:100%;max-height:270px;object-fit:cover}
+.session4-lesson .s4-build-situation figcaption{padding:14px 18px;font-size:15px;line-height:1.65;color:#24564d}
+.session4-lesson .s4-build-network>section{padding:20px;border:1px solid #cbdcd4;border-radius:14px;background:#fff}
+.session4-lesson .s4-build-network .s4-build-task{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-size:20px;font-weight:800;line-height:1.4;color:#153f4b}
+.session4-lesson .s4-build-task>span:first-child{display:grid;place-items:center;width:35px;height:35px;flex-shrink:0;border-radius:50%;background:#edf1f4;color:#264b58;font-size:17px}
+.session4-lesson .s4-build-task[data-done="true"]>span:first-child{background:#ddf5e7;color:#1d7b54}
+.session4-lesson .s4-build-network>section>p{margin:10px 0 18px;font-size:15px;line-height:1.65;color:#45646a}
+.session4-lesson .s4-build-stock{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.session4-lesson .s4-build-stock article{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 9px;border:1px solid #d9e5df;border-radius:11px;background:#f6f9f7;text-align:center;min-width:0}
+.session4-lesson .s4-build-stock article>img{width:100%;height:95px;object-fit:contain}
+.session4-lesson .s4-build-stock strong{font-size:14px;line-height:1.4}
+.session4-lesson .s4-build-stock small{font-size:12px;line-height:1.4;color:#4b6d64}
+.session4-lesson .s4-build-stock button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:8px 12px;border:1px solid #bad3c7;border-radius:7px;background:#174d4e;color:white;font-size:13px;font-weight:750;margin-top:auto}
+.session4-lesson .s4-build-stock button:disabled{background:#dff1e6;color:#277255;opacity:1;cursor:default}
+.session4-lesson .s4-build-network .s4-switch-pc{width:22%}
+.session4-lesson .s4-build-network .s4-pc-socket{font-size:13px;gap:5px;padding:4px 6px}
+.session4-lesson .s4-build-network .s4-switch-pc img{height:126px;width:95%;object-fit:contain}
+.session4-lesson .s4-switch-placeholder{position:absolute;left:12%;top:13%;width:76%;height:25%;display:grid;place-items:center;padding:24px;border:2px dashed #b6cec2;border-radius:12px;text-align:center;color:#658475;font-size:17px}
+.session4-lesson .s4-build-network .s4-endpoint-empty{min-height:160px;display:grid;align-content:center;gap:12px;border:2px dashed #c7d8cf;color:#6d897b;font-size:13px;text-align:center}
+.session4-lesson .s4-build-wireless{display:grid;grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr);align-items:center;gap:12px;max-width:760px;margin:0 auto}
+.session4-lesson .s4-build-wireless label{display:grid;gap:12px;padding:15px;border:1px solid #cbded3;border-radius:12px;background:#f8fbf9;text-align:center;font-size:15px}
+.session4-lesson .s4-build-wireless label>img{display:block;width:100%;height:130px;object-fit:contain}
+.session4-lesson .s4-build-wireless label>small{font-size:12px;color:#657e73}
+.session4-lesson .s4-build-wifi-link{display:grid;justify-items:center;gap:12px;color:#849e90}
+.session4-lesson .s4-build-wifi-link span{width:100%;border-top:3px dashed currentColor}
+.session4-lesson .s4-build-wifi-link[data-connected="true"]{color:#1b9761}
+.session4-lesson .s4-build-results{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.session4-lesson .s4-build-results>p{display:grid;gap:8px;margin:0;padding:16px;border:1px solid #ecd7af;border-radius:10px;background:#fff8e9;color:#805c20;font-size:14px;line-height:1.55}
+.session4-lesson .s4-build-results>p[data-good="true"]{border-color:#b8dfc8;background:#edf8f1;color:#246c47}
+
+/* A concise worksheet inspired by the teacher's reference. */
+.session4-lesson .s4-reference-sheet{max-width:760px;margin:0 auto 25px;color:#101010;background:#fff;font-family:Arial,"Segoe UI",sans-serif;font-size:16px;line-height:1.55}
+.session4-lesson .s4-reference-sheet>header{padding:10px 14px;border:3px solid #111;margin-bottom:5px}
+.session4-lesson .s4-reference-sheet>header h1{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:14px;margin:0;color:#111;font:bold 20px/1.4 Arial,sans-serif;letter-spacing:0}
+.session4-lesson .s4-reference-sheet>header h1 span{font-family:Arial,sans-serif}
+.session4-lesson .s4-reference-sheet>section{padding:16px 20px;margin:0 0 5px;border:3px solid #111}
+.session4-lesson .s4-reference-sheet h2{margin:0 0 12px;color:#111;font:bold 18px/1.4 Arial,sans-serif;letter-spacing:0}
+.session4-lesson .s4-reference-sheet h3{margin:12px 0 6px;color:#111;font:bold 16px/1.5 Arial,sans-serif}
+.session4-lesson .s4-reference-sheet p{margin:8px 0;color:#111;font:16px/1.6 Arial,sans-serif}
+.session4-lesson .s4-reference-sheet ul{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.session4-lesson .s4-reference-sheet li{display:flex;align-items:baseline;gap:7px;font-size:16px}
+.session4-lesson .s4-reference-sheet li svg{flex-shrink:0}
+.session4-lesson .s4-reference-sheet .s4-sheet-note{margin-top:12px;font-size:14px;color:#404040}
+.session4-lesson .s4-sheet-methods{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.session4-lesson .s4-sheet-methods>div{display:grid;gap:2px;padding:10px;border:1px solid #111;text-align:center}
+.session4-lesson .s4-sheet-topologies{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.session4-lesson .s4-sheet-topologies>div{display:grid;grid-template-columns:74px 1fr;align-items:center;gap:0 10px;min-height:65px}
+.session4-lesson .s4-sheet-topologies>div>span{grid-column:2;font-size:14px}
+.session4-lesson .s4-sheet-topologies svg{width:74px;grid-row:1/3;fill:#fff;stroke:#111;stroke-width:2}
+.session4-lesson .s4-reference-sheet table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:15px;text-align:center}
+.session4-lesson .s4-reference-sheet :is(th,td){padding:9px 8px;border:1px solid #555;overflow-wrap:anywhere;color:#111}
+.session4-lesson .s4-reference-sheet thead{background:#f3f3f3}
+.session4-lesson .s4-reference-sheet dl{display:grid;gap:7px;margin:12px 0}
+.session4-lesson .s4-reference-sheet dl>div{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:baseline}
+.session4-lesson .s4-reference-sheet dt{font:15px/1.6 Consolas,monospace;color:#111}
+.session4-lesson .s4-reference-sheet dd{margin:0;font-size:15px}
+@media(max-width:800px){
+ .session4-lesson .s4-build-stock{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .session4-lesson .s4-build-stock article>img{height:80px}
+}
+@media(max-width:560px){
+ .session4-lesson .s4-build-network>section{padding:13px}
+ .session4-lesson .s4-build-stock{grid-template-columns:1fr 1fr}
+ .session4-lesson .s4-build-network .s4-build-task{font-size:18px}
+ .session4-lesson .s4-build-wireless{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:5px}
+ .session4-lesson .s4-build-wireless label{padding:9px;font-size:13px}
+ .session4-lesson .s4-build-wireless label>img{height:85px}
+ .session4-lesson .s4-build-results{grid-template-columns:1fr}
+ .session4-lesson .s4-reference-sheet>section{padding:12px}
+ .session4-lesson .s4-sheet-topologies{grid-template-columns:1fr}
+ .session4-lesson .s4-reference-sheet dl>div{grid-template-columns:1fr;gap:0}
+ .session4-lesson .s4-reference-sheet :is(th,td){padding:7px 5px;font-size:14px}
+}

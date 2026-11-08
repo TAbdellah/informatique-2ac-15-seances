@@ -19,7 +19,7 @@ export const session4LegacyActivities: Session4LegacyActivity[] = [
  activity("B","messenger",10,s4t("Envoyer un fichier avec BeeBEEP","إرسال ملف بواسطة BeeBEEP"),s4t("Dans la messagerie simulée, envoie Bonjour.txt à PC-22. Ouvre le fichier reçu et confirme sa réception.","أرسل Bonjour.txt إلى PC-22 في المراسلة المحاكاة. افتح الملف وتأكد من التوصل به."),[],"Échanger par messagerie locale"),
  activity("I","repair",11,s4t("Corriger un droit de partage","تصحيح صلاحية المشاركة"),s4t("Sara doit déposer notes.txt dans le dossier Échange. Observe le refus, puis règle le droit de partage et réessaie.","على سارة وضع notes.txt داخل Échange. لاحظ الرفض ثم صحح صلاحية المشاركة وأعد المحاولة."),[],"Diagnostiquer un échange local"),
 ];
-export type Session4Kind = "inventory" | "media" | "plans" | "wired" | "folder" | "wireless" | "mixed" | "identity" | "diagnostic" | "practice" | "names" | "roles" | "star" | "bus" | "ring" | "patch" | "exchange" | "loan";
+export type Session4Kind = "inventory" | "media" | "plans" | "wired" | "folder" | "wireless" | "mixed" | "identity" | "diagnostic" | "practice" | "names" | "roles" | "star" | "bus" | "ring" | "patch" | "exchange" | "loan" | "build";
 type Session4ActivityCopy = ActivityCopy & {edition:2; zone:LocalizedText; previousId?:string};
 type Session4StandardActivity = Session4ActivityCopy & {kind:Session4Kind};
 export type Session4VideoActivity = Session4ActivityCopy & {kind:"video"; video:Session4Video};
@@ -93,15 +93,18 @@ const session4Catalogue:Session4Activity[] = [
  newActivity("loan",10,s4t("Dernière mission","المهمة الأخيرة"),s4t("Accueillir le portable de prêt","إضافة الحاسوب المحمول المعار"),s4t("Le portable de prêt doit recevoir l’invitation du club. Relève le nom sur son étiquette, choisis une IPv4 libre et connecte-le au Wi-Fi de l’équipe.","يجب أن يتوصل الحاسوب المحمول المعار بدعوة النادي. اقرأ اسمه من الملصق واختر عنوان IPv4 شاغرًا وأوصله بشبكة Wi-Fi للفريق."),
   [s4t("Compare les adresses proposées avec la liste des postes déjà connectés.","قارن العناوين المقترحة بقائمة الحواسيب المتصلة."),s4t("Teste l’envoi de l’invitation au portable de prêt.","اختبر إرسال الدعوة إلى الحاسوب المحمول المعار.")],"Identifier et intégrer un poste au réseau local"),
  videoActivity("messagerie"),
+ newActivity("build",10,s4t("Le défi du club","تحدي النادي"),s4t("Crée le réseau du club","أنشئ شبكة النادي"),s4t("Le club dispose de deux PC fixes et d’un portable. Relie les PC par câble et le portable par Wi-Fi pour qu’ils puissent communiquer sur le même réseau local.","يتوفر النادي على حاسوبين ثابتين وحاسوب محمول. اربط الحاسوبين بالكابل والمحمول عبر Wi-Fi ليتواصلوا داخل الشبكة المحلية نفسها."),
+  [],"Construire et tester un réseau filaire et sans fil"),
 ];
 const retiredActivities = new Set([
  "session-4-workshop-expo-exchange",
  "session-4-workshop-expo-loan",
  "session-4-workshop-video-messagerie",
+ "session-4-workshop-expo-diagnostic",
 ]);
 const revisedMinutes:Record<string,number> = {
- patch:10,"video-adresse":4,"video-partage":6,"video-acces":4,"video-image":5,
- identity:12,wireless:9,mixed:11,
+ patch:10,"video-adresse":4,"video-partage":5,"video-acces":4,"video-image":4,
+ identity:11,wireless:8,mixed:10,
 };
 export const session4Activities:Session4Activity[] = session4Catalogue
  .filter(activity=>!retiredActivities.has(activity.id))
