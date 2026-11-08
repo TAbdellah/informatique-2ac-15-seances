@@ -20,9 +20,9 @@
    ['Fermer le partage','إيقاف المشاركة','Sur PC-21, clique sur « Arrêter le partage ». Le PC-22 garde sa copie.','على PC-21، انقر «إيقاف المشاركة». يحتفظ PC-22 بنسخته.']
   ]},
   assessment:{title:'Livrer l’invitation au PC-22',ar:'إيصال الدعوة إلى PC-22',steps:[
-   ['Partager Club_reseau en lecture seule · 3 pts','مشاركة Club_reseau للقراءة فقط · 3 نقاط','Sur PC-21, ouvre Documents. Partage Club_reseau avec les postes de la salle en lecture seule.','على PC-21، افتح المستندات. شارك Club_reseau مع حواسيب القاعة للقراءة فقط.'],
-   ['Copier Invitation.txt sur le Bureau de PC-22 · 4 pts','نسخ Invitation.txt إلى سطح مكتب PC-22 · 4 نقاط','Passe sur PC-22. Ouvre le dossier partagé depuis Réseau, puis copie Invitation.txt sur le Bureau de PC-22.','انتقل إلى PC-22. افتح المجلد المشترك من الشبكة ثم انسخ Invitation.txt إلى سطح مكتب PC-22.'],
-   ['Ouvrir la copie sur PC-22 · 3 pts','فتح النسخة على PC-22 · 3 نقاط','Ouvre Invitation.txt depuis le Bureau de PC-22 pour vérifier que la copie est lisible.','افتح Invitation.txt من سطح مكتب PC-22 للتحقق من إمكانية قراءة النسخة.'],
+   ['Partager Club_reseau en lecture seule','مشاركة Club_reseau للقراءة فقط','Sur PC-21, ouvre Documents. Partage Club_reseau avec les postes de la salle en lecture seule.','على PC-21، افتح المستندات. شارك Club_reseau مع حواسيب القاعة للقراءة فقط.'],
+   ['Copier Invitation.txt sur le Bureau de PC-22','نسخ Invitation.txt إلى سطح مكتب PC-22','Passe sur PC-22. Ouvre le dossier partagé depuis Réseau, puis copie Invitation.txt sur le Bureau de PC-22.','انتقل إلى PC-22. افتح المجلد المشترك من الشبكة ثم انسخ Invitation.txt إلى سطح مكتب PC-22.'],
+   ['Ouvrir la copie sur PC-22','فتح النسخة على PC-22','Ouvre Invitation.txt depuis le Bureau de PC-22 pour vérifier que la copie est lisible.','افتح Invitation.txt من سطح مكتب PC-22 للتحقق من إمكانية قراءة النسخة.'],
   ]},
   messenger:{title:'Échanger dans la messagerie locale',ar:'التبادل في المراسلة المحلية',steps:[
    ['Envoyer un fichier à PC-22','إرسال ملف إلى PC-22','Vérifie que le destinataire est PC-22. Écris « Bonjour le club ! », joins Bonjour.txt et clique sur Envoyer.','تحقق من أن المستلم هو PC-22. اكتب «Bonjour le club !» وأرفق Bonjour.txt ثم انقر إرسال.'],

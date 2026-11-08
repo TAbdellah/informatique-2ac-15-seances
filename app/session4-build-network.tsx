@@ -9,11 +9,11 @@ import type {Session4Draft} from "./session4-model";
 import {DirectSwitchScene,type SwitchEndpoint} from "./session4-expo-network";
 import {expoBuildPortKey,expoBuildStatus,expoPatchPorts,expoSSID} from "./session4-expo-model";
 
-type Props={draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void};
+type Props={draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void;assessment?:boolean};
 const image=(name:string)=>`session4/images/${name}.webp`;
 const wifiNames=[expoSSID,"SALLE-PROFS","INVITES"];
 
-export function Session4BuildNetwork({draft,onChange}:Props){
+export function Session4BuildNetwork({draft,onChange,assessment=false}:Props){
   const [selected,setSelected]=useState("");
   const [notice,setNotice]=useState<ReturnType<typeof t>|null>(null);
   const s=draft.selections,status=expoBuildStatus(draft);
@@ -49,9 +49,9 @@ export function Session4BuildNetwork({draft,onChange}:Props){
     return <h3 className="s4-build-task" data-done={done}><span>{done?<CheckCircle2 size={21}/>:number}</span><Text value={label}/></h3>;
   }
   return <div className="s4-build-network">
-    <figure className="s4-build-situation"><img src={publicAsset("session4/images/salle-reseau-club.webp")} alt="Illustration de la salle du club avant le branchement : deux PC, un portable et du matériel réseau."/>
+    {!assessment&&<figure className="s4-build-situation"><img src={publicAsset("session4/images/salle-reseau-club.webp")} alt="Illustration de la salle du club avant le branchement : deux PC, un portable et du matériel réseau."/>
       <figcaption><Text value={t("Ta mission : les deux PC utilisent des câbles ; le portable reste sans câble. Aucun accès à Internet n’est nécessaire.","مهمتك: يستعمل الحاسوبان كابلين، ويبقى المحمول دون كابل. لا حاجة إلى الإنترنت.")}/></figcaption>
-    </figure>
+    </figure>}
 
     <section aria-label="Matériel disponible">
       {task(1,t("Installe les équipements du réseau","ثبّت أجهزة الشبكة"),status.installed&&status.accessPoint)}

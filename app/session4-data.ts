@@ -3,6 +3,7 @@ import { session4Videos, type Session4Video } from "./session4-video-data.ts";
 export const s4t = (fr: string, ar: string): LocalizedText => ({fr, ar});
 export const session4QuizEvaluationId="session-4-reseau-evaluation-v1";
 export const session4LabEvaluationId="session-4-reseau-evaluation-v2";
+export const session4AppliedEvaluationId="session-4-reseau-evaluation-v3";
 type LegacyKind = "lan" | "cables" | "equipment" | "topology" | "identity" | "ping" | "sharing" | "practice" | "messenger" | "repair";
 type ActivityCopy = {id: string; label: string; minutes: number; title: LocalizedText; prompt: LocalizedText; tasks: LocalizedText[]; objective: string};
 export type Session4LegacyActivity = ActivityCopy & {kind: LegacyKind};

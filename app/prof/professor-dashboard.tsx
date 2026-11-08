@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import LearningTeacherPortal, {TeacherNavigation, type TeacherSection} from "./learning-dashboard";
 import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-api";
 import { session3Lab } from "../session3-lab-data";
-import { session4AllActivities, session4LabEvaluationId, session4QuizEvaluationId } from "../session4-data";
+import { session4AllActivities, session4AppliedEvaluationId, session4LabEvaluationId, session4QuizEvaluationId } from "../session4-data";
 import Session4TeacherReport from "./session4-report";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
@@ -231,6 +231,7 @@ const pedagogicalSessions = {
 } as const;
 
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
+  if (attempt.activityId === session4AppliedEvaluationId) return "Séance 4 · Réseau local · 4 missions pratiques /20";
   if (attempt.activityId === session4LabEvaluationId) return "Séance 4 · QCM et simulateur réseau · Évaluation /20";
   if (attempt.activityId === session4QuizEvaluationId) return "Séance 4 · Réseau local · Évaluation /20";
   if (attempt.activityId === "session-4-tp-messagerie") return "Séance 4 · Échange réel BeeBEEP · déclaré";
@@ -651,10 +652,10 @@ function attemptExportRows(row: Attempt) {
       result: row.isCorrect === null ? "Non évalué" : row.isCorrect ? "Correct" : "Incorrect",
     }];
 
-  const labDetails = row.activityId === session4LabEvaluationId && Array.isArray(answerRecord?.practical)
+  const labDetails = [session4LabEvaluationId,session4AppliedEvaluationId].includes(row.activityId) && Array.isArray(answerRecord?.practical)
     ? (answerRecord.practical as Array<Record<string, unknown>>).map((item,index)=>({
         number: details.length + index + 1,
-        question: displayAnswerValue(item.criterion),
+        question: `${typeof item.section === "number" ? `Mission ${item.section+1} · ` : ""}${displayAnswerValue(item.criterion)}`,
         selected: item.correct ? "Geste réalisé" : "Geste à revoir",
         expected: "Geste réalisé",
         answerResult: item.correct ? "Validé" : "À revoir",
@@ -705,8 +706,14 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
     const {answers,practical} = answer as {answers:Array<Record<string,unknown>>;practical?:unknown};
     return (
       <div className="prof-quiz-details">
-        {attempt.activityId === session4LabEvaluationId && Array.isArray(practical) && <>
-          <h4>Manipulation dans le simulateur</h4>
+        {attempt.activityId === session4AppliedEvaluationId && <>
+          <h4>Barème des quatre missions</h4>
+          <div className="prof-evaluation-step-list">{["Équipements et topologies /6","Montage du réseau /5","CMD /3","Partage du fichier /6"].map((title,index)=><article key={title}><strong>{title}</strong><span>{displayAnswerValue((answer as {sections?:unknown[]}).sections?.[index])} point(s)</span></article>)}</div>
+          <h4>Configuration remise</h4>
+          {(()=>{const evidence=(answer as {evidence?:Record<string,unknown>}).evidence;const network=evidence?.network as {selections?:Record<string,string>}|undefined;const terminal=evidence?.terminal as {ip?:string;host?:string;commands?:string[]}|undefined;const s=network?.selections;return <div className="prof-simple-answer"><p>Ports du switch : PC-21 · {s?.['build-port-pc21']||'non branché'} ; PC-22 · {s?.['build-port-pc22']||'non branché'} ; point d’accès · {s?.['build-port-ap']||'non branché'}.</p><p>Wi-Fi : point d’accès · {s?.['build-ssid']||'non choisi'} ; portable · {s?.['build-laptop']||'non choisi'}.</p><p>Adresse relevée : {terminal?.ip||'non relevée'} · Nom relevé : {terminal?.host||'non relevé'}.</p><p>Commandes exécutées : {terminal?.commands?.join(' ; ')||'aucune'}.</p></div>;})()}
+        </>}
+        {[session4LabEvaluationId,session4AppliedEvaluationId].includes(attempt.activityId) && Array.isArray(practical) && <>
+          <h4>{attempt.activityId===session4AppliedEvaluationId?"Réseau, CMD et partage : détail des gestes":"Manipulation dans le simulateur"}</h4>
           {(practical as Array<Record<string,unknown>>).map((item,index)=><article key={index}>
             <div className="prof-question-line">
               <strong>{displayAnswerValue(item.criterion)}</strong>
@@ -716,7 +723,7 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
               </span>
             </div>
           </article>)}
-          <h4>Questions du QCM</h4>
+          <h4>{attempt.activityId===session4AppliedEvaluationId?"Équipements et topologies":"Questions du QCM"}</h4>
         </>}
         {answers.map((item, index) => {
           const answerCorrect = typeof item.answerCorrect === "boolean" ? item.answerCorrect : Boolean(item.correct);

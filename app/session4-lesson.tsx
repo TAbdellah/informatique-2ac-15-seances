@@ -17,6 +17,7 @@ import {session4,session4Activities,s4t as t} from "./session4-data";
 import {session4WorkshopDraft,initialSession4Workshop,validSession4Workshop,session4ActivityChecks,session4AnswerState,type Session4Draft,type Session4WorkshopState} from "./session4-model";
 import {session4Questions,gradeSession4Lab,session4LabEvaluationId,validSession4Choices} from "../supabase/functions/informatique-2ac-api/session4-evaluation";
 import {Session4Trace} from "./session4-trace";
+import {Session4Assessment} from "./session4-assessment";
 import "./session4.css";
 import "./session4-expo.css";
 
@@ -39,7 +40,7 @@ export default function Session4Lesson({student,activeTab,onTab,onBack,onChangeS
   {visited.includes("mission")&&<section hidden={activeTab!=="mission"} data-s4-panel="mission"><Mission onStart={()=>open("workshop")}/></section>}
   {visited.includes("workshop")&&<section ref={workshopPanel} hidden={activeTab!=="workshop"} data-s4-panel="workshop"><Workshop participantId={student.id} onRecord={onRecordSubmission} onTrace={()=>open("trace")} onEvaluate={()=>open("quiz")}/></section>}
   {visited.includes("trace")&&<section hidden={activeTab!=="trace"} data-s4-panel="trace"><Trace onEvaluate={()=>open("quiz")}/></section>}
-  {visited.includes("quiz")&&<section hidden={activeTab!=="quiz"} data-s4-panel="quiz"><Assessment participantId={student.id} onRecord={onRecordSubmission}/></section>}
+  {visited.includes("quiz")&&<section hidden={activeTab!=="quiz"} data-s4-panel="quiz"><Session4Assessment participantId={student.id} onRecord={onRecordSubmission} legacy={<Assessment participantId={student.id} onRecord={onRecordSubmission}/>}/></section>}
   <footer className="s4-credit">LAB·2AC · Prof. Abdellah TAHTOH · Collège Othmane Ibn Affane</footer>
  </div></Session3TranslationScope>;
 }
@@ -202,7 +203,8 @@ function Assessment({participantId,onRecord}:{participantId:string;onRecord:Prop
  useEffect(()=>{lock.current=state.submitted},[state.submitted]);
  useEffect(()=>{
   if(!ready||restored)return;
-  const previous=readSnapshot(participantId,4,"quiz")?.data as (QuizState&{version:1})|undefined;
+  const savedQuiz=readSnapshot(participantId,4,"quiz")?.data as {version?:number;previousQuiz?:unknown}|undefined;
+  const previous=(savedQuiz?.version===3?savedQuiz.previousQuiz:savedQuiz) as (QuizState&{version:1})|undefined;
   if(previous?.version!==1||previous.submitted!==false||!validSession4Choices(previous.choices)||!Object.keys(previous.choices).length)return;
   setState(current=>current.submitted||current.simulator||Object.keys(current.choices).length?current:{...current,choices:previous.choices});
  },[participantId,ready,restored,setState]);

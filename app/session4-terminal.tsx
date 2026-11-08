@@ -10,8 +10,8 @@ import { runSession4Command, session4PeerIP, type Session4Draft } from "./sessio
 const requiredCommands=["ipconfig","hostname",`ping ${session4PeerIP}`];
 const prompt="C:\\Users\\Eleve>";
 
-export function Session4CommandLab({draft,onChange}:{
-  draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void;
+export function Session4CommandLab({draft,onChange,assessment=false}:{
+  draft:Session4Draft;onChange:(patch:Partial<Session4Draft>)=>void;assessment?:boolean;
 }){
   const input=useRef<HTMLInputElement>(null);
   const output=useRef<HTMLPreElement>(null);
@@ -64,10 +64,10 @@ export function Session4CommandLab({draft,onChange}:{
     <aside className="s4-command-ticket">
       <img src={publicAsset("session4/images/ordinateur-bureau.webp")} alt="PC-21 du réseau local"/>
       <h3><Text value={t("À faire dans CMD","المطلوب في CMD")}/></h3>
-      <ol>{requiredCommands.map(command=><li key={command}>
+      {!assessment&&<ol>{requiredCommands.map(command=><li key={command}>
         {draft.commands.includes(command)?<CheckCircle2 size={17} aria-label="Commande exécutée"/>:<Terminal size={17} aria-hidden="true"/>}
         <code>{command}</code>
-      </li>)}</ol>
+      </li>)}</ol>}
       <label><Text value={t("Adresse IPv4 lue","عنوان IPv4 المقروء")}/>
         <input aria-label="Adresse IPv4 relevée" value={draft.ip} maxLength={15} onChange={event=>onChange({ip:event.target.value})}/>
       </label>

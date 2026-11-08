@@ -5,7 +5,7 @@ const load=(relative,imports={},append='')=>{const exports={};vm.runInNewContext
 const catalog=load('app/session3-lab-data.ts');
 const reportModel=load('app/prof/learner-report-model.ts');
 const session4=load('app/session4-data.ts',{'./session4-video-data.ts':load('app/session4-video-data.ts')});
-const dashboard=load('app/prof/professor-dashboard.tsx',{'./learning-dashboard':{},'../session4-data':session4,'./session4-report':{},'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions};');
+const dashboard=load('app/prof/professor-dashboard.tsx',{'./learning-dashboard':{},'../session4-data':session4,'./session4-report':{},'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions,AnswerDetails,attemptExportRows};');
 const {sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions}=dashboard.test;
 const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++},ok=(value,msg)=>{assert.ok(value,msg);assertions++};
@@ -23,4 +23,11 @@ summary=sessionSummaryForAttempts([bilan(0,[0,0,0]),bilan(14,[4,2,8]),bilan(20,[
 summary=sessionSummaryForAttempts([attempt(3,'session-3-quiz',{activityType:'quiz',score:6,maxScore:6})],3);equal(summary.bestBilan,null,'legacy quiz does not masquerade as the new assessment');equal(summary.evaluationGrade,null);
 summary=sessionSummaryForAttempts([attempt(2,'s2-evaluation-assembler',{score:23,maxScore:23}),attempt(2,'s2-evaluation-depanner',{score:12,maxScore:12}),attempt(2,'session-2-quiz',{score:10,maxScore:12})],2);equal(summary.evaluationPercentage,96,'lesson-2 three-stage weighting preserved');equal(summary.evaluationGrade,19.2);equal(summary.completedEvaluationStages,3);
 summary=sessionSummaryForAttempts([one,attempt(1,'session-1-quiz',{activityType:'quiz',score:8,maxScore:10})],1);equal(summary.exercises,1);equal(summary.bestQuiz.score,8);equal(summary.bestBilan,null);
+const newCopy=attempt(4,session4.session4AppliedEvaluationId,{activityType:'practical_evaluation',score:3,maxScore:20,responseJson:JSON.stringify({sections:[1,1,1,0],evidence:{network:{selections:{'build-port-pc21':'1'}},terminal:{ip:'192.168.10.21',host:'PC-21',commands:['ipconfig']}},answers:[{question:{fr:'Quel équipement ?',ar:'أي جهاز؟'},selectedChoice:{fr:'Switch',ar:'مبدل'},correctChoice:{fr:'Switch',ar:'مبدل'},correct:true,earnedPoints:1,maxPoints:1}],practical:[{section:1,criterion:{fr:'PC-21 branché au switch',ar:'ربط الحاسوب بالمبدل'},correct:true,earnedPoints:1,maxPoints:1},{section:2,criterion:{fr:'Adresse IPv4 relevée',ar:'قراءة العنوان'},correct:true,earnedPoints:1,maxPoints:1}]})});
+html=renderToStaticMarkup(React.createElement(dashboard.test.AnswerDetails,{attempt:newCopy}));
+for(const text of ['Équipements et topologies /6','Montage du réseau /5','CMD /3','Partage du fichier /6','PC-21 branché au switch','Adresse IPv4 relevée','192.168.10.21'])ok(html.includes(text),'the teacher sees '+text);
+const csvRows=dashboard.test.attemptExportRows(newCopy);equal(csvRows.length,3,'CSV includes decisions and practical actions');ok(JSON.stringify(csvRows).includes('Mission 2 · PC-21 branché au switch'),'CSV identifies each practical mission');
+const s4Report=load('app/prof/session4-report.tsx',{'../session4-data':session4}).default;
+html=renderToStaticMarkup(React.createElement(s4Report,{attempts:[newCopy,attempt(4,session4.session4LabEvaluationId,{score:20,maxScore:20})],onOpenAttempt:()=>{}}));
+ok(html.includes('3/20'),'the teacher report prioritizes the current rubric');ok(html.includes('4 missions'),'the teacher report describes the new evaluation');
 console.log(JSON.stringify({passed:true,assertions}));

@@ -29,6 +29,16 @@ data.activities=[at(ids[0],true),at(ids[0],true),at(ids[1],false)];p=model.progr
 data.activities=ids.map(id=>at(id,false));p=model.progressRows(data,3)[0];eq(p.status,'not-acquired','all attempted, few successful');
 data.activities=ids.map(id=>at(id,true));p=model.progressRows(data,3)[0];eq(p.status,'acquired');eq(p.objectives.every(o=>o.status==='acquired'),true);eq(model.successTimeline([p]).at(-1).value,25);
 data.activities.push({...at('session-3-bilan-situations-v5',false),activityType:'practical_evaluation',bestScore:0,maxScore:20});p=model.progressRows(data,3)[0];eq(p.grade,0,'a real zero remains visible');eq(p.status,'acquired','training mastery and exam grade remain separate');
+const s4Grade=(id,note)=>({...at(id,false),sessionId:4,activityType:'practical_evaluation',bestScore:note,maxScore:20});
+const s4Data={...data,activities:[s4Grade('session-4-reseau-evaluation-v2',20),s4Grade('session-4-reseau-evaluation-v3',7)]};
+eq(model.progressRows(s4Data,4)[0].grade,7,'the current four-mission grade takes priority over the earlier rubric');
+eq(model.progressRows({...s4Data,activities:[s4Grade('session-4-reseau-evaluation-v3',0)]},4)[0].grade,0,'a submitted zero remains visible for the new assessment');
+eq(model.progressRows({...s4Data,activities:[]},4)[0].grade,null,'an unfinished assessment is never reported as a zero');
+eq(s4Data.activities.length,2,'the previous grade is kept in the learner history');
+const s4Previous={version:1,choices:{lan:0},submitted:true};
+const s4Current={version:3,shuffleRound:1,previousQuiz:s4Previous,submitted:false};
+eq(storage.mergeSnapshotData('quiz',s4Previous,s4Current).previousQuiz,s4Previous,'upgrading the old quiz retains its submitted copy');
+eq(storage.mergeSnapshotData('quiz',{...s4Current,submitted:true},{...s4Current,submitted:false}).submitted,true,'a submitted new assessment cannot revert to a draft');
 const scoring=load('lib/workshop-progress.ts'),labs=load('app/unit1-labs.ts').unit1Labs;
 for(let sessionId=1;sessionId<=15;sessionId++){
  const exercises=scoring.workshopExercises(sessionId);

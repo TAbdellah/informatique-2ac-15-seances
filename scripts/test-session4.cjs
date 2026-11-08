@@ -50,6 +50,29 @@ const newStates={
  diagnostic:makeNetwork('diagnostic',{rewired:'yes',failed:'yes',cause:'uplink'}),
  practice:states.practice,
 };
+const applied=load('supabase/functions/informatique-2ac-api/session4-applied-evaluation.ts');
+const appliedAnswers=Object.fromEntries(applied.session4AppliedQuestions.map(q=>[q.id,q.answer]));
+const appliedFull=applied.gradeSession4Applied(appliedAnswers,newStates.build,newStates.identity,{access:'read',copied:true,opened:true});
+equal(appliedFull.sections,[6,5,3,6],'the four missions have the published point distribution');
+equal(appliedFull.score,20);equal(applied.validSession4AppliedEvaluation(appliedFull,true,20,20),true);
+equal(Buffer.byteLength(JSON.stringify(appliedFull))<12000,true,'the detailed new copy fits the existing response limit');
+equal(applied.gradeSession4Applied({},null,null,null).score,0,'empty work earns zero');
+const appliedPartial=applied.gradeSession4Applied({'stock-switch':1},{selections:{'build-switch':'switch','build-port-pc21':'1'}},{commands:['ipconfig'],ip:'192.168.10.21'},null);
+equal(appliedPartial.sections,[1,1,1,0],'each completed action receives credit independently');
+equal(applied.validSession4AppliedEvaluation(appliedPartial,false,3,20),true,'unfinished copies can be submitted');
+equal(applied.gradeSession4Applied(appliedAnswers,newStates.build,{ip:'192.168.10.21',host:'PC-21'},{access:'read',copied:true,opened:true}).score,17,'guessing terminal values without executing commands earns no CMD points');
+equal(applied.gradeSession4Applied({},null,null,{opened:true}).score,0,'opening without a network copy earns no points');
+equal(applied.gradeSession4Applied({}, {tested:true,checks:['build-mixed-tested']},null,null).score,0,'a test flag without the actual network cannot earn points');
+for(const edit of [a=>a.score=19,a=>a.sections[1]=0,a=>a.practical[0].earnedPoints=0,a=>a.answers[0].selectedChoice.fr='fake',a=>a.evidence.network.selections.extra='switch',a=>a.choices.unknown=0]){
+ const changed=structuredClone(appliedFull);edit(changed);equal(applied.validSession4AppliedEvaluation(changed,true,20,20),false,'the server rejects changed scores, labels and unknown evidence');
+}
+equal(applied.validSession4AppliedEvaluation(appliedFull,false,20,20),false,'the success flag must match the recalculated score');
+const appliedState=load('app/session4-assessment-state.ts');
+const previousQuiz={version:1,index:2,choices:{lan:0,switch:1},submitted:true};
+const newAppliedState={...appliedState.initialSession4Applied(previousQuiz),part:2,network:{...m.freshSession4Draft(),...newStates.build},terminal:{...m.freshSession4Draft(),command:'ping 192.168.10.22'},answers:{'stock-switch':1}};
+equal(appliedState.validSession4AppliedState(JSON.parse(JSON.stringify(newAppliedState))),true,'a closed window restores all four mission fields');
+equal(newAppliedState.previousQuiz,previousQuiz,'the earlier quiz copy is retained during upgrade');
+equal(appliedState.validSession4AppliedState({...newAppliedState,part:4}),false);
 for(const activity of [...session4Activities.filter(a=>a.kind!=='video'),...session4EarlierActivities.filter(a=>'edition' in a&&a.kind!=='video')]){
  equal(m.session4ActivityCorrect(activity,m.freshSession4Draft()),false,activity.id+' requires active work');
  equal(m.session4ActivityCorrect(activity,{...m.freshSession4Draft(),...newStates[activity.kind]}),true,activity.id+' completes with observed work');
@@ -199,13 +222,18 @@ const old=loader('43cd7bdd703767ce76bf40ce476ae3407e3cb5c4')('app/course-data.ts
 let handler,unlocked=true;const rows=[];const participant={id:'45454545-4545-4545-8545-454545454545',student_one:'LOCAL TEST',student_two:null,class_name:'2/1',group_name:'1',is_pair:false};
 const fetchDB=async(url,init={})=>{const p=url.split('/rest/v1/')[1];if(p.startsWith('course_2ac_session_access'))return Response.json([{is_unlocked:unlocked}]);if(p.startsWith('course_2ac_participants'))return Response.json([participant]);if(p.startsWith('course_2ac_submissions')){if(init.method==='POST'){const row=JSON.parse(init.body);if(!rows.some(r=>r.id===row.id))rows.push(row);return new Response(null,{status:201})}return Response.json(rows)}throw Error('Unexpected DB query: '+p)};
 const source=fs.readFileSync(path.join(root,'supabase/functions/informatique-2ac-api/index.ts'),'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-vm.runInNewContext(code,{exports:{},require:name=>name.includes('learning-service')?{createLearningService:()=>({publicAction:async()=>null,adminAction:async()=>null})}:name.includes('session4')?rubric:load('supabase/functions/informatique-2ac-api/session3-evaluation.ts'),Deno:{serve:f=>handler=f,env:{get:name=>name==='SUPABASE_URL'?'https://local.test':'TEST ONLY'}},fetch:fetchDB,TextEncoder,TextDecoder,Request,Response,crypto:crypto.webcrypto,btoa,atob,console});
+vm.runInNewContext(code,{exports:{},require:name=>name.includes('learning-service')?{createLearningService:()=>({publicAction:async()=>null,adminAction:async()=>null})}:name.includes('session4-applied-evaluation')?applied:name.includes('session4')?rubric:load('supabase/functions/informatique-2ac-api/session3-evaluation.ts'),Deno:{serve:f=>handler=f,env:{get:name=>name==='SUPABASE_URL'?'https://local.test':'TEST ONLY'}},fetch:fetchDB,TextEncoder,TextDecoder,Request,Response,crypto:crypto.webcrypto,btoa,atob,console});
 const call=async body=>{const r=await handler(new Request('https://local.test/function',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://tabdellah.github.io'},body:JSON.stringify(body)}));return {status:r.status,data:await r.json()}};
 (async()=>{const body={action:'submit',id:crypto.randomUUID(),participantId:participant.id,sessionId:4,activityType:'practical_evaluation',activityId:'session-4-reseau-evaluation-v1',answer:full,score:20,maxScore:20,isCorrect:true};
 equal((await call(body)).status,201,'network assessment accepted');equal(rows[0].score,20);equal(rows[0].response.answers.length,10);await call(body);equal(rows.length,1,'retry idempotency');
 const labBody={...body,id:crypto.randomUUID(),activityId:rubric.session4LabEvaluationId,answer:partialLab,score:4,isCorrect:false};
 equal((await call(labBody)).status,201,'partial simulator assessment accepted');equal(rows.at(-1).response.practical.length,3);equal(rows.at(-1).score,4);
 equal((await call({...labBody,id:crypto.randomUUID(),activityId:rubric.session4QuizEvaluationId})).status,400,'different assessment versions cannot be mixed');
+const appliedBody={...body,id:crypto.randomUUID(),activityId:applied.session4AppliedEvaluationId,answer:appliedPartial,score:3,isCorrect:false};
+equal((await call(appliedBody)).status,201,'the API stores a partially completed four-mission copy');equal(rows.at(-1).response.sections,[1,1,1,0]);
+equal((await call({...appliedBody,id:crypto.randomUUID(),answer:appliedFull,score:20,isCorrect:true})).status,201,'the API accepts the complete new rubric');
+equal((await call({...appliedBody,id:crypto.randomUUID(),score:20})).status,400,'the API rejects a forged grade in the new format');
+equal((await call({...appliedBody,id:crypto.randomUUID(),answer:fullLab})).status,400,'the previous simulator rubric cannot be submitted as a new copy');
 equal((await call({...body,id:crypto.randomUUID(),score:19})).status,400,'forged HTTP note rejected');unlocked=false;equal((await call({...body,id:crypto.randomUUID()})).status,423,'lesson-4 student lock remains enforced');unlocked=true;
 equal((await call({...body,id:crypto.randomUUID(),activityType:'workshop',activityId:'session-4-workshop-TP',answer:{verification:'declaration-eleve',completed:true},score:null,maxScore:null,isCorrect:null})).status,201,'real TP can be stored without fabricated grading');equal(rows.at(-1).is_correct,null);
 equal((await call({action:'teacher_course'})).status,401,'teacher privilege remains protected');
