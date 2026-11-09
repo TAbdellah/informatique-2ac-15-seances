@@ -18,6 +18,16 @@ export function rememberedActiveProfile():StudentProfile|null{if(typeof window==
 export function forgetActiveProfile(){try{localStorage.removeItem(activeLearnerKey);sessionStorage.removeItem(activeLearnerKey);}catch{}}
 export function cachedProfileFor(identity:Parameters<typeof identityKey>[0]){const known=knownProfiles();return known.find(p=>identityKey(p)===identityKey(identity))??known.find(p=>!p.studentOneId&&p.className===identity.className&&p.groupName===identity.groupName&&p.isPair===identity.isPair&&[normalizeName(p.studentOne),...(p.isPair?[normalizeName(p.studentTwo??"")]:[])].sort().join("|")===[normalizeName(identity.studentOne),...(identity.isPair?[normalizeName(identity.studentTwo??"")]:[])].sort().join("|"))??null;}
 export const learningKey=(id:string,session:number,kind:LearningKind)=>`lab2ac-learning-v1:${id}:${session}:${kind}`;
+export function clearAnswerSnapshots(participantId: string, clearSaved = true) {
+  const kinds = ["workshop", "quiz", "assessment", "assembly", "repair"] as const;
+  for (let sessionId = 1; sessionId <= 15; sessionId++) {
+    for (const kind of kinds) {
+      const key = learningKey(participantId, sessionId, kind);
+      if (clearSaved) localStorage.removeItem(key);
+      memory.delete(key);
+    }
+  }
+}
 export function validSnapshot(v:unknown):v is LearningSnapshot{return object(v)&&v.version===1&&typeof v.participantId==="string"&&Number.isInteger(v.sessionId)&&Number(v.sessionId)>=1&&Number(v.sessionId)<=15&&["workshop","quiz","assessment","view","assembly","repair"].includes(String(v.kind))&&Number.isFinite(v.changedAt)&&Number(v.changedAt)>0&&Number.isInteger(v.revision)&&Number(v.revision)>=0&&typeof v.dirty==="boolean"&&object(v.data);}
 export function readSnapshot<T=unknown>(id:string,session:number,kind:LearningKind):LearningSnapshot<T>|null{const key=learningKey(id,session,kind);let cached=memory.get(key);try{const parsed=JSON.parse(localStorage.getItem(key)??"null");if(validSnapshot(parsed)&&parsed.participantId===id&&parsed.sessionId===session&&parsed.kind===kind&&(!cached||parsed.changedAt>cached.changedAt))cached=parsed;}catch{}return cached as LearningSnapshot<T>??null;}
 export function snapshotsFor(id:string):LearningSnapshot[]{const keys=new Set(memory.keys());try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key)keys.add(key);}}catch{}const result:LearningSnapshot[]=[];for(const key of keys){const parts=key.split(":");if(parts.length===4&&parts[0]==="lab2ac-learning-v1"&&parts[1]===id){const value=readSnapshot(id,Number(parts[2]),parts[3] as LearningKind);if(value)result.push(value);}}return result;}

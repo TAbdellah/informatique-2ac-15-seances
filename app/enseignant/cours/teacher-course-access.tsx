@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, BookOpen, GraduationCap, LoaderCircle, LockKeyhole, LogOut } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, LoaderCircle, LockKeyhole, LogOut, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import HomePage from "../../page";
 import { TeacherCourseScope } from "../../../lib/teacher-course-context";
+import { clearTeacherDemoAnswers, teacherDemoResetKey } from "../../../lib/teacher-course-storage";
 import { teacherCourseAccess, teacherLogin, teacherLogout, teacherToken } from "../../../lib/supabase-api";
 
 type Grant = { token: string; expiresAt: number };
+const resetError = "Impossible d’effacer toutes les réponses de démonstration. Réessayez.";
 
 export default function TeacherCourseAccess() {
   const [grant, setGrant] = useState<Grant | null>(null);
@@ -16,6 +19,28 @@ export default function TeacherCourseAccess() {
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetStatus, setResetStatus] = useState<"done" | "error" | null>(null);
+  const [courseRevision, setCourseRevision] = useState(0);
+
+  const resetAnswers = useCallback((clearSaved: boolean) => {
+    try {
+      clearTeacherDemoAnswers(clearSaved);
+      setCourseRevision(revision => revision + 1);
+      setResetOpen(false);
+      setResetStatus("done");
+    } catch {
+      setResetStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    function onReset(event: StorageEvent) {
+      if (event.key === teacherDemoResetKey && event.newValue) resetAnswers(false);
+    }
+    window.addEventListener("storage", onReset);
+    return () => window.removeEventListener("storage", onReset);
+  }, [resetAnswers]);
 
   const authorize = useCallback(async (token: string) => {
     const request = ++requestRef.current;
@@ -113,11 +138,31 @@ export default function TeacherCourseAccess() {
   </main>;
 
   return <div className="teacher-course-root">
-    <header className="teacher-course-bar">
-      <div><GraduationCap size={23} /><span><strong>Mode professeur</strong><small>15 séances ouvertes · navigation libre · démonstration sans note élève</small></span></div>
-      <nav aria-label="Compte professeur"><a href="../"><ArrowLeft size={16} /> Tableau de bord</a><button type="button" onClick={logout}><LogOut size={16} /> Déconnexion</button></nav>
-    </header>
+    <Dialog open={resetOpen} onOpenChange={open => { setResetOpen(open); if (open) setResetStatus(null); }}>
+      <header className="teacher-course-bar">
+        <div><GraduationCap size={23} /><span><strong>Mode professeur</strong><small>15 séances ouvertes · navigation libre · démonstration sans note élève</small></span></div>
+        <nav aria-label="Compte professeur">
+          <a href="../"><ArrowLeft size={16} /> Tableau de bord</a>
+          <DialogTrigger asChild><button type="button"><Trash2 size={16} /> Effacer mes réponses</button></DialogTrigger>
+          <button type="button" onClick={logout}><LogOut size={16} /> Déconnexion</button>
+        </nav>
+      </header>
+      <DialogContent className="prof-delete-dialog teacher-course-reset-dialog" showCloseButton={false}>
+        <DialogHeader>
+          <span className="prof-delete-icon"><Trash2 size={24} aria-hidden="true" /></span>
+          <DialogTitle>Effacer vos réponses de démonstration ?</DialogTitle>
+          <DialogDescription>Cette action remet à zéro vos exercices et évaluations de démonstration dans ce navigateur.</DialogDescription>
+        </DialogHeader>
+        {resetStatus === "error" && <p className="teacher-course-connection" role="alert">{resetError}</p>}
+        <div className="prof-delete-actions">
+          <button type="button" onClick={() => setResetOpen(false)}>Annuler</button>
+          <button type="button" className="danger" onClick={() => resetAnswers(true)}>Effacer les réponses</button>
+        </div>
+      </DialogContent>
+    </Dialog>
     {error && <p className="teacher-course-connection" role="status">{error} Votre accès reste valable jusqu’à l’expiration de votre session.</p>}
-    <TeacherCourseScope><HomePage /></TeacherCourseScope>
+    {resetStatus === "done" && <p className="teacher-course-reset-status" role="status">Vos réponses de démonstration ont été effacées.</p>}
+    {resetStatus === "error" && !resetOpen && <p className="teacher-course-connection" role="alert">{resetError}</p>}
+    <TeacherCourseScope><HomePage key={courseRevision} /></TeacherCourseScope>
   </div>;
 }

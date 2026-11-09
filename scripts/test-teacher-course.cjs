@@ -6,10 +6,10 @@ const ts = require('typescript');
 const React = require('react');
 const {renderToStaticMarkup} = require('react-dom/server');
 const root = path.resolve(__dirname, '..');
-function compile(source, imports = {}, fallback = require) {
+function compile(source, imports = {}, fallback = require, globals = {}) {
   const module = {exports: {}};
   const code = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX}}).outputText;
-  vm.runInNewContext(code, {module, exports: module.exports, require: name => imports[name] ?? fallback(name)});
+  vm.runInNewContext(code, {...globals, module, exports: module.exports, require: name => imports[name] ?? fallback(name)});
   return module.exports;
 }
 const scope = compile(fs.readFileSync(path.join(root, 'lib/teacher-course-context.tsx'), 'utf8'));
@@ -43,6 +43,58 @@ equal(/<option value="24" selected="">25 · Exercice 25<\/option>/.test(teacher)
 equal(teacher.includes('aucune réponse requise'), true);
 equal(scope.teacherDemoProfile.id.startsWith('00000000-0000-4000-8000-'), true, 'dedicated local demonstration identity');
 equal('resumeToken' in scope.teacherDemoProfile, false, 'demo identity cannot sync student records');
+
+function fakeStorage() {
+  const entries = new Map();
+  return {
+    getItem: key => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+    removeItem: key => entries.delete(key),
+  };
+}
+const localStorage = fakeStorage();
+function demoTab() {
+  const sessionStorage = fakeStorage();
+  const globals = {localStorage, sessionStorage};
+  const storage = compile(fs.readFileSync(path.join(root, 'lib/learning-storage.ts'), 'utf8'), {}, require, globals);
+  const demo = compile(fs.readFileSync(path.join(root, 'lib/teacher-course-storage.ts'), 'utf8'), {
+    './learning-storage': storage,
+    './teacher-course-context': scope,
+  }, require, globals);
+  return {storage, sessionStorage, ...demo};
+}
+const firstTab = demoTab();
+const otherTab = demoTab();
+const demoId = scope.teacherDemoProfile.id;
+const learnerId = '00000000-0000-4000-8000-000000000010';
+const teacherKeys = [[1, 'workshop'], [2, 'assembly'], [2, 'repair'], [3, 'assessment'], [4, 'quiz'], [15, 'workshop']];
+for (const [sessionId, kind] of teacherKeys) firstTab.storage.saveSnapshot(demoId, sessionId, kind, {answer: 'demo'});
+otherTab.storage.saveSnapshot(demoId, 4, 'workshop', {answer: 'previous demonstration'});
+firstTab.storage.saveSnapshot(demoId, 4, 'view', {activeTab: 'workshop'});
+firstTab.storage.saveSnapshot(learnerId, 4, 'workshop', {answer: 'learner'});
+const legacyUnit = `lab2ac-unit1-session-1-${demoId}`;
+const legacyAssessment = `lab2ac-session3-bilan-v5-${demoId}`;
+localStorage.setItem(legacyUnit, '["old-exercise"]');
+localStorage.setItem(`lab2ac-progress-${demoId}`, '[1]');
+localStorage.setItem('lab2ac-teacher-session', 'test-session');
+for (const tab of [firstTab, otherTab]) tab.sessionStorage.setItem(legacyAssessment, 'old assessment');
+
+firstTab.clearTeacherDemoAnswers();
+for (const [sessionId, kind] of teacherKeys) equal(firstTab.storage.readSnapshot(demoId, sessionId, kind), null, `clears ${kind} for session ${sessionId} from storage and memory`);
+equal(firstTab.storage.readSnapshot(demoId, 4, 'workshop'), null, 'clears the answers saved by another tab');
+equal(localStorage.getItem(legacyUnit), null, 'old demonstration progress cannot restore cleared answers');
+equal(localStorage.getItem(`lab2ac-progress-${demoId}`), null, 'clears earlier completion flags');
+equal(firstTab.sessionStorage.getItem(legacyAssessment), null, 'legacy assessment is cleared in this tab');
+equal(firstTab.storage.readSnapshot(demoId, 4, 'view').data.activeTab, 'workshop', 'the current course view is preserved');
+equal(localStorage.getItem('lab2ac-teacher-session'), 'test-session', 'the reset keeps the teacher connected');
+equal(firstTab.storage.readSnapshot(learnerId, 4, 'workshop').data.answer, 'learner', 'learner answers are untouched');
+equal(localStorage.getItem(firstTab.teacherDemoResetKey) !== null, true, 'other tabs can observe the reset');
+
+firstTab.storage.saveSnapshot(demoId, 4, 'workshop', {answer: 'new demonstration'});
+otherTab.clearTeacherDemoAnswers(false);
+equal(otherTab.sessionStorage.getItem(legacyAssessment), null, 'other tabs discard their legacy assessment');
+equal(otherTab.storage.readSnapshot(demoId, 4, 'workshop').data.answer, 'new demonstration', 'other tabs reload answers entered after the reset');
+
 const lab = compile(fs.readFileSync(path.join(root, 'app/session3-lab-data.ts'), 'utf8'));
 function loadModel(file) {
   return compile(fs.readFileSync(file, 'utf8'), {}, name => loadModel(path.resolve(path.dirname(file), name)));
