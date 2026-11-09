@@ -14,7 +14,6 @@ type VideoQuestion = {
 
 export type Session4Video = {
   file: string;
-  source: 1 | 2;
   duration: string;
   minutes: number;
   title: LocalizedText;
@@ -26,7 +25,6 @@ export type Session4Video = {
 export const session4Videos = {
   adresse: {
     file: "Video_Get_IP.mp4",
-    source: 1,
     duration: "0:31",
     minutes: 2,
     title: t("Retrouver l’IPv4 du poste filmé", "العثور على عنوان IPv4 للحاسوب المصوَّر"),
@@ -61,7 +59,6 @@ export const session4Videos = {
   },
   partage: {
     file: "Video_partage.mp4",
-    source: 1,
     duration: "1:00",
     minutes: 3,
     title: t("Partager un dossier et choisir le droit", "مشاركة مجلد واختيار الصلاحية"),
@@ -108,7 +105,6 @@ export const session4Videos = {
   },
   acces: {
     file: "Video_access.mp4",
-    source: 1,
     duration: "0:32",
     minutes: 2,
     title: t("Ouvrir le partage du voisin", "فتح مشاركة الحاسوب المجاور"),
@@ -143,7 +139,6 @@ export const session4Videos = {
   },
   image: {
     file: "Video_Downold_img.mp4",
-    source: 1,
     duration: "0:53",
     minutes: 3,
     title: t("Enregistrer l’image au bon endroit", "حفظ الصورة في المكان المناسب"),
@@ -178,7 +173,6 @@ export const session4Videos = {
   },
   messagerie: {
     file: "Video_save_copy_img.mp4",
-    source: 2,
     duration: "1:25",
     minutes: 4,
     title: t("Faire passer une image par la messagerie LAN", "إرسال صورة عبر مراسلة الشبكة المحلية"),

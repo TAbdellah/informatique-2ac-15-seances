@@ -52,8 +52,8 @@ const previousExpoActivities = [
   [s4t("Installe l’équipement qui émet le Wi-Fi et choisis le nom CLUB-EXPO.","ثبّت الجهاز الذي يبث Wi-Fi واختر الاسم CLUB-EXPO."),s4t("Sur chaque portable, sélectionne CLUB-EXPO. Teste ensuite le réseau.","اختر CLUB-EXPO على كل حاسوب محمول، ثم اختبر الشبكة.")],"Construire un réseau sans fil"),
  newActivity("mixed",10,s4t("Le hall","الردهة"),s4t("Relier les appareils filaires et Wi-Fi","ربط الأجهزة السلكية وأجهزة Wi-Fi"),s4t("Le PC et l’imprimante du hall utilisent un câble. Le portable et la TV utilisent le Wi-Fi. Relie les deux parties pour former un seul réseau.","يستعمل الحاسوب والطابعة في الردهة كابلًا، ويستعمل المحمول والتلفاز Wi-Fi. اربط الجزأين لتكوين شبكة واحدة."),
   [s4t("Place un commutateur et un point d’accès.","ضع مبدلًا ونقطة ولوج."),s4t("Branche le PC, l’imprimante et le point d’accès au commutateur. Raccorde la TV et le portable au Wi-Fi CLUB-EXPO.","اربط الحاسوب والطابعة ونقطة الولوج بالمبدل. أوصل التلفاز والمحمول بشبكة Wi-Fi CLUB-EXPO."),s4t("Teste les connexions du réseau mixte.","اختبر اتصالات الشبكة المختلطة.")],"Construire un réseau mixte"),
- newActivity("identity",7,s4t("Le carnet réseau","دفتر الشبكة"),s4t("Compléter le ticket du PC","إكمال بطاقة الحاسوب"),s4t("Le technicien a besoin de l’adresse IPv4 et du nom du poste. Lis-les dans les résultats des commandes et remplis son ticket.","يحتاج التقني إلى عنوان IPv4 واسم الحاسوب. اقرأهما في نتائج الأوامر واملأ بطاقته."),
-  [s4t("Dans CMD, tape ipconfig, puis appuie sur Entrée. Fais ensuite la même chose avec hostname.","في CMD، اكتب ipconfig ثم اضغط إدخال. كرر العملية بالأمر hostname."),s4t("Teste ensuite le poste voisin avec ping 192.168.10.22.","اختبر الحاسوب المجاور بعد ذلك بالأمر ping 192.168.10.22.")],"Identifier un poste et tester la communication"),
+ newActivity("identity",7,s4t("Le carnet réseau","دفتر الشبكة"),s4t("Identifier le PC et tester le voisin","التعرّف على الحاسوب واختبار الاتصال بجاره"),s4t("Clique sur les boutons CMD. Recopie l’adresse IPv4 et le nom du PC, puis regarde si le PC voisin répond.","انقر على أزرار CMD. انقل عنوان IPv4 واسم الحاسوب، ثم لاحظ هل يستجيب الحاسوب المجاور."),
+  [],"Identifier un poste et tester la communication"),
  newActivity("diagnostic",6,s4t("Le hall","الردهة"),s4t("Réparer la liaison du point d’accès","إصلاح اتصال نقطة الولوج"),s4t("La TV est déjà associée à CLUB-EXPO. Le PC filaire ne peut pas communiquer avec elle. Trouve la liaison manquante sur le plan du hall.","التلفاز متصل بالفعل بشبكة CLUB-EXPO، لكن الحاسوب السلكي لا يستطيع التواصل معه. ابحث عن الوصلة الناقصة في مخطط الردهة."),
   [s4t("Teste d’abord les connexions.","اختبر الاتصالات أولًا."),s4t("Ajoute le câble manquant, puis refais le test.","أضف الكابل الناقص ثم أعد الاختبار."),s4t("Choisis l’explication de la panne.","اختر تفسير العطل.")],"Diagnostiquer une liaison réseau"),
  newActivity("practice",15,s4t("Sur les vrais postes","على الحواسيب الحقيقية"),s4t("Livrer le dossier au binôme voisin","تسليم المجلد للثنائي المجاور"),s4t("Avec le binôme voisin, ouvrez chacun un fichier de l’autre poste sur le réseau de la salle. Notez la preuve de réception.","مع الثنائي المجاور، افتحوا ملفًا من الحاسوب الآخر عبر شبكة القاعة. سجلوا دليل التوصل."),
@@ -65,7 +65,7 @@ const previousEquipmentActivities = [
  newActivity("roles",6,s4t("Le stock","المخزن"),s4t("À quoi sert ce matériel ?","ما وظيفة هذه المعدة؟"),s4t("Le nom est indiqué sous chaque photo. Associe le matériel à son rôle dans le réseau.","اسم المعدة مكتوب تحت كل صورة. اربط كل معدة بوظيفتها في الشبكة."),
   [],"Associer le matériel réseau à sa fonction"),
 ];
-const practiceMinutes = {wireless:7,mixed:9,identity:6,diagnostic:5} as const;
+const practiceMinutes = {mixed:9,identity:6,diagnostic:5} as const;
 const session4Catalogue:Session4Activity[] = [
  ...previousEquipmentActivities.map(item=>({
   ...item,id:`${item.id}-v2`,previousId:item.id,minutes:5,
@@ -105,7 +105,7 @@ const retiredActivities = new Set([
 ]);
 const revisedMinutes:Record<string,number> = {
  patch:10,"video-adresse":4,"video-partage":5,"video-acces":4,"video-image":4,
- identity:11,wireless:8,mixed:10,
+ identity:11,mixed:10,
 };
 export const session4Activities:Session4Activity[] = session4Catalogue
  .filter(activity=>!retiredActivities.has(activity.id))
@@ -118,19 +118,20 @@ export const session4EarlierActivities = [
 ];
 export const session4AllActivities = [...session4Activities,...session4EarlierActivities];
 
+export const session4WifiCardImage = "session4/images/carte-wifi.webp";
 export const session4Equipment = [
- {id:"switch",name:s4t("Commutateur · switch","المبدل"),image:"session4/images/commutateur.webp",answer:"switch",role:s4t("Relier plusieurs PC câblés","ربط عدة حواسيب بالكابل")},
- {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Diffuser le Wi-Fi","بث شبكة Wi-Fi")},
- {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Relier deux réseaux","ربط شبكتين")},
- {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Connexion PC par câble","اتصال الحاسوب بالكابل")},
- {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Transporter les données","نقل البيانات")},
+ {id:"switch",name:s4t("Commutateur · switch","المبدل"),image:"session4/images/commutateur.webp",answer:"switch",role:s4t("Relie les appareils","يربط الأجهزة")},
+ {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Diffuse le Wi-Fi","يبث شبكة Wi-Fi")},
+ {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Relie les réseaux","يربط الشبكات")},
+ {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Connexion filaire","اتصال سلكي")},
+ {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Liaison filaire","ربط سلكي")},
  {id:"printer",name:s4t("Imprimante réseau","طابعة شبكية"),image:"session4/images/imprimante.webp",answer:"printer",role:s4t("Peut recevoir des travaux d’impression depuis les PC du réseau.","يمكنها استقبال أوامر الطباعة من حواسيب الشبكة.")},
 ];
 // La photo de l’imprimante reste utile dans les maquettes. Le stock identifie les éléments de mise en réseau.
 export const session4OriginalStock = session4Equipment.filter(item => item.id !== "printer");
 export const session4NetworkEquipment = [
  ...session4OriginalStock,
- {id:"wifi",name:s4t("Carte Wi-Fi","بطاقة Wi-Fi"),image:"session4/images/carte-wifi.jpg",answer:"wifi",role:s4t("Connexion PC par Wi-Fi","اتصال الحاسوب عبر Wi-Fi")},
+ {id:"wifi",name:s4t("Carte Wi-Fi","بطاقة Wi-Fi"),image:session4WifiCardImage,answer:"wifi",role:s4t("Connexion sans fil","اتصال لاسلكي")},
 ];
 export const session4Roles = [
  {id:"wired",label:s4t("Relier plusieurs appareils par câble dans le réseau local.","ربط عدة أجهزة بكابلات داخل الشبكة المحلية.")},

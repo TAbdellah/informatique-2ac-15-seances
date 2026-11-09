@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Expand, ExternalLink, Film, Minimize, Pause, Play, RotateCcw, VolumeX } from "lucide-react";
+import { CheckCircle2, Expand, Film, Minimize, Pause, Play, RotateCcw, VolumeX } from "lucide-react";
 import { publicAsset } from "../lib/public-assets";
 import { Session3Text as Text } from "./session3-translation";
 import { s4t as t, type Session4VideoActivity } from "./session4-data";
@@ -233,8 +233,7 @@ export function Session4VideoExercise({activity,draft,onChange}:{
       </button>)}
     </nav>
     {unavailable&&<p className="s4-video-unavailable" role="status"><Text value={t("Le chargement a échoué. Vérifie la connexion et réessaie.","فشل التحميل. تحقق من الاتصال ثم أعد المحاولة.")}/><button type="button" onClick={()=>{setUnavailable(false);player.current?.load();}}><Text value={t("Réessayer","إعادة المحاولة")}/></button></p>}
-    <footer className="s4-video-links">
-      <a href={session4U2Url+"s"+video.source} target="_blank" rel="noreferrer"><ExternalLink size={14}/><Text value={t("Support de la vidéo","مصدر الفيديو")}/></a>
+    <footer className="s4-video-progress">
       <span><Text value={t(`${confirmed.filter(Boolean).length} / ${video.questions.length} questions validées`,`تم تأكيد ${confirmed.filter(Boolean).length} من أصل ${video.questions.length} أسئلة`)}/></span>
     </footer>
   </section>;

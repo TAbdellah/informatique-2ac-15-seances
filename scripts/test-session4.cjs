@@ -3,8 +3,15 @@ const root=path.resolve(__dirname,'..');
 function loader(revision){const cache={};return function load(relative){relative=path.normalize(relative);if(cache[relative])return cache[relative];const exports={};cache[relative]=exports;const source=revision?cp.execFileSync('git',['show',revision+':'+relative],{cwd:root,encoding:'utf8'}):fs.readFileSync(path.join(root,relative),'utf8');const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,require:name=>{if(!name.startsWith('.'))return require(name);let f=path.join(path.dirname(relative),name);if(!path.extname(f))f+='.ts';return load(f)},process});return exports;}}
 const load=loader();const {session4,session4Activities,session4EarlierActivities,session4LegacyActivities,session4Equipment,session4NetworkEquipment}=load('app/session4-data.ts'),m=load('app/session4-model.ts'),rubric=load('supabase/functions/informatique-2ac-api/session4-evaluation.ts');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++};
-equal(session4Activities.reduce((s,a)=>s+a.minutes,0),85,'workshop lasts 85 minutes');equal(10+85+10+15,120,'lesson lasts exactly two hours');equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','wireless','mixed','identity','build'],'the final activity builds a complete network');equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
-equal(new Set(session4NetworkEquipment.map(item=>item.role.fr)).size,6,'each device has a distinct role');
+const exerciseMinutes=session4Activities.reduce((s,a)=>s+a.minutes,0);
+equal(exerciseMinutes,77,'the active exercises take 77 minutes');
+equal(10+exerciseMinutes+8+10+15,120,'the lesson leaves eight minutes of workshop margin');
+equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','mixed','identity','build'],'the final activity builds a complete network');
+equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
+equal(Object.fromEntries(session4NetworkEquipment.map(item=>[item.id,item.role.fr])),{
+ switch:'Relie les appareils',ap:'Diffuse le Wi-Fi',router:'Relie les réseaux',
+ card:'Connexion filaire',cable:'Liaison filaire',wifi:'Connexion sans fil',
+},'each role matches the reference table');
 equal(session4NetworkEquipment.every(item=>fs.existsSync(path.join(root,'public',item.image))),true,'all equipment photos are available');
 for(const [value,expected]of [['192.168.10.21',true],['10.0.0.2',true],['172.20.10.3',true],['192.168.10.999',false],['127.0.0.1',false],['example.org',false],['192.168.1',false],['8.8.8.8',false]])equal(m.isPrivateIPv4(value),expected,value);
 equal(m.session4SharePath,String.raw`\\192.168.10.21\Club_reseau`,'UNC path uses two leading backslashes');
@@ -130,10 +137,10 @@ equal(expo.expoLoanResult({...m.freshSession4Draft(),selections:{...newStates.lo
 equal(scores.workshopExercises(4).some(a=>a.id===session4LegacyActivities[0].id),false,'earlier results do not award credit for new exercises');
 equal(scores.workshopExercises(4,true).some(a=>a.id===session4LegacyActivities[0].id),true,'earlier activity IDs remain supported in the history API');
 equal(scores.workshopExercises(4,true).some(a=>a.id==='session-4-workshop-expo-media'),true,'the removed exercise is still readable in archived attempts');
-equal(scores.workshopExercises(4).filter(a=>a.id==='session-4-workshop-expo-wireless').length,1,'equivalent wireless attempts still match exactly one current activity');
+equal(scores.workshopExercises(4,true).filter(a=>a.id==='session-4-workshop-expo-wireless').length,1,'saved wireless attempts match exactly one archived activity');
 const earlier=m.initialSession4Workshop(saved);
 equal(earlier.drafts,saved.drafts,'historical checkpoints are preserved on opening the redesigned lesson');
-const retiredIds=['session-4-workshop-expo-exchange','session-4-workshop-expo-loan','session-4-workshop-video-messagerie','session-4-workshop-expo-diagnostic'];
+const retiredIds=['session-4-workshop-expo-exchange','session-4-workshop-expo-loan','session-4-workshop-video-messagerie','session-4-workshop-expo-diagnostic','session-4-workshop-expo-wireless'];
 for(const id of retiredIds){
  equal(session4Activities.some(a=>a.id===id),false,'retired exercise is hidden from the active workshop');
  equal(scores.workshopExercises(4,true).some(a=>a.id===id),true,'retired exercise retains its grading history');
@@ -177,7 +184,7 @@ equal(m.runSession4Command('cls',true),'');
 equal(m.runSession4Command('help',true).includes('IPCONFIG'),true);
 const longTerminal={...m.freshSession4Draft(),terminalHistory:Array(40).fill('ipconfig'),output:'x'.repeat(18000)};
 equal(JSON.stringify(m.session4AnswerState(longTerminal)).length<12000,true,'terminal transcripts do not overflow the submission limit');
-const progress=load('app/prof/learning-model.ts');equal(progress.targetsFor(4).length,14,'teacher tracks both practical and video exercises');equal(progress.targetsFor(4).some(t=>t.id==='session-4-workshop-TP'),false,'TP declaration does not claim mastery');
+const progress=load('app/prof/learning-model.ts');equal(progress.targetsFor(4).length,13,'teacher tracks the thirteen active exercises');equal(progress.targetsFor(4).some(t=>t.id==='session-4-workshop-TP'),false,'TP declaration does not claim mastery');
 
 // The desktop checks real files, sharing rights, inbox reads and ordered operations.
 const simulationModule={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'public/session4/simulateur/missions.js'),'utf8'),{module:simulationModule});const simulator=simulationModule.exports;

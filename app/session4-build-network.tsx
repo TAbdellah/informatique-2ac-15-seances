@@ -4,7 +4,7 @@ import {useState} from "react";
 import {Cable,CheckCircle2,Wifi,X} from "lucide-react";
 import {publicAsset} from "../lib/public-assets";
 import {Session3Text as Text} from "./session3-translation";
-import {s4t as t} from "./session4-data";
+import {s4t as t,session4WifiCardImage} from "./session4-data";
 import type {Session4Draft} from "./session4-model";
 import {DirectSwitchScene,type SwitchEndpoint} from "./session4-expo-network";
 import {expoBuildPortKey,expoBuildStatus,expoPatchPorts,expoSSID} from "./session4-expo-model";
@@ -66,7 +66,7 @@ export function Session4BuildNetwork({draft,onChange,assessment=false}:Props){
         })}
         <article><img src={publicAsset(image("cable-rj45"))} alt=""/><strong><Text value={t("3 câbles RJ45","3 كابلات RJ45")}/></strong><small><Text value={t("Prêts à brancher","جاهزة للتوصيل")}/></small></article>
         <article><img src={publicAsset(image("carte-ethernet"))} alt=""/><strong><Text value={t("2 cartes Ethernet","بطاقتا Ethernet")}/></strong><small><Text value={t("Déjà dans les PC","مثبتتان في الحاسوبين")}/></small></article>
-        <article><img src={publicAsset("session4/images/carte-wifi.jpg")} alt=""/><strong><Text value={t("1 carte Wi-Fi","بطاقة Wi-Fi واحدة")}/></strong><small><Text value={t("Déjà dans le portable","مثبتة في المحمول")}/></small></article>
+        <article><img src={publicAsset(session4WifiCardImage)} alt=""/><strong><Text value={t("Carte Wi-Fi (exemple)","مثال لبطاقة Wi-Fi")}/></strong><small><Text value={t("Le portable a le Wi-Fi intégré.","الحاسوب المحمول مزوّد باتصال Wi-Fi مدمج.")}/></small></article>
       </div>
     </section>
 
