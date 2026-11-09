@@ -70,7 +70,7 @@ const session4Catalogue:Session4Activity[] = [
  ...previousEquipmentActivities.map(item=>({
   ...item,id:`${item.id}-v2`,previousId:item.id,minutes:5,
   prompt:item.kind==="roles"
-   ?s4t("Lis le nom sous chaque photo. Choisis l’action que fait cet équipement. Utilise chaque rôle une seule fois.","اقرأ الاسم تحت كل صورة. اختر ما يفعله هذا الجهاز. استعمل كل وظيفة مرة واحدة.")
+   ?s4t("Glisse chaque étiquette sous la photo de l’équipement qui lui correspond.","اسحب كل بطاقة وضعها أسفل صورة المعدّة المناسبة.")
    :s4t("Observe les six photos. Choisis le nom de chaque équipement réseau.","لاحظ الصور الست واختر اسم كل جهاز شبكة."),
  })),
  newActivity("star",3,s4t("Plan A","المخطط A"),s4t("Le poste oublié","الحاسوب المنسي"),s4t("PC-4 attend son câble. Observe les trois liaisons déjà tracées, puis complète et nomme le plan.","ينتظر PC-4 كابله. لاحظ الوصلات الثلاث المرسومة ثم أكمل المخطط وسمِّ بنيته."),

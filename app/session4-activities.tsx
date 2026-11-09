@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, Folder, FolderPlus, Monitor, Network, Send, Wifi } from "lucide-react";
+import { useState, type DragEvent } from "react";
+import { FileText, Folder, FolderPlus, GripVertical, Monitor, Network, Send, Wifi, X } from "lucide-react";
 import { Session3Text as Text } from "./session3-translation";
 import { publicAsset } from "../lib/public-assets";
 import { s4t as t, session4NetworkEquipment, type Session4Activity } from "./session4-data";
@@ -25,27 +26,106 @@ export function Session4Topology({kind}:{kind:"star"|"bus"|"ring"}){
  </svg>;
 }
 const stock = [...session4NetworkEquipment].reverse();
+const nameOptions = session4NetworkEquipment.map(item=>({id:item.id,label:item.name}));
+const stockRoles = [...session4NetworkEquipment].sort((a,b)=>a.role.fr.localeCompare(b.role.fr,"fr"));
+const roleDragType = "application/x-lab2ac-network-role";
+
 function NetworkStock({ mode,draft,onChange }:LabProps&{mode:"names"|"roles"}) {
  const names = mode === "names";
- const options = session4NetworkEquipment.map(item=>({id:item.id,label:names?item.name:item.role}));
- return <div className="expo-inventory">
+ const [pickedRole,setPickedRole] = useState("");
+ const placedRoles = new Map<string,(typeof stockRoles)[number]>();
+ const availableRoles:typeof stockRoles = [];
+ if(!names){
+  for(const role of stockRoles){
+   // An earlier dropdown draft can repeat a role. Keep its correct placement when there is one.
+   const target = draft.selections[`role-${role.id}`]===role.id
+    ? role : stock.find(item=>draft.selections[`role-${item.id}`]===role.id);
+   if(target)placedRoles.set(target.id,role);
+   else availableRoles.push(role);
+  }
+ }
+
+ function moveRole(roleId:string,targetId?:string){
+  if(!stockRoles.some(role=>role.id===roleId))return;
+  setPickedRole("");
+  if(targetId ? placedRoles.get(targetId)?.id===roleId : availableRoles.some(role=>role.id===roleId))return;
+  const selections = {...draft.selections};
+  for(const item of stock){
+   const key = `role-${item.id}`;
+   const placed = placedRoles.get(item.id);
+   if(item.id===targetId)selections[key]=roleId;
+   else if(placed&&placed.id!==roleId)selections[key]=placed.id;
+   else delete selections[key];
+  }
+  onChange({selections});
+ }
+
+ function startRoleDrag(event:DragEvent<HTMLButtonElement>,roleId:string){
+  event.dataTransfer.setData(roleDragType,roleId);
+  event.dataTransfer.effectAllowed="move";
+  setPickedRole(roleId);
+ }
+ function allowRoleDrop(event:DragEvent<HTMLElement>){
+  if(!event.dataTransfer.types.includes(roleDragType))return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect="move";
+ }
+ function dropRole(event:DragEvent<HTMLElement>,targetId?:string){
+  const roleId = event.dataTransfer.getData(roleDragType);
+  if(!roleId)return;
+  event.preventDefault();
+  moveRole(roleId,targetId);
+ }
+
+ return <>
+ {!names&&<section className="expo-role-bank" aria-label="Rôles à placer" onDragOver={allowRoleDrop} onDrop={event=>dropRole(event)}>
+  <header><strong><Text value={t("Rôles à placer","الوظائف المطلوب وضعها")}/></strong>
+   <span role="status"><Text value={t(`${placedRoles.size} / ${stockRoles.length} placés`,`تم وضع ${placedRoles.size} من أصل ${stockRoles.length}`)}/></span>
+  </header>
+  <div className="expo-role-labels">{availableRoles.map(role=><button type="button" key={role.id} className="expo-role-label" draggable
+   aria-pressed={pickedRole===role.id} onClick={()=>setPickedRole(picked=>picked===role.id?"":role.id)}
+   onDragStart={event=>startRoleDrag(event,role.id)} onDragEnd={()=>setPickedRole("")}>
+   <GripVertical size={17} aria-hidden="true"/><Text value={role.role}/>
+  </button>)}</div>
+  <small><Text value={t("Tu peux aussi cliquer sur une étiquette, puis sur son emplacement.","يمكنك أيضًا النقر على بطاقة ثم على خانة لوضعها.")}/></small>
+ </section>}
+ <div className="expo-inventory">
   {stock.map((item,index)=>{
    const key=`${names?"name":"role"}-${item.id}`;
    const correct=draft.selections[key]===item.id;
-   return <article key={item.id} className="expo-photo-card">
+   const role=placedRoles.get(item.id);
+   return <article key={item.id} className="expo-photo-card" onDragOver={names?undefined:allowRoleDrop}
+    onDrop={names?undefined:event=>dropRole(event,item.id)}>
     <div className="expo-packshot"><span>PHOTO {String(index+1).padStart(2,"0")}</span>
-     <img src={publicAsset(item.image)} alt={names?`Matériel réseau à identifier · photo ${index+1}`:item.name.fr}/>
+     <img src={publicAsset(item.image)} alt={names?`Matériel réseau à identifier · photo ${index+1}`:item.name.fr} draggable={names?undefined:false}/>
     </div>
-    {!names&&<h3 className="expo-stock-name"><Text value={item.name}/></h3>}
-    <ExpoAnswerDropdown label={names?t("Nom de l’équipement","اسم المعدة"):t("Rôle dans le réseau","الوظيفة في الشبكة")}
-     name={`${names?"Nom":"Rôle"} · photo ${index+1}`} value={draft.selections[key]??""} options={options}
-     onChange={value=>onChange({selections:{...draft.selections,[key]:value}})}/>
+    {names?<ExpoAnswerDropdown label={t("Nom de l’équipement","اسم المعدة")}
+     name={`Nom · photo ${index+1}`} value={draft.selections[key]??""} options={nameOptions}
+     onChange={value=>onChange({selections:{...draft.selections,[key]:value}})}/>:<>
+     <h3 className="expo-stock-name"><Text value={item.name}/></h3>
+     <div className="expo-role-answer">
+      <button type="button" className="expo-role-slot" draggable={!!role}
+       aria-label={role?`${role.role.fr} sous ${item.name.fr}`:`Emplacement du rôle pour ${item.name.fr}`}
+       aria-pressed={role?pickedRole===role.id:undefined} data-ready={!!pickedRole&&pickedRole!==role?.id}
+       onDragStart={role?event=>startRoleDrag(event,role.id):undefined} onDragEnd={()=>setPickedRole("")}
+       onClick={()=>{
+        if(pickedRole&&pickedRole!==role?.id)moveRole(pickedRole,item.id);
+        else setPickedRole(pickedRole?"":role?.id??"");
+       }}>
+       {role&&<GripVertical size={17} aria-hidden="true"/>}
+       <Text value={role?.role??t("Dépose le rôle ici","ضع الوظيفة هنا")}/>
+      </button>
+      {role&&<button type="button" className="expo-role-remove" aria-label={`Retirer le rôle de ${item.name.fr}`}
+       onClick={()=>moveRole(role.id)}><X size={18} aria-hidden="true"/></button>}
+     </div>
+    </>}
     {draft.result!==null&&<p className={`expo-inventory-feedback ${correct?"good":""}`}>
      <Text value={correct?t("Bonne réponse","إجابة صحيحة"):t("À revoir","للمراجعة")}/>
     </p>}
    </article>;
   })}
- </div>;
+ </div>
+ </>;
 }
 
 const permissions=[

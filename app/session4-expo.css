@@ -57,6 +57,24 @@
 .session4-lesson .expo-activity :is(button,select,input):focus-visible { outline: 3px solid #087368; outline-offset: 2px; }
 .session4-lesson .expo-inventory-feedback { margin: 8px 0 0; font-size: .85rem; color: #774d19; }
 .session4-lesson .expo-inventory-feedback.good { color: #1e6950; }
+.session4-lesson .expo-role-bank { margin-top: 18px; padding: 14px; border: 1px solid #c6dfd5; border-radius: 12px; background: #eff7f3; color: #174d43; }
+.session4-lesson .expo-role-bank > header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; }
+.session4-lesson .expo-role-bank :is(small,[role="status"]) { color: #426861; font-size: .82rem; }
+.session4-lesson .expo-role-labels { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.session4-lesson .expo-role-answer { display: flex; gap: 6px; }
+.session4-lesson :is(.expo-role-label,.expo-role-slot,.expo-role-remove) {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 7px 10px;
+  border: 1px solid #aecdc2; border-radius: 8px; background: #fff; color: #174d43;
+  font-size: .9rem; font-weight: 700; text-align: left; user-select: none;
+}
+.session4-lesson .expo-role-slot { flex: 1; min-width: 0; border-style: dashed; }
+.session4-lesson .expo-role-slot[data-ready="true"] { border-color: #328575; background: #ecf7f1; }
+.session4-lesson :is(.expo-role-label,.expo-role-slot)[draggable="true"] { cursor: grab; border-style: solid; }
+.session4-lesson .expo-role-slot[draggable="true"] { background: var(--expo-mint); }
+.session4-lesson :is(.expo-role-label,.expo-role-slot)[aria-pressed="true"] { border-color: #136e5b; background: #cbece0; box-shadow: inset 0 0 0 1px #136e5b; }
+.session4-lesson :is(.expo-role-label,.expo-role-slot) svg { flex: none; }
+.session4-lesson .expo-role-remove { justify-content: center; flex: 0 0 44px; }
+.session4-lesson .expo-role-remove:hover { background: #f1f7f3; }
 .session4-lesson .expo-media-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .session4-lesson .expo-media-card { display: grid; grid-template-columns: 76px minmax(0,1fr); align-items: center; gap: 10px; }
 .session4-lesson .expo-media-card img { width: 76px; height: 64px; object-fit: contain; }
