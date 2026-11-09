@@ -121,17 +121,17 @@ export const session4AllActivities = [...session4Activities,...session4EarlierAc
 export const session4WifiCardImage = "session4/images/carte-wifi.webp";
 export const session4Equipment = [
  {id:"switch",name:s4t("Commutateur · switch","المبدل"),image:"session4/images/commutateur.webp",answer:"switch",role:s4t("Branche les appareils","يربط الأجهزة")},
- {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Wi-Fi","الواي فاي")},
- {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Internet","الإنترنت")},
- {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Avec fil","بسلك")},
- {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Fil","سلك")},
+ {id:"ap",name:s4t("Point d’accès Wi-Fi","نقطة ولوج Wi-Fi"),image:"session4/images/point-acces.webp",answer:"ap",role:s4t("Émet le signal Wi-Fi","تبثّ إشارة الواي فاي")},
+ {id:"router",name:s4t("Routeur","الموجه"),image:"session4/images/routeur.webp",answer:"router",role:s4t("Donne accès à Internet","يتيح الوصول إلى الإنترنت")},
+ {id:"card",name:s4t("Carte réseau Ethernet","بطاقة شبكة Ethernet"),image:"session4/images/carte-ethernet.webp",answer:"card",role:s4t("Offre la prise réseau de l’ordinateur","توفّر منفذ الشبكة في الحاسوب")},
+ {id:"cable",name:s4t("Câble RJ45","كابل RJ45"),image:"session4/images/cable-rj45.webp",answer:"cable",role:s4t("Transporte les données","ينقل البيانات")},
  {id:"printer",name:s4t("Imprimante réseau","طابعة شبكية"),image:"session4/images/imprimante.webp",answer:"printer",role:s4t("Peut recevoir des travaux d’impression depuis les PC du réseau.","يمكنها استقبال أوامر الطباعة من حواسيب الشبكة.")},
 ];
 // La photo de l’imprimante reste utile dans les maquettes. Le stock identifie les éléments de mise en réseau.
 export const session4OriginalStock = session4Equipment.filter(item => item.id !== "printer");
 export const session4NetworkEquipment = [
  ...session4OriginalStock,
- {id:"wifi",name:s4t("Carte Wi-Fi","بطاقة Wi-Fi"),image:session4WifiCardImage,answer:"wifi",role:s4t("Sans fil","دون سلك")},
+ {id:"wifi",name:s4t("Carte Wi-Fi","بطاقة Wi-Fi"),image:session4WifiCardImage,answer:"wifi",role:s4t("Capte le Wi-Fi dans l’ordinateur","تلتقط إشارة الواي فاي للحاسوب")},
 ];
 export const session4Roles = [
  {id:"wired",label:s4t("Relier plusieurs appareils par câble dans le réseau local.","ربط عدة أجهزة بكابلات داخل الشبكة المحلية.")},

@@ -9,8 +9,8 @@ equal(10+exerciseMinutes+8+10+15,120,'the lesson leaves eight minutes of worksho
 equal(session4Activities.filter(a=>a.kind!=='video').map(a=>a.kind),['names','roles','star','bus','ring','patch','mixed','identity','build'],'the final activity builds a complete network');
 equal(session4NetworkEquipment.map(item=>item.id),['switch','ap','router','card','cable','wifi'],'the inventory includes a Wi-Fi card and excludes end devices');
 equal(Object.fromEntries(session4NetworkEquipment.map(item=>[item.id,item.role.fr])),{
- switch:'Branche les appareils',ap:'Wi-Fi',router:'Internet',
- card:'Avec fil',cable:'Fil',wifi:'Sans fil',
+ switch:'Branche les appareils',ap:'Émet le signal Wi-Fi',router:'Donne accès à Internet',
+ card:'Offre la prise réseau de l’ordinateur',cable:'Transporte les données',wifi:'Capte le Wi-Fi dans l’ordinateur',
 },'each role matches the exercise labels');
 equal(session4NetworkEquipment.every(item=>fs.existsSync(path.join(root,'public',item.image))),true,'all equipment photos are available');
 for(const [value,expected]of [['192.168.10.21',true],['10.0.0.2',true],['172.20.10.3',true],['192.168.10.999',false],['127.0.0.1',false],['example.org',false],['192.168.1',false],['8.8.8.8',false]])equal(m.isPrivateIPv4(value),expected,value);
