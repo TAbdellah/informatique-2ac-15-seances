@@ -1,6 +1,6 @@
 export type ReportScope = "all" | number;
 type SessionAttempt = {sessionId:number;createdAt:string};
-const validSession = (id:number) => Number.isInteger(id) && id >= 1 && id <= 15;
+const validSession = (id:number) => Number.isInteger(id) && id >= 1 && id <= 16;
 
 export function reportSessionIds(attempts:readonly SessionAttempt[]):number[] {
   return [...new Set([1,2,3,...attempts.map(a=>a.sessionId).filter(validSession)])].sort((a,b)=>a-b);

@@ -384,7 +384,7 @@
 .prof-session-control-head h2 { margin: 7px 0 4px; color: var(--prof-navy); font-size: 22px; }
 .prof-session-control-head p { margin: 0; color: var(--prof-muted); font-size: 12px; }
 .prof-session-control-head > strong { color: var(--prof-green); font-size: 12px; }
-.prof-session-lock-grid { display: grid; grid-template-columns: repeat(15, minmax(62px, 1fr)); gap: 7px; margin-top: 17px; }
+.prof-session-lock-grid { display: grid; grid-template-columns: repeat(16, minmax(62px, 1fr)); gap: 7px; margin-top: 17px; }
 .prof-session-lock-grid button { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 5px; padding: 10px 5px; border: 1px solid #dce3ea; border-radius: 10px; cursor: pointer; font: inherit; transition: 150ms ease; }
 .prof-session-lock-grid button > span { font-size: 12px; font-weight: 900; }
 .prof-session-lock-grid button small { font-size: 9px; font-weight: 800; }

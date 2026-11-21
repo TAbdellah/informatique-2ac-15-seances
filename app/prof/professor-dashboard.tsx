@@ -491,7 +491,7 @@ function evaluationPreviewDashboard(): DashboardData {
   };
 
   return {
-    sessionAccess: Array.from({ length: 15 }, (_, index) => ({
+    sessionAccess: Array.from({ length: 16 }, (_, index) => ({
       sessionId: index + 1,
       isUnlocked: index === 1,
       updatedAt: new Date().toISOString(),
@@ -1431,7 +1431,7 @@ export default function ProfessorDashboard() {
             <span>Séance</span>
             <select value={filters.sessionId} onChange={(event) => setFilters((current) => ({ ...current, sessionId: event.target.value }))}>
               <option value="">Toutes</option>
-              {Array.from({ length: 15 }, (_, index) => <option key={index} value={index + 1}>Séance {index + 1}</option>)}
+              {Array.from({ length: 16 }, (_, index) => <option key={index} value={index + 1}>Séance {index + 1}</option>)}
             </select>
           </label>
           <label className="prof-search-field">
@@ -1477,7 +1477,7 @@ export default function ProfessorDashboard() {
                         <div><span>Note indicative</span><strong className="prof-grade">{learner.gradeOutOf20 === null ? "—" : `${learner.gradeOutOf20}/20`}</strong></div>
                         <div><span>Score moyen</span><strong>{learner.averageScore === null ? "—" : `${learner.averageScore}%`}</strong></div>
                         <div><span>Meilleur score</span><strong>{learner.bestScore === null ? "—" : `${learner.bestScore}%`}</strong></div>
-                        <div className="prof-metric-progress"><span>Séances terminées</span><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 15) * 100)}%` }} /></i><strong>{learner.completedSessions}/15</strong></span></div>
+                        <div className="prof-metric-progress"><span>Séances terminées</span><span className="prof-wide-progress"><i><b style={{ width: `${Math.round((learner.completedSessions / 16) * 100)}%` }} /></i><strong>{learner.completedSessions}/16</strong></span></div>
                         <div className="prof-metric-date"><span>Dernière tentative</span><strong><Clock3 size={13} />{formatDateTime(learner.lastAttemptAt)}</strong></div>
                       </div>
                     </article>
@@ -1506,7 +1506,7 @@ export default function ProfessorDashboard() {
                 <article><small>Réussite</small><strong>{selectedLearner.gradedAttempts > 0 ? `${selectedLearner.correctAttempts}/${selectedLearner.gradedAttempts}` : "—"}</strong></article>
                 <article><small>Pourcentage</small><strong>{selectedLearner.successRate === null ? "—" : `${selectedLearner.successRate}%`}</strong></article>
                 <article className="grade"><small>Note indicative</small><strong>{selectedLearner.gradeOutOf20 === null ? "—" : `${selectedLearner.gradeOutOf20}/20`}</strong></article>
-                <article><small>Progression</small><strong>{selectedLearner.completedSessions}/15</strong></article>
+                <article><small>Progression</small><strong>{selectedLearner.completedSessions}/16</strong></article>
               </div>
               {!reportLoading && learnerAttempts.length > 0 && (
                 <div className="prof-report-view-tabs">

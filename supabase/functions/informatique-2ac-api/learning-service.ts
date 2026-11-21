@@ -38,7 +38,7 @@ export function createLearningService({database,secret}:Dependencies){
   q+=p.is_pair?`&or=(and(student_one_id.eq.${p.student_one_id},student_two_id.eq.${p.student_two_id}),and(student_one_id.eq.${p.student_two_id},student_two_id.eq.${p.student_one_id}))`:`&student_one_id=eq.${p.student_one_id}`;return (await database(q)).map((r:Row)=>r.id) as string[];
  }
  function validSession(sessionId: unknown): number {
-  if (typeof sessionId !== "number" || !Number.isInteger(sessionId) || sessionId < 1 || sessionId > 15) fail("Séance invalide.");
+  if (typeof sessionId !== "number" || !Number.isInteger(sessionId) || sessionId < 1 || sessionId > 16) fail("Séance invalide.");
   return sessionId;
  }
  async function* pages(path: string, size: number, limit: number) {
@@ -121,7 +121,7 @@ export function createLearningService({database,secret}:Dependencies){
    const progress=new Map<number,Set<string>>();for(const a of activities){if(!progress.has(a.session_id))progress.set(a.session_id,new Set());progress.get(a.session_id)!.add(a.activity_id)}
    return {body:{checkpoints:rows.map(checkpoint),progress:[...progress].map(([sessionId,ids])=>({sessionId,completedIds:[...ids]}))},status:200};
   }
-  const s=body.checkpoint;if(!s||s.participantId!==p.id||s.version!==1||!Number.isInteger(s.sessionId)||s.sessionId<1||s.sessionId>15||!kinds.has(s.kind)||!Number.isInteger(s.revision)||s.revision<0||!Number.isFinite(s.changedAt)||s.changedAt<1||!s.data||Array.isArray(s.data)||typeof s.data!=='object'||enc.encode(JSON.stringify(s)).length>250000)fail('Sauvegarde invalide.');
+  const s=body.checkpoint;if(!s||s.participantId!==p.id||s.version!==1||!Number.isInteger(s.sessionId)||s.sessionId<1||s.sessionId>16||!kinds.has(s.kind)||!Number.isInteger(s.revision)||s.revision<0||!Number.isFinite(s.changedAt)||s.changedAt<1||!s.data||Array.isArray(s.data)||typeof s.data!=='object'||enc.encode(JSON.stringify(s)).length>250000)fail('Sauvegarde invalide.');
   const stored=await database('rpc/course_2ac_store_checkpoint',{method:'POST',body:JSON.stringify({p_participant_id:p.id,p_device_id:auth.deviceId,p_session_id:s.sessionId,p_kind:s.kind,p_expected_revision:s.revision,p_snapshot:{version:1,changedAt:s.changedAt,data:s.data,...(s.kind==='workshop'?{workshopProgress:workshopEvidence(s.sessionId,s.data)}:{})}})});
   return stored.saved?{body:{saved:true,revision:stored.checkpoint.revision},status:200}:{body:{error:'Une sauvegarde plus récente existe.',checkpoint:stored.checkpoint?checkpoint(stored.checkpoint):null},status:409};
  }

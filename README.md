@@ -1,4 +1,4 @@
-# LAB·2AC — 15 séances d’informatique
+# LAB·2AC — 16 séances d’informatique
 
 ## Version 2
 
@@ -7,7 +7,7 @@
 - tableau professeur complété par un aperçu des réponses, les pourcentages et les statistiques par élève ;
 - export CSV lisible dans Excel avec une ligne par question et des colonnes distinctes pour les scores.
 
-Parcours bilingue français–arabe destiné aux élèves de 2AC. Chaque séance dure deux heures et privilégie la manipulation : exercices progressifs, situations-problèmes, ateliers, images réelles, évaluations et trace écrite.
+Parcours bilingue français–arabe destiné aux élèves de 2AC. Il comprend quinze séances de deux heures et une séance de révision d’une heure. Le parcours privilégie la manipulation : exercices progressifs, situations-problèmes, ateliers, images réelles, évaluations et trace écrite.
 
 ## Vue d’ensemble du projet
 

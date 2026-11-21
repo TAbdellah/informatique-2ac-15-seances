@@ -56,7 +56,7 @@ export default function TeacherCourseAccess() {
       if (request !== requestRef.current || teacherToken() !== token) return;
       const expiresAt = Date.parse(result.expiresAt);
       if (result.role !== "teacher" || !Number.isFinite(expiresAt) || expiresAt <= Date.now()
-        || !Array.from({ length: 15 }, (_, i) => i + 1).every(id => result.sessionIds.includes(id))) {
+        || !Array.from({ length: 16 }, (_, i) => i + 1).every(id => result.sessionIds.includes(id))) {
         throw Object.assign(new Error("Votre session professeur a expiré. Reconnectez-vous."), { status: 401 });
       }
       const next = { token, expiresAt };
@@ -125,7 +125,7 @@ export default function TeacherCourseAccess() {
       <span className="teacher-course-symbol"><GraduationCap size={32} /></span>
       <p className="teacher-course-eyebrow">LAB·2AC · ACCÈS ENSEIGNANT</p>
       <h1>Vos cours, en accès libre.</h1>
-      <p>Ouvrez les 15 séances et rejoignez immédiatement l’exercice à expliquer à votre classe.</p>
+      <p>Ouvrez les 16 séances et rejoignez immédiatement l’exercice à expliquer à votre classe.</p>
       <form onSubmit={login}>
         <label htmlFor="teacher-course-password"><LockKeyhole size={16} /> Mot de passe professeur</label>
         <input id="teacher-course-password" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
@@ -140,7 +140,7 @@ export default function TeacherCourseAccess() {
   return <div className="teacher-course-root">
     <Dialog open={resetOpen} onOpenChange={open => { setResetOpen(open); if (open) setResetStatus(null); }}>
       <header className="teacher-course-bar">
-        <div><GraduationCap size={23} /><span><strong>Mode professeur</strong><small>15 séances ouvertes · navigation libre · démonstration sans note élève</small></span></div>
+        <div><GraduationCap size={23} /><span><strong>Mode professeur</strong><small>16 séances ouvertes · navigation libre · démonstration sans note élève</small></span></div>
         <nav aria-label="Compte professeur">
           <a href="../"><ArrowLeft size={16} /> Tableau de bord</a>
           <DialogTrigger asChild><button type="button"><Trash2 size={16} /> Effacer mes réponses</button></DialogTrigger>

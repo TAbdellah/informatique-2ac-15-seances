@@ -65,7 +65,7 @@ const payload={action:'submit',id:crypto.randomUUID(),participantId:learner.id,s
   r=await request({action:'teacher_course',token:signed});equal(r.status,401,'expired and learner sessions cannot open teacher course');
  }
  r=await request({action:'teacher_course',token:token+'forged'});equal(r.status,401,'forged teacher session rejected');
- unlocked=false;r=await request({action:'teacher_course',token});equal(r.status,200,'teacher can demonstrate locked lessons');equal(r.body.role,'teacher');equal(r.body.sessionIds,Array.from({length:15},(_,i)=>i+1),'all fifteen sessions privately available');equal(Date.parse(r.body.expiresAt)>Date.now(),true,'trusted expiration returned');equal(databaseWrites,beforeWrites,'teacher access never changes database or student permissions');
+ unlocked=false;r=await request({action:'teacher_course',token});equal(r.status,200,'teacher can demonstrate locked lessons');equal(r.body.role,'teacher');equal(r.body.sessionIds,Array.from({length:16},(_,i)=>i+1),'all sixteen sessions privately available');equal(Date.parse(r.body.expiresAt)>Date.now(),true,'trusted expiration returned');equal(databaseWrites,beforeWrites,'teacher access never changes database or student permissions');
  r=await request({...payload,id:crypto.randomUUID()});equal(r.status,423,'teacher course grant does not unlock student submissions');equal(databaseWrites,beforeWrites,'locked student submission remains unwritten');
  console.log(JSON.stringify({passed:true,assertions,fullAnswerBytes:Buffer.byteLength(JSON.stringify(fullAnswer))}));
 })().catch(e=>{console.error(e);process.exitCode=1});

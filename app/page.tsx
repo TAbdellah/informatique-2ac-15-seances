@@ -71,6 +71,7 @@ import { WorkshopSummary, WorkshopSummaryLink, workshopSummaryTitle } from "./wo
 import { normalizeAnswer, unit1DraftPercent } from "../lib/workshop-progress";
 import { rememberWorkshopAttempts, workshopAttemptKey } from "../lib/workshop-attempt-cache";
 import Session4Lesson from "./session4-lesson";
+import RevisionWorkshop from "./revision-workshop";
 import {
   getSessionAccess,
   registerParticipant,
@@ -143,6 +144,12 @@ function session3PreviewTab(): ViewTab | null {
   if (preview === "session3-trace") return "trace";
   if (preview === "session3-evaluation") return "quiz";
   return null;
+}
+
+function session5RevisionPreview(): boolean {
+  if (process.env.NEXT_PUBLIC_REVISION_PREVIEW === "true") return true;
+  if (process.env.NODE_ENV !== "development" || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("preview") === "session5-revision";
 }
 
 const ui = {
@@ -466,10 +473,10 @@ function Sidebar({
         <div className="progress-panel">
           <div className="progress-copy">
             <span>{labels.progress}</span>
-            <strong>{completed.size}/15</strong>
+            <strong>{completed.size}/{sessions.length}</strong>
           </div>
           <div className="progress-track">
-            <span style={{ width: `${(completed.size / 15) * 100}%` }} />
+            <span style={{ width: `${(completed.size / sessions.length) * 100}%` }} />
           </div>
           <small>{completed.size} {labels.finished}</small>
         </div>
@@ -618,15 +625,15 @@ function Dashboard({
     <div className="dashboard page-enter">
       <section className="dashboard-hero">
         <div className="hero-grid-mark" aria-hidden="true">
-          <span>01</span><span>05</span><span>10</span><span>15</span>
+          <span>01</span><span>05</span><span>10</span><span>16</span>
         </div>
         <div className="hero-copy">
           <div className="eyebrow"><Sparkles size={15} /> PARCOURS INTERACTIF · 2AC</div>
           <h1>
             {lang === "fr" ? (
-              <>15 séances.<br /><em>30 heures.</em><br />Un vrai laboratoire.</>
+              <>16 séances.<br /><em>31 heures.</em><br />Un vrai laboratoire.</>
             ) : (
-              <>15 حصة.<br /><em>30 ساعة.</em><br />مختبر حقيقي.</>
+              <>16 حصة.<br /><em>31 ساعة.</em><br />مختبر حقيقي.</>
             )}
           </h1>
           <p>
@@ -648,8 +655,8 @@ function Dashboard({
             <span>{Object.values(unit1Labs).reduce((total, lab) => total + lab.exercises.length, 0)}</span>
             <small>{lang === "fr" ? "exercices interactifs dans l’unité 1" : "تمرينًا تفاعليًا في الوحدة 1"}</small>
           </div>
-          <div className="hero-stat"><span>15</span><small>{labels.sessions}</small></div>
-          <div className="hero-stat"><span>30h</span><small>{lang === "fr" ? "au total" : "في المجموع"}</small></div>
+          <div className="hero-stat"><span>16</span><small>{labels.sessions}</small></div>
+          <div className="hero-stat"><span>31h</span><small>{lang === "fr" ? "au total" : "في المجموع"}</small></div>
           <div className="hero-room">
             <MonitorCog size={20} />
             <div><strong>{labels.room}</strong><span>{labels.pair} · {lang === "fr" ? "débutants accompagnés" : "دعم للمبتدئين"}</span></div>
@@ -689,7 +696,7 @@ function Dashboard({
         <div className="section-heading session-heading">
           <div>
             <span className="eyebrow">{lang === "fr" ? "FEUILLE DE ROUTE" : "خارطة الطريق"}</span>
-            <h2>{lang === "fr" ? "Les 15 séances" : "الحصص الخمس عشرة"}</h2>
+            <h2>{lang === "fr" ? "Les 16 séances" : "الحصص الست عشرة"}</h2>
           </div>
           <div className="filter-row" role="group" aria-label="Filtrer par unité">
             <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>{labels.all}</button>
@@ -711,7 +718,7 @@ function Dashboard({
               >
                 <div className="session-card-top">
                   <span className="session-index">{padTime(session.id)}</span>
-                  <span className="session-duration"><Clock3 size={13} /> 2H</span>
+                  <span className="session-duration"><Clock3 size={13} /> {(session.durationMinutes ?? 120) === 60 ? "1H" : "2H"}</span>
                 </div>
                 <div className="session-card-unit">U{session.unit} · {txt(unit.title, lang)}</div>
                 <h3>{txt(session.title, lang)}</h3>
@@ -722,7 +729,9 @@ function Dashboard({
                       ? (lang === "fr" ? "Verrouillée par le professeur" : "مقفلة من طرف الأستاذ")
                       : `${labels.open} · ${session.unit === 1
                       ? `${unit1Labs[session.id as 1 | 2 | 3].exercises.length} ${lang === "fr" ? "exercices" : "تمرينًا"}`
-                      : `85 min ${lang === "fr" ? "pratique" : "تطبيق"}`}`}
+                      : session.id === 5
+                        ? (lang === "fr" ? "Révision guidée + bilan" : "مراجعة موجهة وحصيلة")
+                        : `85 min ${lang === "fr" ? "pratique" : "تطبيق"}`}`}
                   </span>
                   {!unlockedSessions.has(session.id) ? <LockKeyhole size={18} /> : done ? <CheckCircle2 size={19} /> : <ArrowRight size={19} />}
                 </div>
@@ -2899,6 +2908,7 @@ function SessionPage({
     showTab("trace");
   }
   if (session.id === 4) return <Session4Lesson student={student} activeTab={activeTab} onTab={onTab} onBack={onBack} onChangeStudent={onChangeStudent} onRecordSubmission={onRecordSubmission} />;
+  if (session.id === 5) return <RevisionWorkshop student={student} completed={completed} onBack={onBack} onChangeStudent={onChangeStudent} onToggleCompleted={onToggleCompleted} onRecordSubmission={onRecordSubmission} />;
   return (
     <div className={`session-page page-enter unit-${session.unit}`}>
       <div className="session-student-identity">
@@ -2988,9 +2998,10 @@ export default function HomePage() {
         setIdentityLoaded(true);
         return;
       }
+      const preview5 = session5RevisionPreview();
       const preview3Tab = session3PreviewTab();
-      const previewTab = preview3Tab ?? session2PreviewTab();
-      const previewSessionId = preview3Tab ? 3 : 2;
+      const previewTab = preview5 ? "mission" : (preview3Tab ?? session2PreviewTab());
+      const previewSessionId = preview5 ? 5 : (preview3Tab ? 3 : 2);
       if (previewTab) {
         const previewProfile: StudentProfile = {
           id: "00000000-0000-4000-8000-000000000002",
@@ -3244,7 +3255,7 @@ export default function HomePage() {
     setActiveTab(tab);
     if(studentProfile)saveSnapshot(studentProfile.id,id,"view",{activeTab:tab});
     setSidebarOpen(false);
-    setTimerSeconds(7200);
+    setTimerSeconds((sessions.find(session => session.id === id)?.durationMinutes ?? 120) * 60);
     setTimerRunning(false);
     window.history.replaceState(null, "", `#seance-${id}`);
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });

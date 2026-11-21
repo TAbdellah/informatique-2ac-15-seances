@@ -261,7 +261,7 @@ function readFilters(value: unknown): Filters {
     className: /^2\/[1-9]$/.test(requestedClass) ? requestedClass : "",
     groupName: requestedGroup === "1" || requestedGroup === "2" ? requestedGroup : "",
     sessionId:
-      Number.isInteger(requestedSession) && requestedSession >= 1 && requestedSession <= 15
+      Number.isInteger(requestedSession) && requestedSession >= 1 && requestedSession <= 16
         ? requestedSession
         : null,
     search: cleanText(raw.search, 80).toLocaleLowerCase("fr"),
@@ -497,7 +497,7 @@ async function sessionIsUnlocked(sessionId: number) {
 
 async function updateSessionAccess(sessionIdValue: unknown, unlockedValue: unknown) {
   const sessionId = Number(sessionIdValue);
-  if (!Number.isInteger(sessionId) || sessionId < 1 || sessionId > 15 || typeof unlockedValue !== "boolean") {
+  if (!Number.isInteger(sessionId) || sessionId < 1 || sessionId > 16 || typeof unlockedValue !== "boolean") {
     throw new Error("Invalid session access update");
   }
   await database(`course_2ac_session_access?session_id=eq.${sessionId}`, {
@@ -563,7 +563,7 @@ Deno.serve(async (request) => {
         !activityId ||
         !Number.isInteger(sessionId) ||
         sessionId < 1 ||
-        sessionId > 15 ||
+        sessionId > 16 ||
         encoder.encode(responseText).length > 12000 ||
         ((score === null) !== (maxScore === null)) ||
         (score !== null && (score < 0 || score > 1000 || maxScore === null || maxScore < 1 || maxScore > 1000 || score > maxScore)) ||
@@ -600,7 +600,7 @@ Deno.serve(async (request) => {
     if (body.action === "teacher_course") {
       // A private demonstration grant, never a change to student session access.
       const payload = JSON.parse(decoder.decode(fromBase64url(String(body.token).split(".")[0]))) as { exp: number };
-      return json({ role: "teacher", sessionIds: Array.from({ length: 15 }, (_, i) => i + 1), expiresAt: new Date(payload.exp * 1000).toISOString() }, 200, headers);
+      return json({ role: "teacher", sessionIds: Array.from({ length: 16 }, (_, i) => i + 1), expiresAt: new Date(payload.exp * 1000).toISOString() }, 200, headers);
     }
     const learningAdmin = await learningService.adminAction(body);
     if (learningAdmin) return json(learningAdmin, 200, headers);

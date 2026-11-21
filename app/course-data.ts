@@ -28,6 +28,7 @@ export type TraceSection = {
 export type CourseSession = {
   id: number;
   unit: 1 | 2 | 3 | 4;
+  durationMinutes?: number;
   title: LocalizedText;
   subtitle: LocalizedText;
   mission: LocalizedText;
@@ -56,8 +57,8 @@ export const units = [
     id: 2,
     short: "U2",
     title: t("Réseau & communication", "الشبكة والتواصل"),
-    sessions: 1,
-    hours: 2,
+    sessions: 2,
+    hours: 3,
     accent: "violet",
   },
   {
@@ -402,6 +403,37 @@ export const sessions: CourseSession[] = [
   session4,
   {
     id: 5,
+    unit: 2,
+    durationMinutes: 60,
+    title: t("Révision générale : prêt pour les évaluations", "مراجعة شاملة: الاستعداد للتقييمين"),
+    subtitle: t("Séances 1 à 4 · entraînement ciblé et bilan final", "الحصص من 1 إلى 4 · تدريب موجه وحصيلة نهائية"),
+    mission: t(
+      "Réviser les notions essentielles des deux évaluations et repérer les derniers points à renforcer.",
+      "مراجعة المفاهيم الأساسية للتقييمين وتحديد آخر النقاط التي تحتاج إلى دعم."
+    ),
+    situation: t(
+      "Les évaluations approchent. Tu disposes d’une heure pour vérifier tes connaissances sur l’information, le matériel, le système et le réseau local.",
+      "اقترب موعد التقييمين. لديك ساعة للتحقق من معارفك حول المعلومات والمكونات والنظام والشبكة المحلية."
+    ),
+    objectives: [
+      t("Mobiliser les acquis des séances 1 à 3 pour préparer l’évaluation 1.", "توظيف مكتسبات الحصص 1 إلى 3 للاستعداد للتقييم الأول."),
+      t("Mobiliser les acquis de la séance 4 pour préparer l’évaluation 2.", "توظيف مكتسبات الحصة 4 للاستعداد للتقييم الثاني."),
+      t("Lire un bilan personnel et cibler les notions à revoir.", "قراءة حصيلة شخصية وتحديد المفاهيم التي يجب مراجعتها."),
+    ],
+    workshops: [
+      { label: "A", duration: 25, text: t("Information, traitement, matériel, capacités, système et fichiers.", "المعلومات والمعالجة والمكونات والسعات والنظام والملفات.") },
+      { label: "B", duration: 25, text: t("Réseau local, équipements, topologies, adresses IP et commandes.", "الشبكة المحلية والتجهيزات والطوبولوجيات وعناوين IP والأوامر.") },
+      { label: "C", duration: 10, text: t("Bilan de préparation et accès aux deux évaluations.", "حصيلة الاستعداد والانتقال إلى التقييمين.") },
+    ],
+    deliverable: t("Toutes les questions corrigées et un bilan personnel de préparation.", "تصحيح جميع الأسئلة والحصول على حصيلة شخصية للاستعداد."),
+    trace: [
+      t("Cette séance est un entraînement : le bilan n’est pas une note officielle.", "هذه الحصة تدريب: الحصيلة ليست نقطة رسمية."),
+    ],
+    vocabulary: [t("Révision", "مراجعة"), t("Bilan", "حصيلة"), t("Évaluation", "تقييم")],
+    quiz: [],
+  },
+  {
+    id: 6,
     unit: 3,
     title: t("Premiers pas dans Excel", "الخطوات الأولى في Excel"),
     subtitle: t("Cellules, données et calculs", "الخلايا والبيانات والحساب"),
@@ -428,7 +460,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 6,
+    id: 7,
     unit: 3,
     title: t("Formules et recopie", "الصيغ والنسخ"),
     subtitle: t("Calculer vite sans recommencer", "الحساب بسرعة دون إعادة العمل"),
@@ -455,7 +487,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 7,
+    id: 8,
     unit: 3,
     title: t("Les fonctions essentielles", "الدوال الأساسية"),
     subtitle: t("SOMME, MOYENNE, MIN et MAX", "SOMME وMOYENNE وMIN وMAX"),
@@ -482,7 +514,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 8,
+    id: 9,
     unit: 3,
     title: t("Présenter pour comprendre", "التنسيق من أجل الفهم"),
     subtitle: t("Mise en forme et graphiques", "التنسيق والمبيانات"),
@@ -509,7 +541,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 9,
+    id: 10,
     unit: 3,
     title: t("Décider avec SI", "اتخاذ القرار باستعمال SI"),
     subtitle: t("Conditions et références absolues", "الشروط والمراجع المطلقة"),
@@ -536,7 +568,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 10,
+    id: 11,
     unit: 3,
     title: t("Projet Excel : gérer un événement", "مشروع Excel: تدبير نشاط"),
     subtitle: t("Synthèse, contrôle et présentation", "التركيب والتحقق والعرض"),
@@ -563,7 +595,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 11,
+    id: 12,
     unit: 4,
     title: t("Commander la tortue", "توجيه السلحفاة"),
     subtitle: t("Instructions et repérage", "التعليمات والتموقع"),
@@ -590,7 +622,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 12,
+    id: 13,
     unit: 4,
     title: t("Dessiner des figures", "رسم الأشكال"),
     subtitle: t("Angles, couleurs et remplissage", "الزوايا والألوان والتعبئة"),
@@ -617,7 +649,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 13,
+    id: 14,
     unit: 4,
     title: t("Répéter intelligemment", "التكرار بذكاء"),
     subtitle: t("Boucles et motifs", "الحلقات والزخارف"),
@@ -644,7 +676,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 14,
+    id: 15,
     unit: 4,
     title: t("Créer des procédures", "إنشاء الإجراءات"),
     subtitle: t("Décomposer et réutiliser", "التفكيك وإعادة الاستعمال"),
@@ -671,7 +703,7 @@ export const sessions: CourseSession[] = [
     ],
   },
   {
-    id: 15,
+    id: 16,
     unit: 4,
     title: t("Projet final : ville intelligente", "المشروع النهائي: مدينة ذكية"),
     subtitle: t("Concevoir, programmer et présenter", "التصميم والبرمجة والعرض"),

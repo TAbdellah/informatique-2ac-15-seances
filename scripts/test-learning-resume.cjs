@@ -40,7 +40,7 @@ const s4Current={version:3,shuffleRound:1,previousQuiz:s4Previous,submitted:fals
 eq(storage.mergeSnapshotData('quiz',s4Previous,s4Current).previousQuiz,s4Previous,'upgrading the old quiz retains its submitted copy');
 eq(storage.mergeSnapshotData('quiz',{...s4Current,submitted:true},{...s4Current,submitted:false}).submitted,true,'a submitted new assessment cannot revert to a draft');
 const scoring=load('lib/workshop-progress.ts'),labs=load('app/unit1-labs.ts').unit1Labs;
-for(let sessionId=1;sessionId<=15;sessionId++){
+for(let sessionId=1;sessionId<=16;sessionId++){
  const exercises=scoring.workshopExercises(sessionId);
  ok(exercises.length>0,`session ${sessionId} has a complete workshop catalogue`);
  eq(new Set(exercises.map(e=>e.id)).size,exercises.length,'exercise IDs are unique');
