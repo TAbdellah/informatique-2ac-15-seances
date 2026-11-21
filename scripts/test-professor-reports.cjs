@@ -5,7 +5,8 @@ const load=(relative,imports={},append='')=>{const exports={};vm.runInNewContext
 const catalog=load('app/session3-lab-data.ts');
 const reportModel=load('app/prof/learner-report-model.ts');
 const session4=load('app/session4-data.ts',{'./session4-video-data.ts':load('app/session4-video-data.ts')});
-const dashboard=load('app/prof/professor-dashboard.tsx',{'./learning-dashboard':{},'../session4-data':session4,'./session4-report':{},'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions,AnswerDetails,attemptExportRows};');
+const revision=load('app/revision-workshop-data.ts');
+const dashboard=load('app/prof/professor-dashboard.tsx',{'./learning-dashboard':{},'../session4-data':session4,'./session4-report':{},'./session5-report':{default:()=>null,revisionSessionSummary:()=>({attempts:0,attempted:0,successful:0,bestBilan:null,competencyText:''})},'../revision-workshop-data':revision,'../session3-lab-data':catalog,'./learner-report-model':reportModel,'@/components/ui/dialog':{},'@/lib/supabase-api':{}},'\nexports.test={sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions,AnswerDetails,attemptExportRows};');
 const {sessionSummaryForAttempts,SessionLearningReport,pedagogicalSessions}=dashboard.test;
 const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
 let assertions=0;const equal=(a,b,msg)=>{assert.deepEqual(JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(b)),msg);assertions++},ok=(value,msg)=>{assert.ok(value,msg);assertions++};
@@ -30,4 +31,11 @@ const csvRows=dashboard.test.attemptExportRows(newCopy);equal(csvRows.length,3,'
 const s4Report=load('app/prof/session4-report.tsx',{'../session4-data':session4}).default;
 html=renderToStaticMarkup(React.createElement(s4Report,{attempts:[newCopy,attempt(4,session4.session4LabEvaluationId,{score:20,maxScore:20})],onOpenAttempt:()=>{}}));
 ok(html.includes('3/20'),'the teacher report prioritizes the current rubric');ok(html.includes('4 missions'),'the teacher report describes the new evaluation');
+const session5ReportModule=load('app/prof/session5-report.tsx',{'../revision-workshop-data':revision});
+const revisionAttempts=revision.revisionWorkshopTargets.map((target,index)=>attempt(5,target.id,{activityType:'workshop',isCorrect:index<8,score:index<8?1:0,maxScore:1}));
+const revisionBilan=attempt(5,revision.revisionBilanActivityId,{activityType:'quiz',score:15.5,maxScore:20,responseJson:JSON.stringify({firstScores:{information:3}})});
+const revisionSummary=session5ReportModule.revisionSessionSummary([...revisionAttempts,revisionBilan]);
+equal(revisionSummary.successful,8,'the revision report counts each successful activity once');equal(revisionSummary.bestBilan.score,15.5,'the preparation score remains visible on twenty');
+html=renderToStaticMarkup(React.createElement(session5ReportModule.default,{attempts:[...revisionAttempts,revisionBilan],onOpenAttempt:()=>{}}));
+for(const text of ['SÉANCE 05','8/16','15.5/20','Information &amp; traitement','Réseau local'])ok(html.includes(text),'S5 report displays '+text);
 console.log(JSON.stringify({passed:true,assertions}));

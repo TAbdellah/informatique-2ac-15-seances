@@ -6,6 +6,8 @@ import {teacherLearningAnalytics, type LearningAnalytics} from "@/lib/supabase-a
 import { session3Lab } from "../session3-lab-data";
 import { session4AllActivities, session4AppliedEvaluationId, session4LabEvaluationId, session4QuizEvaluationId } from "../session4-data";
 import Session4TeacherReport from "./session4-report";
+import Session5TeacherReport, { revisionSessionSummary } from "./session5-report";
+import { revisionBilanActivityId, revisionWorkshopTargets } from "../revision-workshop-data";
 import { filterReportAttempts, initialReportScope, reportSessionIds, type ReportScope } from "./learner-report-model";
 import {
   BookOpen,
@@ -231,6 +233,9 @@ const pedagogicalSessions = {
 } as const;
 
 function activityName(attempt: Pick<Attempt, "activityId" | "activityType">) {
+  if (attempt.activityId === revisionBilanActivityId) return "Séance 5 · Bilan de préparation /20";
+  const revisionActivity = revisionWorkshopTargets.find(target => target.id === attempt.activityId);
+  if (revisionActivity) return `Séance 5 · ${revisionActivity.title}`;
   if (attempt.activityId === session4AppliedEvaluationId) return "Séance 4 · Réseau local · 4 missions pratiques /20";
   if (attempt.activityId === session4LabEvaluationId) return "Séance 4 · QCM et simulateur réseau · Évaluation /20";
   if (attempt.activityId === session4QuizEvaluationId) return "Séance 4 · Réseau local · Évaluation /20";
@@ -287,6 +292,11 @@ const answerLabels: Record<string, string> = {
   cases: "Pannes diagnostiquées",
   componentAttempts: "Composants essayés",
   repairAttempts: "Réparations essayées",
+  response: "Réponse enregistrée",
+  missionAttempt: "Vérification de la mission",
+  firstScores: "Premiers résultats par mission",
+  attempts: "Nombre de vérifications par mission",
+  passed: "Missions réussies",
 };
 
 function studentName(item: Pick<Attempt, "studentOne" | "studentTwo">) {
@@ -329,7 +339,7 @@ function displayAnswerValue(value: unknown): string {
     if (typeof localized.fr === "string" || typeof localized.ar === "string") {
       return [localized.fr, localized.ar].filter(Boolean).join(" / ");
     }
-    return JSON.stringify(value);
+    return Object.entries(value as Record<string, unknown>).map(([key, item]) => `${key} : ${displayAnswerValue(item)}`).join(" · ");
   }
   return String(value);
 }
@@ -374,6 +384,7 @@ function answerPreview(row: Attempt) {
     if (record.selectedComponent || record.selectedRepair) {
       return `${displayAnswerValue(record.selectedComponent)} → ${displayAnswerValue(record.selectedRepair)}`;
     }
+    if (record.response !== undefined) return displayAnswerValue(record.response);
     return displayAnswerValue(
       record.selectedChoice ?? record.selectedChoices ?? record.text ?? record.sequence ?? record.matches ?? record.completed,
     );
@@ -846,6 +857,15 @@ function AnswerDetails({ attempt }: { attempt: Attempt }) {
         </dl>
       );
     }
+    if (record.response !== undefined) {
+      return (
+        <dl className="prof-answer-list prof-pedagogical-answer">
+          <div><dt>Réponse de l’élève</dt><dd>{displayAnswerValue(record.response)}</dd></div>
+          {record.missionAttempt !== undefined && <div><dt>Vérification de la mission</dt><dd>{displayAnswerValue(record.missionAttempt)}</dd></div>}
+          <div><dt>Résultat</dt><dd>{attempt.isCorrect === null ? "Non évalué" : attempt.isCorrect ? "Correct" : "Incorrect"}</dd></div>
+        </dl>
+      );
+    }
     return (
       <dl className="prof-answer-list">
         {Object.entries(record).filter(([key]) => key !== "selectedIndex" && key !== "correctIndex").map(([key, value]) => (
@@ -1121,12 +1141,15 @@ export default function ProfessorDashboard() {
         "S2 - Bilan des compétences",
         "S3 - Tentatives", "S3 - Exercices réussis (/25)", "S3 - Bilan (points)", "S3 - Bilan (maximum)",
         "S3 - Bilan (%)", "S3 - Bilan des compétences",
+        "S5 - Envois", "S5 - Activités tentées (/16)", "S5 - Activités réussies (/16)",
+        "S5 - Bilan de préparation (/20)", "S5 - Bilan (%)", "S5 - Maîtrise par mission",
       ];
       const summaryRows = (data?.learners ?? []).map((learner) => {
         const learnerRows = payload.rows.filter((attempt) => attempt.participantId === learner.id);
         const session1 = sessionSummaryForAttempts(learnerRows, 1);
         const session2 = sessionSummaryForAttempts(learnerRows, 2);
         const session3 = sessionSummaryForAttempts(learnerRows, 3);
+        const session5 = revisionSessionSummary(learnerRows);
         return [
           learner.className,
           `Groupe ${learner.groupName}`,
@@ -1170,6 +1193,12 @@ export default function ProfessorDashboard() {
           session3.bestBilan?.maxScore ?? "",
           session3.evaluationPercentage ?? "",
           session3.competencies,
+          session5.attempts,
+          session5.attempted,
+          session5.successful,
+          session5.bestBilan?.score ?? "",
+          session5.bestBilan ? Math.round(100 * session5.bestBilan.score! / session5.bestBilan.maxScore!) : "",
+          session5.competencyText,
         ];
       });
       const summaryWorksheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
@@ -1520,8 +1549,9 @@ export default function ProfessorDashboard() {
                   <SessionLearningReport attempts={learnerAttempts} sessionId={2} />
                   <SessionLearningReport attempts={learnerAttempts} sessionId={3} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(3);setSelectedAttemptId(attempt.id)}} />
                   <Session4TeacherReport attempts={learnerAttempts} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(4);setSelectedAttemptId(attempt.id)}} />
-                  {!learnerAttempts.some((attempt) => [1,2,3].includes(attempt.sessionId)) && (
-                    <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1, 2 ou 3.</p></div>
+                  <Session5TeacherReport attempts={learnerAttempts} onOpenAttempt={attempt=>{setReportView("answers");setReportScope(5);setSelectedAttemptId(attempt.id)}} />
+                  {!learnerAttempts.some((attempt) => [1,2,3,4,5].includes(attempt.sessionId)) && (
+                    <div className="prof-empty"><Target size={25} /><strong>Aucun bilan disponible</strong><p>L’élève n’a pas encore envoyé de réponse pour les séances 1 à 5.</p></div>
                   )}
                 </div>
               )}

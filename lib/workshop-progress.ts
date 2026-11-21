@@ -5,6 +5,7 @@ import { guidedFileChecks, systemLabChecks, type SystemLabState } from "../app/s
 import { isWindowsState, windowsCriteria, type WindowsMode } from "../app/session3-windows-model.ts";
 import { session4Activities, session4AllActivities, session4NetworkEquipment, session4OriginalStock, type Session4Activity, type Session4LegacyActivity } from "../app/session4-data.ts";
 import { freshSession4Draft, session4ActivityChecks } from "../app/session4-model.ts";
+import { revisionWorkshopTargets } from "../app/revision-workshop-data.ts";
 
 type WorkshopType = "unit1_exercise" | "photo_challenge" | "workshop";
 export type WorkshopExercise = {
@@ -59,6 +60,14 @@ export function workshopExercises(sessionId: number, includeEarlier = false): Wo
       ...("previousId" in activity && activity.previousId
         ? {previous: {id: activity.previousId, weight: session4OriginalStock.length / session4NetworkEquipment.length}}
         : {}),
+    }));
+  }
+  if (sessionId === 5) {
+    return revisionWorkshopTargets.map(target => ({
+      id: target.id,
+      title: { fr: target.title, ar: "" },
+      type: "workshop",
+      declared: false,
     }));
   }
   const session = sessions.find(item => item.id === sessionId);

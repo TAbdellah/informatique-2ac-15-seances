@@ -1,5 +1,6 @@
 import {unit1Labs} from '../unit1-labs';
 import {session4Activities,session4AppliedEvaluationId,session4LabEvaluationId,session4QuizEvaluationId} from '../session4-data';
+import {revisionBilanActivityId,revisionWorkshopTargets} from '../revision-workshop-data';
 import {workshopExercises,workshopRows,workshopTotals,type SavedWorkshopEvidence,type WorkshopRow} from '../../lib/workshop-progress';
 import type {ActivityProgress,LearningAnalytics,RosterStudent} from '@/lib/supabase-api';
 export type Mastery='acquired'|'developing'|'not-acquired'|'unassessed';
@@ -12,6 +13,7 @@ const groups:Record<number,Array<[string,number[]]>>={
 };
 export function targetsFor(sessionId:number):Target[]{
  if(sessionId===4)return session4Activities.filter(a=>a.kind!=='practice').map(a=>({id:a.id,title:a.title.fr,type:'workshop',objective:a.objective}));
+ if(sessionId===5)return revisionWorkshopTargets.map(target=>({id:target.id,title:target.title,type:'workshop',objective:target.objective}));
  if(sessionId<=3){const lab=unit1Labs[sessionId as 1|2|3];return lab.exercises.map((e,i)=>({id:e.id,title:e.title.fr,type:'unit1_exercise',objective:groups[sessionId].find(([,ns])=>ns.includes(i+1))?.[0]||'Mettre en pratique'}))}
  return workshopExercises(sessionId).filter(exercise=>!exercise.declared).map(exercise=>({id:exercise.id,title:exercise.title.fr,type:exercise.type,objective:'Interpréter la photo de la séance'}));
 }
@@ -77,6 +79,7 @@ export function learnerProgress(data: LearningAnalytics, student: RosterStudent,
  const best=(id:string)=>activities.filter(a=>a.activityId===id&&a.bestScore!==null&&a.maxScore!==null&&a.maxScore>0).sort((a,b)=>(b.bestScore!/b.maxScore!)-(a.bestScore!/a.maxScore!))[0];
  let grade:number|null=null,gradeLabel='Évaluation non remise';
  if(sessionId===4){const a=best(session4AppliedEvaluationId)??best(session4LabEvaluationId)??best(session4QuizEvaluationId);if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel=a.activityId===session4AppliedEvaluationId?'Réseau local · 4 missions pratiques /20':a.activityId===session4LabEvaluationId?'Réseau local · QCM et simulateur /20':'Réseau local · 4 situations /20'}}
+ else if(sessionId===5){const a=best(revisionBilanActivityId);if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='Bilan de préparation · première réponse /20'}}
  else if(sessionId===3){const a=best('session-3-bilan-situations-v5');if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='Bilan en trois situations'}}
  else if(sessionId===2){const q=best('session-2-quiz'),a=best('s2-evaluation-assembler'),r=best('s2-evaluation-depanner');if(q&&a&&r){grade=20*(q.bestScore!+a.bestScore!+r.bestScore!)/(q.maxScore!+a.maxScore!+r.maxScore!);gradeLabel='Assembler + dépanner + QCM'}else if(q||a||r)gradeLabel='Évaluation en partie remise'}
  else{const a=best(`session-${sessionId}-quiz`);if(a){grade=20*a.bestScore!/a.maxScore!;gradeLabel='QCM · meilleure note'}}
