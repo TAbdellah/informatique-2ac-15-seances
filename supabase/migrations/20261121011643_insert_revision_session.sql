@@ -1,4 +1,4 @@
--- Insère la séance de révision en position 5 sans perdre ni mélanger
+-- Ajoute la séance de révision en position 5 sans perdre ni mélanger
 -- les enregistrements des anciennes séances 5 à 15.
 
 begin;
